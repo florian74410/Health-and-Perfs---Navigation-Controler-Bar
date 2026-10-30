@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "health-perfs-bar"
+version = "0.1.0"
+description = "Transparent desktop HUD and declarative extension host"
+requires-python = ">=3.10"
+dependencies = ["PySide6-Essentials>=6.8,<6.9"]
+
+[project.scripts]
+healthbar = "healthbar.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
