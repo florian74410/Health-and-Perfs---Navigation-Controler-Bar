@@ -13,6 +13,9 @@ Vérifications locales sur Linux, Qt 6.8.3, rendu offscreen :
 - Inspection visuelle de docs/preview.png à 2048 × 205.
 - Build PyInstaller Linux réussi ; lancement du binaire autonome avec --preview vérifié.
 
+Le premier pipeline GitHub a également passé les 10 tests sur Windows Server 2022
+et fabriqué le Setup Windows. Cela ne remplace pas une ouverture manuelle sur Windows 10/11.
+
 Les tests utilisent des profils temporaires et ne modifient pas l’autostart de la session de travail.
 Les avertissements Qt « propagateSizeHints / raise » sont propres au plugin de rendu offscreen.
 

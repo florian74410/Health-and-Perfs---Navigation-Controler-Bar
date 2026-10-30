@@ -6,6 +6,8 @@ Télécharger puis extraire le dépôt, lancer Install-Linux.sh / Install-Window
 Install-macOS.command. Python 3.10+ et Internet sont nécessaires pour installer Qt dans un
 environnement dédié. Sous Linux il faut un environnement graphique et le module venv de Python.
 L’installateur ne touche pas aux autres applications ni aux privilèges administrateur.
+Si Qt signale une bibliothèque graphique absente sous Ubuntu/Mint, les dépendances système
+usuelles sont `libegl1`, `libopengl0`, `libxcb-cursor0` et `libxkbcommon-x11-0`.
 
 Le premier assistant propose placement, écran, épaisseur, opacité, rétractation et autostart.
 Annuler ferme la configuration sans enregistrer ces choix ; le runtime installé reste en place.
@@ -23,7 +25,7 @@ concernées et les tags v*. Télécharger l’artefact correspondant dans l’on
   La première ouverture configure le profil utilisateur. Paquet non signé/non notarisé à ce stade.
 
 Le packaging Linux est produit sur Ubuntu 22.04, Windows sur Windows Server 2022,
-macOS sur le runner macos-14 arm64. Ces cibles sont des builds, pas une certification de tous les OS.
+macOS sur le runner macos-15 arm64. Ces cibles sont des builds, pas une certification de tous les OS.
 
 ## Autostart
 
