@@ -1,25 +1,25 @@
 {
   "project": "CYBER NEXUS HUD",
   "application": "NovaBar",
-  "version": "0.3.1",
-  "source_commit": "19af03a855f0d39f49d3bd49b0343da0e3c6dc84",
+  "version": "0.3.3",
+  "source_commit": "f8ff92582b134f18b4d903a07082343476576fab",
   "contains_novabar": true,
   "files": {
     "Linux/CyberNexusHUD-Linux-x86_64.run": {
-      "sha256": "b005e42bc50848bb5a48cb078f335d41d18e2b2c2b578d8793a61af4f144d0c2",
-      "bytes": 73277304
+      "sha256": "5a97819c356915448b33a77f7eb924e12a9bb1f8919d85f7e66ecbb5c1728515",
+      "bytes": 73325664
     },
     "Windows/CyberNexusHUD-Setup-Windows.exe": {
-      "sha256": "20af29e8eedb0ce093c0a15894e32a927a8433af3f72473b51f4f6eecb33205f",
-      "bytes": 80487588
+      "sha256": "c7fbdc95cc0178c7b7d7c49382f6a00db1e7e061415b645a3ee228599832df8c",
+      "bytes": 80546147
     },
     "MacOS/CyberNexusHUD-macOS-arm64.dmg": {
-      "sha256": "2121c1f2b9d077c03a23357d2956a129cba554cef972b81e39701a8b62ca1727",
-      "bytes": 67263082
+      "sha256": "3ef002bad495671de0ed13dd181406a7bca9ead99f411634d5e1c101afb41aed",
+      "bytes": 67979356
     },
     "MacOS/CyberNexusHUD-macOS-x86_64.dmg": {
-      "sha256": "1d84719914fcb15993bb6d836bda058854d207a1d18a3182cf9ac03bb2610db3",
-      "bytes": 73010949
+      "sha256": "b4d7e1654f98824cb9e1077d0efa40e25704652c3c97a25b8c393a8a56f0f24f",
+      "bytes": 73075326
     }
   }
 }
