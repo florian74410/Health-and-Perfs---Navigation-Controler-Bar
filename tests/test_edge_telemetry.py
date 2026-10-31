@@ -49,9 +49,7 @@ class EdgeTelemetryTests(unittest.TestCase):
                     self.assertTrue(canvas.module_icon_rect(kind).isEmpty())
                 image = QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied)
                 image.fill(0)
-                painter = QPainter(image)
-                canvas.render(painter)
-                painter.end()
+                canvas.render(image)
                 self.assertFalse(image.isNull())
                 self.assertNotEqual(image.pixelColor(width//12, height//2).alpha(), 0)
             parent.retracted = False
