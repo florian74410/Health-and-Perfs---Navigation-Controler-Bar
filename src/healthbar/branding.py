@@ -5,6 +5,8 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QRadialGr
 from PySide6.QtWidgets import QWidget
 
 
+from .ui_kit import QColor
+
 class BrandHeader(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,4 +78,7 @@ class BrandHeader(QWidget):
             center=QPointF(43, 10+phase/.4*40)
             grad=QRadialGradient(center,max(1,radius*2.5));grad.setColorAt(0,QColor("#eaffb2"));grad.setColorAt(.35,QColor("#6dff9c"));grad.setColorAt(1,QColor("#0000ff00"))
             p.setPen(Qt.PenStyle.NoPen);p.setBrush(grad);p.drawEllipse(center,radius*2.5,radius*2.5)
-        p.restore();p.end()
+        p.restore()
+        from .ui_kit import chip
+        chip(p,QRectF(716,17,86,100))
+        p.end()

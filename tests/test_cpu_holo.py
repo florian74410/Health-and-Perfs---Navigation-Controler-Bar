@@ -52,7 +52,7 @@ class CPUHoloTests(unittest.TestCase):
                 bar.registry.set_enabled(manifest["id"],True)
                 received=[]
                 bar.canvas.module_activated.connect(received.append)
-                QTest.mouseClick(bar.canvas, Qt.MouseButton.LeftButton, pos=QPoint(18,max(10,bar.canvas.height()//3)))
+                QTest.mouseClick(bar.canvas, Qt.MouseButton.LeftButton, pos=bar.canvas.module_icon_rect("cpu").center())
                 self.qt.processEvents()
                 self.assertIn("cpu", received)
                 self.assertTrue(bar.holo.isVisible())
