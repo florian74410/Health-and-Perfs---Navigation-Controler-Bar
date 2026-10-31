@@ -221,6 +221,8 @@ class Bar(QWidget):
     def open_module_holo(self, slot):
         # The host supplies the CPU hologram; ZIP modules only declare capabilities.
         if slot != "cpu":
+            if self.holo.isVisible() and not self.holo.pinned:
+                self.holo.close_panel()
             return
         enabled = any(item["enabled"] and item["id"] == "cpu-manager-viewer" and
                       item.get("holo_view") == "cpu-core-matrix"
@@ -397,6 +399,10 @@ class Bar(QWidget):
     def plugins(self):
         self.run_dialog(PluginsDialog(self.registry, self))
         self.canvas.refresh_plugins()
+        if self.holo.isVisible() and not any(item["enabled"] and
+                item.get("holo_view") == "cpu-core-matrix"
+                for item in self.registry.installed()):
+            self.holo.close_panel()
 
     def open_folder(self):
         data_dir().mkdir(parents=True, exist_ok=True)
