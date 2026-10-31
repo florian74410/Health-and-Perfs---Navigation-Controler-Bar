@@ -96,6 +96,11 @@ class UnifiedTests(unittest.TestCase):
             manager.save_text()
             self.assertEqual(json.loads((self.root/'data/nova-terminal.json').read_text())['size'],14)
             self.assertEqual(space.panes[0].view.font().pointSize(),14)
+            view=space.panes[0].view
+            view.session.stream.feed(b'Font check');view.render_screen()
+            effective=view.document().begin().begin().fragment().charFormat().font()
+            self.assertEqual(effective.family(),manager.text['font'])
+            self.assertEqual(effective.pointSize(),14)
             self.assertIn('Formats',[a.text() for a in manager.edit_menu.actions()])
             self.assertIn('Texte',[a.text() for a in manager.edit_menu.actions()])
         finally:manager.window.close()

@@ -1,6 +1,13 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 
+## 0.7.1 — police du gestionnaire de terminaux
+
+- Applique la famille de police choisie au document terminal, en conservant la taille et les couleurs ANSI.
+- Vérifie la police effective rendue, et pas uniquement la préférence du widget.
+
+
+
 ## 0.7.0 — NOVA NEXUS HD complet
 
 - Unifie le runtime 0.6.11 et la fondation NOVA NEXUS HD dans l'installateur et Upgrade.

@@ -180,7 +180,9 @@ class TerminalView(W.QTextEdit):
                 previous=style;group+=char.data
             if group:spans.append(self.span(previous,group))
             lines.append(''.join(spans))
-        self.setHtml('<pre style="margin:0;font-family:monospace;">'+'\n'.join(lines)+'</pre>')
+        family=html.escape(self.font().family().replace("'", ""),quote=True)
+        self.setHtml('<pre style="margin:0;font-family:\'%s\';font-size:%dpt;">' %
+                     (family,self.font().pointSize())+'\n'.join(lines)+'</pre>')
 
     @staticmethod
     def span(style,text):

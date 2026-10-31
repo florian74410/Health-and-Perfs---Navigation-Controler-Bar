@@ -1,10 +1,10 @@
 ## ⚡ NovaBar 0.6.11 — Cockpit inférieur
 
-## NOVA NEXUS HD 0.7.0
+## NOVA NEXUS HD 0.7.1
 
 Le pack complet réunit HUD/Holo, huit plugins, deux panneaux latéraux, cockpit inférieur réglable, NEXUS, NOVA Explorer, NOVA Terminal Manager et thème GTK3/XFWM4. Activation et restauration du bureau depuis les paramètres ; Upgrade conserve les profils.
 
-[Installation et nouveautés](docs/UPDATE_V070.md) · [Installateur Linux complet](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.0/CyberNexusHUD-Linux-x86_64.run)
+[Installation et nouveautés](docs/UPDATE_V070.md) · [Installateur Linux complet](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.1/CyberNexusHUD-Linux-x86_64.run)
 
 ![Gestionnaire NOVA Terminal — aperçu de démonstration](Assets/Previews/nova-v070-terminal-manager.png)
 

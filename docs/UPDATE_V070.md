@@ -1,4 +1,6 @@
-# NOVA NEXUS HD 0.7.0 — pack de bureau et gestionnaire de terminaux
+# NOVA NEXUS HD 0.7.1 — pack de bureau et gestionnaire de terminaux
+
+La 0.7.1 corrige aussi l’application effective de la police dans les panneaux de terminal.
 
 Cette version réunit le runtime NovaBar 0.6.11 et la fondation NOVA NEXUS HD dans un même paquet natif. Le runtime exact est également fourni à Upgrade. Aucun téléchargement de module supplémentaire n'est nécessaire après l'installation du paquet complet.
 
@@ -16,7 +18,7 @@ Cette version réunit le runtime NovaBar 0.6.11 et la fondation NOVA NEXUS HD da
 
 ## Installation complète et activation
 
-Télécharger [l'installateur Linux autonome](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.0/CyberNexusHUD-Linux-x86_64.run), puis le lancer sans sudo :
+Télécharger [l'installateur Linux autonome](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.1/CyberNexusHUD-Linux-x86_64.run), puis le lancer sans sudo :
 
 ```bash
 cd "$(xdg-user-dir DOWNLOAD)"
@@ -25,13 +27,13 @@ sh CyberNexusHUD-Linux-x86_64.run
 
 L'assistant affiche les composants embarqués et permet de choisir les panneaux visibles. Cocher **Activer le bureau NOVA** pour sélectionner aussi le thème GTK3/XFWM4, ouvrir les dossiers avec NOVA Explorer par défaut et activer les deux barres et les deux colonnes. Les anciens réglages sont sauvegardés. Le système Linux et la session XFCE continuent d'assurer le fonctionnement du bureau.
 
-Le paquet [DEB 0.7.0](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.0/NovaBar_0.7.0_amd64.deb) contient les mêmes composants. Après installation, l'activation globale est accessible dans **Paramètres → Bureau NOVA**.
+Le paquet [DEB 0.7.1](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.1/NovaBar_0.7.1_amd64.deb) contient les mêmes composants. Après installation, l'activation globale est accessible dans **Paramètres → Bureau NOVA**.
 
 ## Depuis NovaBar 0.6.11
 
 Utiliser **Paramètres → Upgrade**. Les réglages, profils, sources et activations des extensions sont conservés. Les capteurs intégrés manquants sont ajoutés ; une extension personnalisée ou plus récente est préservée. L'installation est vérifiée avant activation, puis seuls les anciens dossiers de runtime appartenant à NovaBar sont nettoyés. Le paquet DEB système peut rester installé comme point d'entrée ; il n'est pas désinstallé par le gestionnaire de runtimes utilisateur.
 
-Les anciens thèmes exportés sous `NOVA-NEXUS-HD` sont copiés dans un dossier `NOVA-NEXUS-HD.previous-0.7.0` avant le nouvel export. Aucun thème tiers n'est supprimé.
+Les anciens thèmes exportés sous `NOVA-NEXUS-HD` sont copiés dans un dossier `NOVA-NEXUS-HD.previous-0.7.1` avant le nouvel export. Aucun thème tiers n'est supprimé.
 
 ## NOVA Terminal Manager
 
