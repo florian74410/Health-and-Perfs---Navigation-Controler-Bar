@@ -27,18 +27,28 @@ class Settings:
     autostart: bool = False
     configured: bool = False
     screen: int = 0
+    length_percent: int = 100
+    alignment: str = "center"
+    refresh_seconds: int = 2
+    shell_dir: str = ""
+    theme: str = "cyber-futuriste"
 
     def validate(self):
-        if self.position not in ("top", "bottom", "right"):
+        if self.position not in ("top", "bottom", "right") or self.alignment not in ("left", "center", "right"):
             raise ValueError("Position invalide")
         for name, lo, hi in (("thickness", 120, 360), ("opacity", 0, 100),
-                             ("hide_seconds", 3, 120), ("screen", 0, 64)):
+                             ("hide_seconds", 3, 120), ("screen", 0, 64),
+                             ("length_percent", 25, 100), ("refresh_seconds", 1, 30)):
             value = getattr(self, name)
             if type(value) is not int or not lo <= value <= hi:
                 raise ValueError(f"Préférence invalide : {name}")
         for name in ("autostart", "configured", "auto_hide"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Préférence invalide : {name}")
+        if not isinstance(self.shell_dir, str) or len(self.shell_dir) > 1024 or "\x00" in self.shell_dir:
+            raise ValueError("Dossier des scripts invalide")
+        if self.theme != "cyber-futuriste":
+            raise ValueError("Thème non reconnu")
         return self
 
     @classmethod
