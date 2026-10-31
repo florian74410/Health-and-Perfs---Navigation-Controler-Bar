@@ -237,16 +237,27 @@ class HudCanvas(QWidget):
         text(p, 469, 161, self.value("gpu_percent", 32) + "%", 26, CYAN)
         gauge(p, 630, 98, 58, self.gpu_ghz(), "GHz", "gpu")
         text(p, 603, 173, self.gpu_vram(), 15, "#b6cfff")
-        for x, w, percent, detail in [(754, 162, "44%", "14.2 / 32.0 GB"),
-                                       (964, 185, "62%", "372 / 1.0 TB")]:
-            text(p, x+w-59, 109, percent, 27)
-            meter(p, x, 122, w, .44 if percent == "44%" else .62)
-            text(p, x, 166, detail, 20)
-        for i, label in enumerate(("CPU", "GPU", "SYS")):
+        for x, w, key, demo, detail in [
+            (754, 162, "ram", "44", "14.2 / 17.8 GB"),
+            (964, 185, "disk", "62", "372 / 628 GB")
+        ]:
+            text(p, x+w-62, 109, self.value(key + "_percent", demo) + "%", 25)
+            meter(p, x, 122, w, self.fraction(key + "_percent", .44 if key == "ram" else .62))
+            text(p, x, 166, self.used_free(key, detail), 17)
+        if self.readings:
+            read, write = self.readings.get("disk_read_mbs"), self.readings.get("disk_write_mbs")
+            info = f"↓{read:.1f}  ↑{write:.1f} MB/s" if read is not None and write is not None else "I/O —"
+            text(p, 966, 179, info, 10, "#b6cfff")
+            power = self.readings.get("gpu_power_w")
+            if power is not None:
+                text(p, 466, 182, f"{power:.0f} W", 12, "#b6cfff")
+        for i, fan in enumerate(self.fans()[:3]):
             y = 96+i*29
-            text(p, 1193, y+11, label, 17)
-            meter(p, 1238, y, 69, (.68, .54, .42)[i])
-            text(p, 1318, y+10, ("1240", "1580", "980")[i]+" RPM", 12, "#b7cfff")
+            text(p, 1193, y+11, fan["name"][:5].upper(), 14)
+            meter(p, 1238, y, 69, min(1, max(0, fan["rpm"]/2500)))
+            text(p, 1318, y+10, str(fan["rpm"])+" RPM", 12, "#b7cfff")
+        if len(self.fans()) > 3:
+            text(p, 1193, 180, f"+{len(self.fans()) - 3} fans", 10, "#b7cfff")
         text(p, 1432, 115, "↓", 22, CYAN)
         text(p, 1454, 114, self.value("net_down_mbs", 12.8, 1) + " MB/s", 15)
         text(p, 1432, 143, "↑", 22, CYAN)
@@ -259,9 +270,12 @@ class HudCanvas(QWidget):
         columns = 2 if self.width() < 520 else 3
         rows = math.ceil(6/columns)
         cell_w, cell_h = self.width()/columns, self.height()/rows
-        entries = [("cpu", "CPU", "52 °C  /  2.4 GHz"), ("gpu", "GPU", "48 °C  /  1.6 GHz"),
-                   ("ram", "RAM", "14.2 / 32 GB"), ("storage", "SSD", "372 / 1000 GB"),
-                   ("fans", "FANS", "1240 RPM"), ("network", "NETWORK", "↓12.8 ↑1.6 MB/s")]
+        entries = [("cpu", "CPU", self.value("cpu_temperature_c",52)+" °C / "+self.value("cpu_frequency_ghz",2.4,1)+" GHz"),
+                   ("gpu", "GPU", self.value("gpu_temperature_c",48)+" °C / "+self.gpu_ghz()+" GHz"),
+                   ("ram", "RAM", self.used_free("ram","14.2 / 17.8 GB")),
+                   ("storage", "SSD", self.used_free("disk","372 / 628 GB")),
+                   ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
+                   ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
         for i, (kind, label, value) in enumerate(entries):
             x, y = (i % columns)*cell_w, (i // columns)*cell_h
             path = QPainterPath()
@@ -275,9 +289,12 @@ class HudCanvas(QWidget):
         scale = self.width()/240
         p.scale(scale, scale)
         h = self.height()/scale
-        entries = [("cpu", "CPU", "52 °C  •  2.4 GHz"), ("gpu", "GPU", "48 °C  •  1.6 GHz"),
-                   ("ram", "RAM", "14.2 / 32.0 GB"), ("storage", "SSD NVMe", "372 / 1.0 TB"),
-                   ("fans", "FANS", "CPU   1240 RPM"), ("network", "NETWORK", "↓12.8   ↑1.6 MB/s")]
+        entries = [("cpu", "CPU", self.value("cpu_temperature_c",52)+" °C / "+self.value("cpu_frequency_ghz",2.4,1)+" GHz"),
+                   ("gpu", "GPU", self.value("gpu_temperature_c",48)+" °C / "+self.gpu_ghz()+" GHz"),
+                   ("ram", "RAM", self.used_free("ram","14.2 / 17.8 GB")),
+                   ("storage", "SSD NVMe", self.used_free("disk","372 / 628 GB")),
+                   ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
+                   ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
         cell = h/6
         for i, (kind, title, value) in enumerate(entries):
             y = i*cell
