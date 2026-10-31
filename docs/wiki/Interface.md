@@ -62,3 +62,9 @@ Les Holo CPU (460 × 330 px) et capteurs (380 × 280 px) sont compacts, transpar
 ![Holo CPU transparent](../../Assets/Previews/novabar-v051-holo-cpu.png)
 
 *Les captures utilisent des mesures de démonstration ; leur transparence est conservée dans les fichiers PNG.*
+
+## Graphique réseau et contraste — 0.5.2
+
+Le texte est dessiné avec un contour sombre et un intérieur néon, sans fond opaque. Le Holo Réseau contient deux courbes, **UP verte** et **DOWN rouge**, et un **histogramme bleu de ping**. L’échelle de débit est à gauche, le ping en ms à droite. Le réseau conserve son historique de 120 secondes lorsque le Holo est fermé. Le panneau mesure 460 × 360 px ; les autres panneaux gardent leur format compact.
+
+[Guide 0.5.2](../UPDATE_V052.md)

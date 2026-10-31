@@ -2,6 +2,13 @@
 
 > Document de référence des fonctionnalités, validé le 31 octobre 2026. Le statut « prévu » ne signifie pas implémenté. Les versions des plugins et du runtime doivent être compatibles avant distribution.
 
+## Réalisé dans le code 0.5.2
+
+- Contour sombre des textes et boutons Holo sur fond transparent.
+- Historique réseau de 120 secondes : UP vert, DOWN rouge, ping bleu en histogramme.
+- Connexion active prioritaire et unités adaptées aux petits débits.
+- Ping ICMP borné vers 1.1.1.1, indisponibilité explicite.
+
 ## Réalisé dans le code 0.5.1
 
 - Compte-tours CPU/GPU et cadrans RAM/SSD proportionnels dans la barre compacte.
