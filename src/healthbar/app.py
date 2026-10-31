@@ -222,6 +222,12 @@ class Bar(QWidget):
         # The host supplies the CPU hologram; ZIP modules only declare capabilities.
         if slot != "cpu":
             return
+        enabled = any(item["enabled"] and item["id"] == "cpu-manager-viewer" and
+                      item.get("holo_view") == "cpu-core-matrix"
+                      for item in self.registry.installed())
+        if not enabled:
+            # The core slot remains a read-only monitor until its Holo ZIP is installed.
+            return
         if self.holo.isVisible():
             self.holo.close_panel()
             return
