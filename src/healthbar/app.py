@@ -350,7 +350,7 @@ class Bar(QWidget):
                 args = ["cmd", "/c", str(path)]
         else:
             args = ["/bin/sh", str(path)]
-        folder = data_dir() / "Repports" / "NovaBar"
+        folder = data_dir() / "App" / "Repports" / "NovaBar"
         folder.mkdir(parents=True, exist_ok=True)
         log = folder / ("shell-" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".log")
         try:
