@@ -26,7 +26,7 @@ Les modules conservent leur géométrie proportionnelle : à faible largeur, la 
 
 **TURBO⌄** : emplacement de contrôle non encore fonctionnel ; n'effectue aucun overclocking. **Console** : menu de scripts locaux du dossier choisi ; confirmation nécessaire avant exécution. **Dossier** : configuration ; **Extensions** : Plugin Control Center ; **Préférences** : réglages ; **? Wiki** : documentation GitHub dans le navigateur (v0.3.6+) ; **⤢** : hauteur ; **✕** : quitter.
 
-Un menu contextuel et l'icône système proposent les actions importantes. Les modules peuvent être réordonnés par glisser-déposer. Le clic sur le module CPU peut ouvrir sa vue Holo si le plugin correspondant est actif.
+Un menu contextuel et l'icône système proposent les actions importantes. Les modules peuvent être réordonnés par glisser-déposer. Le clic sur le logo en haut à droite de chaque plugin actif ouvre ou ferme son Holo ; le survol et le clic sur les valeurs ne l’ouvrent pas.
 
 ## ⌨️ Raccourcis
 
@@ -39,3 +39,26 @@ Un menu contextuel et l'icône système proposent les actions importantes. Les m
 ---
 
 <sub>NovaBar • CYBER NEXUS HUD • Documentation maintenue dans le dépôt. Les illustrations utilisent des valeurs d'exemple ; les sondes réelles dépendent du système et du matériel.</sub>
+
+## NovaBar 0.4 · Holo et thèmes
+
+Trois thèmes partagent le même kit UI : Blue Neon, Green Matrix, Red Blood.
+Les traces PCB parcourent toute la fenêtre et la puce NovaBar occupe l’espace des actions.
+Chaque **logo en haut à droite du plugin** est le seul déclencheur du Holo.
+Un clic ouvre les détails du plugin activé, un second clic ferme. Aucun survol ni clic sur les valeurs ne l’ouvre.
+CPU, GPU, RAM, SSD, FANS et NETWORK ont un panneau ; les données manquantes restent « — ».
+La flèche vers le haut minimise manuellement. Le bord de l’écran et la zone de notification révèlent la barre.
+Paramètres propose Always visible, Auto retract et Manual retract only, ainsi qu’un onglet Wiki.
+Always visible désactive le repli temporisé ; la flèche reste une commande manuelle explicite.
+
+## Nouveautés 0.5.1
+
+![Barre à 72 px](../../Assets/Previews/novabar-v051-normal.png)
+
+Les compte-tours CPU/GPU affichent les GHz, et les cadrans RAM/SSD affichent le pourcentage. Ils restent circulaires à toutes les hauteurs ; les valeurs sont prioritaires lorsque l’espace est trop réduit pour un cadran.
+
+Les Holo CPU (460 × 330 px) et capteurs (380 × 280 px) sont compacts, transparents jusque dans leurs tableaux et défilants. Le réglage d’opacité des modules ne remet aucun fond opaque dans les Holo.
+
+![Holo CPU transparent](../../Assets/Previews/novabar-v051-holo-cpu.png)
+
+*Les captures utilisent des mesures de démonstration ; leur transparence est conservée dans les fichiers PNG.*
