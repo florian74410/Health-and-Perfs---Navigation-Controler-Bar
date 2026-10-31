@@ -101,7 +101,7 @@ jobs:
             if [ "$attempt" = 3 ]; then exit 1; fi
             sleep 3
           done
-          hdiutil verify "$DMG
+          hdiutil verify "$DMG"
       - uses: actions/upload-artifact@v4
         with:
           name: CyberNexusHUD-${{ matrix.os }}
