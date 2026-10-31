@@ -1,3 +1,11 @@
+# NovaBar 0.6.0 — développement (non publié)
+
+- Quatrième surface facultative XFCE Cyber Skin : habillage GTK3 local, effets PCB animés transparents aux clics, 10 s de repli et couleurs liées aux thèmes ; panneau original et icônes conservés.
+- Docks Dossiers et Applications, mode multi-espaces de travail X11, activation indépendante des trois fenêtres NovaBar.
+- Logo/miniature CYBER NEXUS partagé entre icône de notification, Linux DEB et Windows EXE.
+- Module Power read-only avec détails CPU/GPU/RAM et capteurs absents explicitement notés « — » ; modules visibles configurables par profil.
+- Tests de non-régression multi-plateformes, packaging à confirmer avant toute release.
+
 # NovaBar 0.5.4 — développement (non publiée)
 
 - Barre réduite en véritable bandeau de télémétrie visible en haut, bas, gauche ou droite (au lieu de ne laisser que 4 px à l'écran).
