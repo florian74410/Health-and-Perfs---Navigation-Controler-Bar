@@ -289,7 +289,7 @@ class SettingsDialog(QDialog):
         try:
             set_enabled(updated.autostart)
             updated.save()
-        except OSError as error:
+        except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Enregistrement impossible", str(error))
             return
         self.settings.__dict__.update(updated.__dict__)
