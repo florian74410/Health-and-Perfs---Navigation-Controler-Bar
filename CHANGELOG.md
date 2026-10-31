@@ -1,6 +1,15 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 
+## 0.7.2 — zone de travail du HUD et commandes du terminal
+
+- Ancre les boutons Réduire et Fermer dans le bandeau graphite.
+- Agrandit les formats et F11 dans la zone disponible.
+- Réserve dynamiquement la hauteur visible du HUD supérieur aux fenêtres maximisées sous XFCE/X11.
+- Réduit le HUD horizontal replié à 10 px et libère sa réservation lorsqu’il est masqué ou fermé.
+
+
+
 ## 0.7.1 — police du gestionnaire de terminaux
 
 - Applique la famille de police choisie au document terminal, en conservant la taille et les couleurs ANSI.

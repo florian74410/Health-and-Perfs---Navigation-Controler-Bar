@@ -55,3 +55,8 @@ Les captures Qt utilisent des données de démonstration et un fond de présenta
 - `Wallpapers/nova-electric-blue-pcb.svg` : fond vectoriel embarqué.
 
 Régénérer les deux aperçus avec `PYTHONPATH=src python scripts/render_nova_terminal.py`.
+
+
+### 0.7.2
+
+`Previews/nova-v072-terminal-manager.png` et `Previews/nova-v072-terminal-column.png` montrent le Terminal Manager Qt avec ses commandes ancrées dans le bandeau graphite. Contenu de démonstration, aucune commande exécutée.

@@ -1,6 +1,9 @@
 > **0.6.11 :** [cockpit à grandes icônes, NEXUS organisé et icônes système](../UPDATE_V0611.md). Mise à jour via **Paramètres → Upgrade**.
 
 
+**0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.
+
+
 **0.7.1 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
 
 
