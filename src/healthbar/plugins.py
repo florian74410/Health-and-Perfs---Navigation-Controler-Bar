@@ -5,18 +5,21 @@ import re
 import shutil
 import tempfile
 import zipfile
+import stat
+from datetime import datetime
 from pathlib import Path, PurePosixPath
 from .config import data_dir
 
-API_VERSION = 1
-MAX_PACKAGE = 2 * 1024 * 1024
+API_VERSION = 2
+MAX_PACKAGE = 16 * 1024 * 1024
+MAX_UNPACKED = 32 * 1024 * 1024
 SLOTS = ("cpu", "gpu", "ram", "storage", "fans", "network")
 
 
 def validate_manifest(raw):
     if not isinstance(raw, dict):
         raise ValueError("Le manifeste doit être un objet JSON")
-    if type(raw.get("api_version")) is not int or raw["api_version"] != API_VERSION:
+    if type(raw.get("api_version")) is not int or raw["api_version"] not in (1, 2):
         raise ValueError("API de plugin incompatible")
     if not re.fullmatch(r"[a-z][a-z0-9-]{2,63}", str(raw.get("id", ""))):
         raise ValueError("Identifiant de plugin invalide")
@@ -26,10 +29,22 @@ def validate_manifest(raw):
         raise ValueError("Emplacement inconnu")
     if not isinstance(raw.get("name"), str) or not 1 <= len(raw["name"]) <= 60:
         raise ValueError("Nom du plugin invalide")
-    if raw.get("kind") != "declarative":
-        raise ValueError("Cette version accepte seulement les extensions déclaratives")
-    if set(raw) - {"id", "version", "name", "api_version", "slot", "kind", "description"}:
+    if raw.get("kind") != ("declarative" if raw["api_version"] == 1 else "builtin-sensor"):
+        raise ValueError("Type d’extension non autorisé")
+    v1 = {"id", "version", "name", "api_version", "slot", "kind", "description"}
+    v2 = v1 | {"sensor_keys", "min_ram_mb", "requires", "permissions", "optional_permissions"}
+    if set(raw) - (v1 if raw["api_version"] == 1 else v2):
         raise ValueError("Champs de manifeste non pris en charge")
+    if raw["api_version"] == 2:
+        for key in ("sensor_keys", "requires", "permissions", "optional_permissions"):
+            vals = raw.get(key, [])
+            if not isinstance(vals, list) or len(vals) > 32 or any(
+                not isinstance(v, str) or len(v) > 96 for v in vals
+            ):
+                raise ValueError("Liste de dépendances/capteurs invalide")
+        mem = raw.get("min_ram_mb", 0)
+        if type(mem) is not int or not 0 <= mem <= 65536:
+            raise ValueError("Mémoire minimale invalide")
     if not isinstance(raw.get("description", ""), str) or len(raw.get("description", "")) > 400:
         raise ValueError("Description invalide")
     return raw
@@ -67,14 +82,30 @@ class PluginRegistry:
         with zipfile.ZipFile(archive) as package:
             members = package.infolist()
             names = [item.filename for item in members]
+            if not members or len(members) > 150:
+                raise ValueError("Nombre de fichiers invalide")
+            seen = set()
+            unpacked = 0
             for item in members:
                 path = PurePosixPath(item.filename)
-                if path.is_absolute() or ".." in path.parts or "\\" in item.filename:
-                    raise ValueError("Chemin de paquet interdit")
-            # v1 has exactly one declarative manifest. No executable assets.
-            if names != ["manifest.json"] or members[0].file_size > 16384:
-                raise ValueError("Le paquet v1 doit contenir uniquement manifest.json (16 Kio max.)")
+                if (path.is_absolute() or ".." in path.parts or "\\" in item.filename
+                    or ":" in path.parts[0] or item.filename in seen
+                    or stat.S_ISLNK(item.external_attr >> 16)):
+                    raise ValueError("Chemin ou type de fichier interdit")
+                seen.add(item.filename)
+                unpacked += item.file_size
+                if unpacked > MAX_UNPACKED or (item.file_size > 4096 and
+                    item.file_size / max(1, item.compress_size) > 250):
+                    raise ValueError("Archive décompressée excessive")
+            if "manifest.json" not in seen or package.getinfo("manifest.json").file_size > 16384:
+                raise ValueError("manifest.json absent ou trop grand")
             manifest = validate_manifest(json.loads(package.read("manifest.json")))
+            if manifest["api_version"] == 1 and names != ["manifest.json"]:
+                raise ValueError("Le paquet v1 doit contenir uniquement manifest.json")
+            if manifest["api_version"] == 2 and not {
+                "README.md", "DEPENDENCY.md", "VERSION.md", "install.sh"
+            }.issubset(seen):
+                raise ValueError("Documentation de l’extension incomplète")
         return manifest, hashlib.sha256(archive.read_bytes()).hexdigest()
 
     def install(self, archive, expected_digest):
@@ -92,7 +123,19 @@ class PluginRegistry:
         with tempfile.TemporaryDirectory(dir=self.root, prefix=".stage-") as staging:
             stage = Path(staging) / manifest["id"]
             stage.mkdir()
-            (stage / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            if manifest["api_version"] == 2:
+                with zipfile.ZipFile(archive) as package:
+                    for member in package.infolist():
+                        dest = stage.joinpath(*PurePosixPath(member.filename).parts)
+                        if member.is_dir():
+                            dest.mkdir(parents=True, exist_ok=True)
+                        else:
+                            dest.parent.mkdir(parents=True, exist_ok=True)
+                            with package.open(member) as source, dest.open("wb") as output:
+                                shutil.copyfileobj(source, output)
+                            dest.chmod(0o600)  # Never execute untrusted install.sh.
+            else:
+                (stage / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
             # Updating preserves the user's activation choice. New packages start disabled.
             (stage / "state.json").write_text(json.dumps({"enabled": bool(current and current["enabled"]),
                                                           "sha256": digest}), encoding="utf-8")
@@ -104,7 +147,22 @@ class PluginRegistry:
                 if backup.exists():
                     backup.rename(target)
                 raise
+        self._report(manifest, digest)
         return manifest
+
+    def _report(self, manifest, digest):
+        folder = data_dir() / "Repports" / "Plugins"
+        folder.mkdir(parents=True, exist_ok=True)
+        indexes = [int(m.group(1)) for f in folder.glob("REPORT-*.md")
+                   if (m := re.match(r"REPORT-(\d+)-", f.name))]
+        index = max(indexes, default=0) + 1
+        stamp = datetime.now().strftime("%Y.%m.%d")
+        (folder / f"REPORT-{index:04d}-{stamp}.md").write_text(
+            f"# Rapport plugin {index}\n\n"
+            f"- Plugin : {manifest['name']}\n- Version : {manifest['version']}\n"
+            f"- Statut : VALIDÉ\n- SHA256 : {digest}\n"
+            "- Dépendances installées : aucune (inspection manuelle requise)\n"
+            "- Code externe exécuté : non\n", encoding="utf-8")
 
     def set_enabled(self, plugin_id, enabled):
         item = next((p for p in self.installed() if p["id"] == plugin_id), None)
