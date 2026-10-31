@@ -20,7 +20,7 @@ def workspace_dir():
 
 def ensure_workspace():
     root = workspace_dir()
-    for name in ("App/Profiles", "Profiles", "Themes", "Plugins", "Reports", "Updates"):
+    for name in ("App/Profiles", "App/Settings", "Profiles", "Themes", "Plugins", "Reports", "Updates"):
         (root / name).mkdir(parents=True, exist_ok=True)
     return root
 
