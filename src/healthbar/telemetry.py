@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from .network_detail import NetworkSampler, PingProbe
 from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
+from .power_sensors import power_sensor_snapshot
 try:
     import psutil
 except ImportError:
@@ -89,6 +90,8 @@ class Telemetry:
         data["net_interfaces"] = []
         data["fans"] = []
         data["cpu_cores"] = []
+        # Unsupported readings stay None; wall power is never estimated from TDP.
+        data.update(power_sensor_snapshot())
         if psutil is None:
             return data
         now = time.monotonic()
