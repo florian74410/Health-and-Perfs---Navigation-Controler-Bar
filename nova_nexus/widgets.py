@@ -239,3 +239,6 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             painter.end()
 
     return GlassNotification()
+
+# NOVA v3: both public constructors use one shared glass chassis.
+from .chrome_v3 import make_dialog, make_notification  # noqa: F811,E402
