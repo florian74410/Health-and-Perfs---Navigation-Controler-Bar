@@ -42,7 +42,7 @@ def run(start=None):
                 QMainWindow, QWidget#root {background:transparent;color:#F2F8FF;}
                 QLabel {color:#E5F8FF;background:transparent;}
                 QFrame#sidebar {background:rgba(14,39,54,205);border:1px solid #1E7E97;}
-                QFrame#toolbar {background:rgba(18,48,66,210);border:1px solid #2490A8;}
+                QFrame#toolbar {background:rgba(18,48,66,210);border:1px solid #2490A8;border-top:1px solid #B34056;}
                 QPushButton {background:rgba(18,49,67,215);color:#E8FBFF;border:1px solid #2D8CA3;
                     padding:7px 11px;min-height:20px;border-radius:0;}
                 QPushButton:hover {border:1px solid #3EEBFF;background:rgba(26,84,108,235);}
@@ -59,7 +59,17 @@ def run(start=None):
                 QScrollBar::handle:vertical {background:#16718B;min-height:25px;}
                 QMenu {background:#0B2231;color:#EFFBFF;border:1px solid #00BBDD;}
                 QMenu::item:selected {background:#12536B;}
-                QStatusBar {background:#0B2837;color:#99EDF8;border-top:1px solid #117B91;}
+                QStatusBar {background:rgba(11,40,55,220);color:#A8F3FF;border-top:1px solid #A13A4E;}
+                QPushButton#navBack, QPushButton#navForward {
+                    background:rgba(42,22,28,220);color:#FF6B7E;border:1px solid #D94A61;
+                    font-weight:bold;
+                }
+                QPushButton#navBack:hover, QPushButton#navForward:hover {
+                    background:rgba(122,33,49,235);color:white;border:1px solid #FF8094;
+                }
+                QPushButton#navBack:pressed, QPushButton#navForward:pressed {
+                    background:rgba(156,31,51,240);color:white;
+                }
             """)
             self.model = W.QFileSystemModel(self)
             self.model.setRootPath(str(Path.home()))
@@ -94,8 +104,9 @@ def run(start=None):
             outer.addLayout(header)
 
             navigation = W.QHBoxLayout()
-            for text, handler in (("❮",self.back),("❯",self.forward),("↑",self.up),("⌂",lambda:self.navigate(Path.home()))):
+            for text, handler, name in (("❮",self.back,"navBack"),("❯",self.forward,"navForward"),("↑",self.up,"navUp"),("⌂",lambda:self.navigate(Path.home()),"navHome")):
                 b = W.QPushButton(text)
+                b.setObjectName(name)
                 b.setFixedWidth(39)
                 b.clicked.connect(handler)
                 navigation.addWidget(b)
