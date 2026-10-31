@@ -1,3 +1,13 @@
+# NovaBar 0.6.10 — barre inférieure autonome et Upgrade
+
+- Barre inférieure Linux/X11 indépendante de `xfconf-query` : applications avec recherche, lanceurs XFCE, fenêtres actives, activation/réduction, clic droit fermer, horloge et accès réseau/volume/Bluetooth/session selon les outils installés.
+- Panneau XFCE inférieur masqué après sauvegarde de ses fenêtres ; restauration à la fermeture, au redémarrage après mise à jour et via un processus de secours en cas d’arrêt brutal. La configuration XFCE n’est pas supprimée. Les icônes de notification tierces restent sur le panneau XFCE, accessible 30 s depuis le menu Système.
+- Docks latéraux repliés cachés, sans trait coloré ni fenêtre interceptant les clics. Détection du pointeur à 10 px ; fermeture après 3 s hors du module.
+- Paramètres → Upgrade : vérification de la release officielle, téléchargement du runtime correspondant à la plateforme, contrôle SHA-256, autotest isolé, activation et redémarrage automatique. Préférences, thèmes et plugins conservés.
+- Migration des raccourcis Linux : le raccourci utilisateur utilise le même identifiant que le paquet DEB pour ouvrir la version mise à jour.
+- Environnement des commandes XFCE/GIO isolé des bibliothèques embarquées PyInstaller.
+
+
 # NovaBar 0.6.9 — correctif XFCE (développement, non publié)
 
 - HUD CPU/GPU/RAM/SSD : demande EWMH `_NET_WM_DESKTOP=0xFFFFFFFF` et fenêtre « sticky » après mise en carte par XFWM4 ; vérification toutes les 2,5 secondes et réparation uniquement si nécessaire, y compris après un changement d'espace de travail.

@@ -33,6 +33,7 @@ class Settings:
     hud_enabled: bool = True
     dock_left_enabled: bool = True
     dock_right_enabled: bool = True
+    bottom_dock_enabled: bool = sys.platform.startswith("linux")
     dock_left_kind: str = "folders"
     dock_right_kind: str = "apps"
     # None = auto-discover defaults, [] = intentionally empty dock.
@@ -78,10 +79,10 @@ class Settings:
         if type(self.always_on_top) is not bool or type(self.holo_enabled) is not bool:
             raise ValueError("Option affichage invalide")
         for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled",
-                     "xfce_skin_enabled", "xfce_skin_offer_done"):
+                     "xfce_skin_enabled", "xfce_skin_offer_done", "bottom_dock_enabled"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Activation de barre invalide : {name}")
-        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled or self.xfce_skin_enabled):
+        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled or self.xfce_skin_enabled or (self.bottom_dock_enabled and sys.platform.startswith("linux"))):
             raise ValueError("Activer au moins une barre NovaBar ou le panneau XFCE")
         if (type(self.xfce_skin_delay_seconds) is not int or
                 not 1 <= self.xfce_skin_delay_seconds <= 120 or

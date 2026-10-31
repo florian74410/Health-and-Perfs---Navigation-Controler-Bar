@@ -238,6 +238,7 @@ class Bar(QWidget):
         self.sidebars = {}
         self.sync_sidebars()
         self.xfce_skin_fx = None
+        self.bottom_dock = None
         self._xfce_skin_was_active = False
         self.xfce_skin_status = "Non activé"
         self.sync_xfce_skin()
@@ -247,6 +248,9 @@ class Bar(QWidget):
         maintain_all_workspaces(self)
         for dock in getattr(self, "sidebars", {}).values():
             maintain_all_workspaces(dock)
+        bottom = getattr(self, "bottom_dock", None)
+        if bottom is not None:
+            maintain_all_workspaces(bottom)
         panel = getattr(self, "xfce_skin_fx", None)
         if panel is not None:
             maintain_all_workspaces(panel)
@@ -276,13 +280,11 @@ class Bar(QWidget):
                 dock.entries_changed.connect(self.save_dock_entries)
                 dock.settings_requested.connect(self.preferences)
                 self.sidebars[side] = dock
-                dock.show()
             else:
                 existing.settings = self.settings
                 existing.apply_theme()
                 existing.set_items(existing.default_items())
                 existing.place()
-                existing.show()
 
     def move_dock(self, from_side):
         """Dragging to the opposite edge switches, or relocates a lone dock."""
@@ -312,6 +314,22 @@ class Bar(QWidget):
     def sync_xfce_skin(self):
         """Manage the native Xfce panel without taking ownership of its icons."""
         from .xfce_panel_skin import apply_skin, remove_skin, backup_path
+        if self.settings.bottom_dock_enabled and sys.platform.startswith("linux"):
+            if self._xfce_skin_was_active or backup_path().exists():
+                ok, message = remove_skin()
+                self._xfce_skin_was_active = not ok
+            if self.xfce_skin_fx is not None:
+                self.xfce_skin_fx.close();self.xfce_skin_fx.deleteLater();self.xfce_skin_fx=None
+            if self.bottom_dock is None:
+                from .bottom_dock import BottomDock
+                self.bottom_dock=BottomDock(self.settings)
+                self.bottom_dock.settings_requested.connect(self.preferences)
+                self.bottom_dock.quit_requested.connect(self.quit_app)
+            else:self.bottom_dock.apply_settings(self.settings)
+            self.xfce_skin_status="Barre inférieure NovaBar active · original XFCE masqué pendant la session"
+            return
+        if self.bottom_dock is not None:
+            self.bottom_dock.close();self.bottom_dock.deleteLater();self.bottom_dock=None
         enabled = bool(self.settings.xfce_skin_enabled)
         if enabled:
             ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,
@@ -338,7 +356,7 @@ class Bar(QWidget):
     def offer_xfce_cyber(self):
         """Ask once whether to skin the user's actual system panel after upgrade."""
         from .xfce_panel_skin import available
-        if (not available() or self.settings.xfce_skin_enabled
+        if (self.settings.bottom_dock_enabled or not available() or self.settings.xfce_skin_enabled
                 or self.settings.xfce_skin_offer_done):
             return
         response = QMessageBox.question(
@@ -361,6 +379,13 @@ class Bar(QWidget):
         from .xfce_panel_skin import available, bottom_panel_id, panel_setting
         from .xfce_panel_effects import panel_x11_bounds
         from PySide6.QtWidgets import QApplication
+        if self.bottom_dock is not None:
+            dock=self.bottom_dock
+            result=(f"Barre CYBER NEXUS : active\nGéométrie : {dock.full_rect.width()} × {dock.full_rect.height()} px"
+                    f"\nPanneaux XFCE masqués : {len(dock.native.rows)}\n"
+                    "Le HUD inférieur fonctionne indépendamment de la détection du panneau XFCE.")
+            QMessageBox.information(None,"CYBER NEXUS • Diagnostic panneau inférieur",result)
+            return
         if not available():
             result = "La session XFCE/X11 ou ses commandes ne sont pas disponibles."
         else:
@@ -476,10 +501,13 @@ class Bar(QWidget):
         menu.addSeparator()
         from .xfce_panel_skin import available as xfce_available
         xfce = menu.addMenu("⚡ Barre système XFCE")
-        toggle = xfce.addAction("Habillage CYBER NEXUS")
+        lower = xfce.addAction("Barre inférieure CYBER NEXUS")
+        lower.setCheckable(True);lower.setChecked(self.settings.bottom_dock_enabled)
+        lower.triggered.connect(lambda checked:self.quick_settings(bottom_dock_enabled=bool(checked)))
+        toggle = xfce.addAction("Habillage XFCE historique")
         toggle.setCheckable(True)
         toggle.setChecked(self.settings.xfce_skin_enabled)
-        toggle.setEnabled(xfce_available())
+        toggle.setEnabled(xfce_available() and not self.settings.bottom_dock_enabled)
         toggle.triggered.connect(
             lambda checked: self.quick_settings(xfce_skin_enabled=bool(checked)))
         xfce.addAction("Gérer les icônes et raccourcis…", self.xfce_panel_preferences).setEnabled(xfce_available())
@@ -553,6 +581,8 @@ class Bar(QWidget):
         QApplication.instance().quit()
 
     def closeEvent(self, event):
+        if getattr(self,"bottom_dock",None) is not None:
+            self.bottom_dock.close()
         self.tray.hide()
         for dock in getattr(self, "sidebars", {}).values():
             dock.close()
@@ -953,12 +983,17 @@ def main():
     parser = argparse.ArgumentParser()
     from . import __version__
     parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--restore-xfce-after-pid", type=int)
     parser.add_argument("--expect-version")
     parser.add_argument("--wait-for-pid", type=int)
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--setup", action="store_true", help="Reopen installation preferences")
     parser.add_argument("--preview", metavar="PNG", help="Render static HUD offscreen without changing user settings")
     args = parser.parse_args()
+    if args.restore_xfce_after_pid:
+        from .desktop_backend import restore_after_exit
+        restore_after_exit(args.restore_xfce_after_pid)
+        return 0
     if args.wait_for_pid:
         import psutil
         deadline = time.monotonic() + 40
@@ -1014,7 +1049,11 @@ def main():
             dialog = InstallerWizard(settings, source_root=os.getenv("HEALTHBAR_SOURCE_ROOT"), payload=payload)
             dialog.exec()
             return 0
+    if not args.preview:
+        from .install_engine import refresh_active_shortcuts
+        refresh_active_shortcuts()
     bar = Bar(settings)
+    app.aboutToQuit.connect(bar.close)
     if settings.hud_enabled or args.preview:
         bar.show()
     if not args.preview:

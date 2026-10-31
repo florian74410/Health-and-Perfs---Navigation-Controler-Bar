@@ -1,43 +1,26 @@
-# NovaBar 0.6.0 — Trois barres, un seul programme
+# Les quatre surfaces NovaBar — 0.6.10
 
-NovaBar peut afficher indépendamment jusqu'à trois fenêtres dans le même exécutable :
+- HUD de performances : CPU, GPU, RAM, SSD, ventilateurs, réseau et Holo.
+- Dock Dossiers : répertoires personnels XDG, favoris et Récents.
+- Dock Applications : raccourcis locaux `.desktop` valides, réorganisables.
+- Barre inférieure Linux/X11 : menu d’applications avec recherche, lanceurs XFCE, fenêtres ouvertes, horloge, préférences et commandes système.
 
-- **HUD** : télémétrie CPU, GPU, RAM, SSD, ventilateurs et réseau (haut/bas/latéral selon les préférences historiques).
-- **Dock Dossiers** : raccourcis de vos répertoires personnels, Documents, Téléchargements, Images, Musique, Vidéos, Bureau et Récents (selon disponibilité).
-- **Dock Applications** : raccourcis présents sur votre Bureau.
+## Bords invisibles
 
-Par défaut, Dossiers est à gauche, Applications à droite ; les deux docks ont leur propre languette de 9 px. Approcher le bord de l'écran ouvre immédiatement le dock correspondant. Le panneau se referme **3 secondes après la sortie du pointeur**. Tant qu'on le survole, il reste ouvert.
+Les deux colonnes se replient complètement : aucun trait bleu et aucune languette. Approcher le pointeur à **moins de 10 pixels du bord de l’écran** révèle le module correspondant. Il reste ouvert au survol et se referme **3 secondes après la sortie**. La zone surveillée se situe entre le HUD supérieur et la barre inférieure lorsqu’ils sont actifs. Les clics passent aux applications quand la colonne est cachée.
 
-## Personnalisation
+Dans **Préférences → Docks**, chaque surface peut être activée séparément. Les dossiers et applications peuvent échanger de côté via ↔ ou la poignée. Glisser-déposer, réorganisation et listes personnelles restent conservés. Retirer un raccourci ne supprime pas sa cible. Les applications sont lancées par GIO, sans interprétation de leur chemin par un shell.
 
-Dans **Préférences > Docks**, chaque fenêtre peut être activée ou désactivée individuellement ; il faut au moins une barre active. Choisir « Dossiers personnels » ou « Applications » pour le dock gauche attribue automatiquement l'autre rôle au dock droit.
+## Barre inférieure
 
-La poignée ⠿ se glisse vers l'autre moitié de l'écran pour **échanger les docks** ou **déplacer le seul dock actif**. Le bouton ↔ produit le même résultat. Les données sont conservées.
+Le bouton **NEXUS** ouvre les applications installées avec recherche. Cliquer une fenêtre l’active ; cliquer la fenêtre déjà active la réduit. Clic droit : activer ou demander sa fermeture. Le menu **Système** ouvre les outils réseau, volume, Bluetooth, notifications et session disponibles sur le système. Les commandes absentes sont désactivées.
 
-Sur un dock ouvert :
+La barre existe même sans panneau XFCE détecté. Elle se replie après le délai réglé dans les préférences et réapparaît dans les 10 pixels du bord inférieur, sans trait visible.
 
-- Cliquer un dossier lance le gestionnaire de fichiers défini par le système (Thunar sur beaucoup de sessions XFCE, Finder sur macOS).
-- Cliquer un raccourci d'application lance l'entrée du Bureau ; sous Linux, les fichiers `.desktop` valides sont confiés à GIO (`gio launch`). Aucun chemin ne passe dans un shell.
-- Faire glisser un dossier depuis Thunar vers le dock Dossiers, ou un fichier `.desktop` depuis le Bureau vers Applications.
-- Réordonner les éléments par glisser-déposer.
-- Clic droit : ajouter un élément via sélecteur ou le retirer. Retirer un raccourci ne supprime **jamais** le fichier cible.
-
-Les dossiers viennent des chemins **XDG** : les noms localisés du compte sont respectés, sans supposer que votre dossier personnel s'appelle « overflow ». Le favori « Récents » utilise le schéma GIO `recent:///` ; son ouverture dépend de votre gestionnaire de fichiers et des services GIO installés.
+Le panneau XFCE inférieur d’origine est masqué pendant la session NovaBar, sans suppression de sa configuration. Il revient à la fermeture. Un processus de secours le restaure après un arrêt brutal. **Système → Afficher les icônes XFCE pendant 30 s** donne accès aux applets de notification, qui restent hébergées par XFCE.
 
 ## Espaces de travail
 
-Sous **XFCE X11**, NovaBar demande au gestionnaire de fenêtres que chaque panneau soit présent sur **tous les bureaux virtuels**, via `_NET_WM_DESKTOP = 0xFFFFFFFF` et l'état EWMH sticky, sans créer une instance par espace de travail.
+Sous XFCE/X11, les panneaux demandent à rester présents sur tous les bureaux virtuels. La barre liste les fenêtres du bureau courant et les fenêtres épinglées sur tous les bureaux. Ces fonctions ne sont pas garanties sous Wayland, Windows ou macOS.
 
-La présence sur tous les espaces n'est **pas garantie** sous Wayland, les bureaux virtuels Windows ou les Spaces macOS ; les politiques de plein écran exclusif restent contrôlées par le système.
-
-## Installer une fois
-
-Les trois panneaux sont dans le runtime Python/PySide6 compilé de NovaBar, donc :
-
-- Linux Mint / XFCE : `NovaBar_0.6.0_amd64.deb` (après validation CI).
-- Windows : exécutable natif dans le programme d'installation.
-- macOS : application dans le DMG.
-
-Aucune installation indépendante de dock ou de plugin n'est nécessaire. Les raccourcis sont persistés dans les préférences utilisateur `settings.json`, jamais dans les fichiers du paquet système.
-
-**Statut :** branche de développement, vérification de l'intégration en cours ; valider sur un vrai bureau XFCE avant release stable.
+[Upgrade](Mises-a-jour.md) · [Diagnostic XFCE](XFCE-Cyber-Skin.md)

@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 from .config import data_dir
+from .system_env import native_env
 
 START = "/* NOVABAR CYBER NEXUS PANEL SKIN BEGIN (managed) */"
 END = "/* NOVABAR CYBER NEXUS PANEL SKIN END (managed) */"
@@ -48,7 +49,7 @@ def _query(*arguments):
     try:
         response = subprocess.run(
             ["xfconf-query", "-c", "xfce4-panel", *arguments],
-            check=False, capture_output=True, text=True, timeout=2)
+            check=False, capture_output=True, text=True, timeout=2, env=native_env())
         if response.returncode:
             return None
         return response.stdout.strip()
@@ -63,7 +64,7 @@ def bottom_panel_id():
         return None
     options = []
     for line in output.splitlines():
-        match = re.match(r"^/panels/panel-(\d+)/position\s+p=(\d+);", line)
+        match = re.match(r"^/panels/panel-(\d+)/position\s+[\"\']?p=(\d+);", line.strip())
         if match and int(match.group(2)) in BOTTOM_POSITIONS:
             options.append(int(match.group(1)))
     return min(options) if options else None
@@ -81,7 +82,7 @@ def _set_panel_setting(panel_id, name, value):
     prop = _property(panel_id, name)
     try:
         command = ["xfconf-query", "-c", "xfce4-panel", "-p", prop, "-s", str(value)]
-        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=2)
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=2, env=native_env())
         return result.returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
