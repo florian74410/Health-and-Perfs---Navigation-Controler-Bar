@@ -1,7 +1,17 @@
 # CYBER NEXUS HUD
 
+![CYBER NEXUS HUD — couverture et maquette de référence NovaBar](docs/cover-preview.png)
+
+*Maquette de référence — direction visuelle du projet.*
+
 **NovaBar** est la barre de performances du projet. **CYBER NEXUS HUD** est son lanceur
 et son système d’installation, de profils et de mises à jour.
+
+## Aperçu de NovaBar
+
+![Premier aperçu de l’interface NovaBar](docs/novabar-preview.png)
+
+*Aperçu de démonstration : les valeurs illustrées ne sont pas des relevés matériels en direct.*
 
 ## Version 0.3 — installateur graphique
 
