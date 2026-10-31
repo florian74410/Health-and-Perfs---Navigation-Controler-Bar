@@ -105,7 +105,8 @@ class XFCEPanelCircuitEffects(QWidget):
         if not self.isVisible():
             self.show()
             apply_priority(self, True)
-            apply_all_workspaces(self)
+            from .overlay import schedule_all_workspaces
+            schedule_all_workspaces(self)
         if not self.timer.isActive():
             self.timer.start()
 
