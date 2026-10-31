@@ -32,10 +32,13 @@ def validate_manifest(raw):
     if raw.get("kind") != ("declarative" if raw["api_version"] == 1 else "builtin-sensor"):
         raise ValueError("Type d’extension non autorisé")
     v1 = {"id", "version", "name", "api_version", "slot", "kind", "description"}
-    v2 = v1 | {"sensor_keys", "min_ram_mb", "requires", "permissions", "optional_permissions"}
+    v2 = v1 | {"sensor_keys", "min_ram_mb", "requires", "permissions", "optional_permissions", "holo_view"}
     if set(raw) - (v1 if raw["api_version"] == 1 else v2):
         raise ValueError("Champs de manifeste non pris en charge")
     if raw["api_version"] == 2:
+        if "holo_view" in raw and (raw.get("id") != "cpu-manager-viewer" or
+                                   raw["slot"] != "cpu" or raw["holo_view"] != "cpu-core-matrix"):
+            raise ValueError("Hologramme non reconnu par ce runtime")
         for key in ("sensor_keys", "requires", "permissions", "optional_permissions"):
             vals = raw.get(key, [])
             if not isinstance(vals, list) or len(vals) > 32 or any(
