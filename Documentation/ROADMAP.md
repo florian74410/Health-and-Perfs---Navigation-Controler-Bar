@@ -2,6 +2,17 @@
 
 > Document de référence des fonctionnalités, validé le 31 octobre 2026. Le statut « prévu » ne signifie pas implémenté. Les versions des plugins et du runtime doivent être compatibles avant distribution.
 
+## Réalisé dans le code 0.5.1
+
+- Compte-tours CPU/GPU et cadrans RAM/SSD proportionnels dans la barre compacte.
+- Holo CPU 460 × 330 px et capteurs 380 × 280 px, avec tableaux défilants et fonds transparents.
+- Ouverture/fermeture uniquement au clic sur le logo du plugin actif, en haut à droite.
+- Détails réseau par interface : état, vitesse de lien et débits reçus/émis.
+- Consommations CPU/GPU uniquement si mesurées ; aucune puissance par cœur inventée.
+- [Guide, vérifications et limites de la 0.5.1](../docs/UPDATE_V051.md) ; [captures Qt](../Assets/README.md).
+
+Les éléments plus ambitieux décrits ci-dessous restent une feuille de route, même lorsqu’un panneau de base existe.
+
 ## Vision
 
 NovaBar est une barre HUD résidente, responsive, rétractable, multi-écran et modulaire : CPU, GPU, RAM, stockage, ventilateurs, réseau, raccourcis et modules additionnels. Thème d'origine **Cyber-Futuriste / PCB Electric Blue** : transparence, typographies cyberpunk, tracés de circuits, halos néon, compteurs et jauges. L'application doit rester légère et ne jamais afficher de faux capteur comme une vraie mesure.
@@ -11,7 +22,7 @@ NovaBar est une barre HUD résidente, responsive, rétractable, multi-écran et 
 Chaque bloc cliquable possède 5 états :
 - **Idle** : informations compactes et mises à jour sans monopoliser l'interface.
 - **Hover** : halo renforcé, pistes PCB lumineuses, curseur de sélection.
-- **Active** : clic court → panneau semi-transparent se déployant depuis le bloc.
+- **Active** : clic court sur le logo en haut à droite → panneau transparent ancré près du bloc.
 - **Pinned** : panneau épinglé, persistant jusqu'à fermeture volontaire.
 - **Alert** : palette jaune/orange/rouge selon des seuils configurables.
 

@@ -1,0 +1,10 @@
+# Documentation CYBER NEXUS HUD / NovaBar
+
+- [Wiki de NovaBar](../docs/wiki/Home.md)
+- [Mise à jour 0.5.1 : compte-tours et Holo transparents](../docs/UPDATE_V051.md)
+- [Installation](../docs/wiki/Installation.md)
+- [Diagnostic des erreurs de paquet Linux](../docs/wiki/Depannage.md)
+- [Visuels et captures avec canal alpha](../Assets/README.md)
+- [Feuille de route](ROADMAP.md)
+
+Les captures utilisent des données de démonstration. Les mesures réelles et les fonctions CPU dépendent du matériel, du système et des permissions.

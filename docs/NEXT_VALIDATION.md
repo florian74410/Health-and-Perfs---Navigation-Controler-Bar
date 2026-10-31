@@ -22,3 +22,5 @@ La CI est configurée pour les builds natifs Linux, Windows et macOS Intel/ARM. 
 ## Complément 0.5.1
 
 68 tests locaux réussis ; rendu des compte-tours, transparence des surfaces Holo, détails réseau par interface et absence de valeurs inventées vérifiés. Runtime, archive d’installation et exécutable extrait du DEB testés. Voir [la note 0.5.1](UPDATE_V051.md). Les nouveaux builds multi-OS restent à suivre dans GitHub Actions.
+
+Les quatre builds natifs de la 0.5.1 ont terminé avec succès dans le [run 41196956018](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41196956018). La release v0.5.1 est publique ; les liens du guide d’installation pointent vers ses paquets versionnés.

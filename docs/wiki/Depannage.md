@@ -41,3 +41,16 @@ Ouvrez une [issue GitHub](https://github.com/florian74410/Health-and-Perfs---Nav
 ---
 
 <sub>⚡ NovaBar • CYBER NEXUS HUD · Les illustrations sont documentaires, les fonctions non livrées sont signalées.</sub>
+
+## `apt` refuse un fichier `.deb`
+
+Si `apt` affiche « le fichier donné n’est pas compris sur la ligne de commande », vérifiez d’abord que le fichier téléchargé existe au chemin indiqué :
+
+```bash
+cd "$(xdg-user-dir DOWNLOAD)" &&
+ls -lh NovaBar*.deb
+```
+
+Utilisez le nom exact du fichier, notamment sa version ; une commande visant 0.3.6 n’installe pas un téléchargement 0.5.1. Reliez l’installation et le lancement par `&&` pour éviter de démarrer l’ancienne version après un échec.
+
+Les messages `xapp-gtk3-module` ou `g_task_set_static_name` affichés lors du lancement concernent les modules GTK/GIO et les bibliothèques chargées. Ils ne prouvent pas qu’une installation `.deb` a réussi. Vérifiez séparément `dpkg -s novabar` et `novabar --version` avant de diagnostiquer l’affichage.

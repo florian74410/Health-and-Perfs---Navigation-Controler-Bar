@@ -61,20 +61,20 @@ Les consommations CPU/GPU sont affichées uniquement lorsqu’une sonde les four
 
 | Système | Installateur | Usage |
 |---|---|---|
-| 🐧 **Linux Mint XFCE / Ubuntu** | [NovaBar 0.3.6 (.deb)](Executable/Linux/NovaBar_0.3.6_amd64.deb) | Paquet natif recommandé |
-| 🧊 **Linux avec Flatpak** | [NovaBar 0.3.6 (.flatpak)](Executable/Linux/NovaBar_0.3.6_x86_64.flatpak) | Bundle isolé |
-| 🐧 **Linux autonome** | [CyberNexusHUD (.run)](Executable/Linux/CyberNexusHUD-Linux-x86_64.run) | Installeur autonome historique |
-| 🪟 **Windows 10/11** | [Setup (.exe)](Executable/Windows/CyberNexusHUD-Setup-Windows.exe) | Assistant graphique |
-| 🍎 **macOS Intel** | [DMG x86_64](Executable/MacOS/CyberNexusHUD-macOS-x86_64.dmg) | macOS 12+ |
-| 🍏 **macOS Apple Silicon** | [DMG arm64](Executable/MacOS/CyberNexusHUD-macOS-arm64.dmg) | macOS 12+ |
+| 🐧 **Linux Mint XFCE / Ubuntu** | [NovaBar 0.5.1 (.deb)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/NovaBar_0.5.1_amd64.deb) | Paquet natif recommandé |
+| 🧊 **Linux avec Flatpak** | [NovaBar 0.5.1 (.flatpak)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/NovaBar_0.5.1_x86_64.flatpak) | Bundle isolé |
+| 🐧 **Linux autonome** | [CyberNexusHUD (.run)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/CyberNexusHUD-Linux-x86_64.run) | Installeur autonome historique |
+| 🪟 **Windows 10/11** | [Setup (.exe)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/CyberNexusHUD-Setup-Windows.exe) | Assistant graphique |
+| 🍎 **macOS Intel** | [DMG x86_64](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/CyberNexusHUD-macOS-x86_64.dmg) | macOS 12+ |
+| 🍏 **macOS Apple Silicon** | [DMG arm64](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.1/CyberNexusHUD-macOS-arm64.dmg) | macOS 12+ |
 
 > ⚠️ Le pipeline GitHub Actions publie les exécutables après les tests multi-OS. **Vérifiez la version dans [Executable/manifest.json](Executable/manifest.json)** : la documentation peut être mise à jour avant les binaires. Les paquets ne sont pas signés/notarisés.
 
-**Installation sur Linux Mint :**
+****Téléchargez d’abord le `.deb` 0.5.1 ci-dessus**, puis fermez NovaBar avant de lancer l’installation :**
 
 ```bash
-cd "$(xdg-user-dir DOWNLOAD)"
-sudo apt install ./NovaBar_0.3.6_amd64.deb
+cd "$(xdg-user-dir DOWNLOAD)" &&
+sudo apt install ./NovaBar_0.5.1_amd64.deb &&
 novabar
 ```
 
@@ -114,7 +114,7 @@ Projet en développement. La compatibilité des overlays Wayland/Bazzite et le c
 
 Voir [CHANGELOG](CHANGELOG.md). Les sources de développement et les exécutables publiés peuvent avoir des versions différentes ; le manifeste des exécutables reste la référence pour les téléchargements.
 
-## NovaBar Next · sources 0.5.0
+## NovaBar Next · sources 0.5.1
 
 Les deux updates sont décrites dans le [changelog](CHANGELOG.md).
 
@@ -123,4 +123,4 @@ Les deux updates sont décrites dans le [changelog](CHANGELOG.md).
 
 [Downloader et packaging](docs/wiki/Downloader.md) · [CPU Mode et limitations OS](docs/wiki/CPU-Mode.md).
 
-Les exécutables du tableau ci-dessus sont les **anciens paquets 0.3.6**. Les sources 0.5.0 doivent passer la CI native et être publiées avant que le downloader puisse les proposer. Il refuse une release sans manifeste bootstrap valide.
+La release **0.5.1** regroupe les nouveaux paquets et leurs manifestes de contrôle SHA-256. Les fichiers historiques dans `Executable/` restent identifiés par leur version ; privilégiez les téléchargements de la release pour cette mise à jour.

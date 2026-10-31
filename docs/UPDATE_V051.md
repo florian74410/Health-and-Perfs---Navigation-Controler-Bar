@@ -39,4 +39,6 @@ Le DEB compilé localement a été construit sous glibc 2.39 : il cible Mint 22 
 - Auto-test du runtime compilé et de l’exécutable extrait du DEB réussi.
 - Archives runtime et installateur hors ligne vérifiées.
 
+Les quatre builds GitHub Actions (Linux Ubuntu 22.04, Windows, macOS Intel et Apple Silicon) ont ensuite réussi leurs contrôles de compilation et d’exécution. La [release 0.5.1](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.5.1) est publiée avec les paquets et manifestes SHA-256.
+
 Ces vérifications ne remplacent pas un essai sur bureau réel, notamment sous Wayland, Windows ou macOS.

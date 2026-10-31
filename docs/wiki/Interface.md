@@ -24,7 +24,7 @@ Les modules conservent leur géométrie proportionnelle : à faible largeur, la 
 
 ## 🧭 Boutons
 
-**TURBO⌄** : emplacement de contrôle non encore fonctionnel ; n'effectue aucun overclocking. **Console** : menu de scripts locaux du dossier choisi ; confirmation nécessaire avant exécution. **Dossier** : configuration ; **Extensions** : Plugin Control Center ; **Préférences** : réglages ; **? Wiki** : documentation GitHub dans le navigateur (v0.3.6+) ; **⤢** : hauteur ; **✕** : quitter.
+**TURBO⌄** : modes CPU Linux lorsque le noyau et les permissions le permettent ; voir [CPU Mode et limites](CPU-Mode.md). Aucun contrôle PWM ni overclocking universel. **Console** : menu de scripts locaux du dossier choisi ; confirmation nécessaire avant exécution. **Dossier** : configuration ; **Extensions** : Plugin Control Center ; **Préférences** : réglages ; **? Wiki** : documentation GitHub dans le navigateur (v0.3.6+) ; **⤢** : hauteur ; **✕** : quitter.
 
 Un menu contextuel et l'icône système proposent les actions importantes. Les modules peuvent être réordonnés par glisser-déposer. Le clic sur le logo en haut à droite de chaque plugin actif ouvre ou ferme son Holo ; le survol et le clic sur les valeurs ne l’ouvrent pas.
 
