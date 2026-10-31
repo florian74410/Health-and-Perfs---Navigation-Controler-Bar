@@ -1,4 +1,4 @@
-"""Resolution-independent HUD artwork. All readings are explicitly static mock data."""
+"""Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
 from PySide6.QtCore import Qt, QPointF, QRectF
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF
@@ -116,14 +116,18 @@ def meter(p, x, y, w, ratio):
         line(p, [(x+9+i*12, y+3), (x+4+i*12, y+12)], "#b1ffff", 1)
 
 
-def gauge(p, cx, cy, radius, value, unit, warm=False):
+def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
     p.drawEllipse(QPointF(cx, cy), radius+9, radius+9)
     for j in range(39):
         a = math.radians(140+j*6.8)
         r1, r2 = radius-10, radius
-        color = QColor("#00d7ff" if j < 21 or not warm else "#ffca62" if j < 30 else "#ff4c56")
+        fraction = j / 38
+        lo, hi = ((2/3.5, 3/3.5) if warm is True else
+                  (.60, .85) if warm == "gpu" else (1, 1))
+        color = QColor("#00d7ff" if fraction <= lo else
+                       "#ffca62" if fraction <= hi else "#ff4c56")
         if j < 18 or warm:
             p.setPen(QPen(color, 4))
         else:
@@ -133,7 +137,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False):
     for i in range(6 if radius > 65 else 0):
         a = math.radians(140+i*52)
         tx, ty = cx+math.cos(a)*(radius-23), cy+math.sin(a)*(radius-23)
-        text(p, tx-6, ty+4, str(round(i*.8, 1)), 10, "#8cbaff")
+        text(p, tx-6, ty+4, str(round(i*max_value/5, 1)), 10, "#8cbaff")
     text(p, cx-30, cy+9, value, 34)
     text(p, cx-21, cy+31, unit, 15, "#a6c8ff")
 
@@ -145,8 +149,49 @@ class HudCanvas(QWidget):
         self.vertical = vertical
         self.module_opacity = 88
         self.labels = {}
+        self.readings = None
         self.refresh_plugins()
-        self.setToolTip("Aperçu statique du prototype — aucune mesure matérielle active")
+        self.setToolTip("Mesures réelles si sonde disponible • tiret = indisponible")
+
+    def set_telemetry(self, readings):
+        self.readings = readings
+        self.update()
+
+    def value(self, key, demo, places=0):
+        if self.readings is None:
+            return str(demo)
+        val = self.readings.get(key)
+        return f"{val:.{places}f}" if isinstance(val, (int, float)) else "—"
+
+    def fraction(self, key, demo):
+        if self.readings is None:
+            return demo
+        v = self.readings.get(key)
+        return max(0, min(1, v/100)) if isinstance(v, (int, float)) else 0
+
+    def used_free(self, prefix, demo):
+        if self.readings is None:
+            return demo
+        a = self.readings.get(prefix + "_used_gb")
+        b = self.readings.get(prefix + ("_available_gb" if prefix == "ram" else "_free_gb"))
+        return f"{a:.1f} / {b:.1f} GB" if a is not None and b is not None else "—"
+
+    def gpu_ghz(self):
+        if self.readings is None:
+            return "1.6"
+        val = self.readings.get("gpu_clock_mhz")
+        return f"{val / 1000:.2f}" if val is not None else "—"
+
+    def gpu_vram(self):
+        if self.readings is None:
+            return "4.2 / 8.0 GB"
+        a, b = self.readings.get("vram_used_gb"), self.readings.get("vram_total_gb")
+        return f"{a:.1f} / {b:.1f} GB" if a is not None and b is not None else "VRAM —"
+
+    def fans(self):
+        if self.readings is None:
+            return [{"name":"CPU","rpm":1240},{"name":"GPU","rpm":1580},{"name":"SYS","rpm":980}]
+        return self.readings.get("fans") or []
 
     def refresh_plugins(self):
         self.labels = {item["slot"]: item["name"] for item in self.registry.installed() if item["enabled"]}
@@ -181,15 +226,17 @@ class HudCanvas(QWidget):
             icon(p, kind, x+23, 45, 45 if kind != "network" else 34)
             text(p, x+(67 if kind == "network" else 81), 68,
                  self.labels.get(kind, title)[:13], 12 if kind == "network" else 23)
-        text(p, 100, 123, "52", 37)
+        text(p, 100, 123, self.value("cpu_temperature_c", 52), 37)
         text(p, 151, 119, "°C", 20)
-        text(p, 113, 162, "18%", 26, CYAN)
-        gauge(p, 279, 105, 79, "2.4", "GHz", True)
-        text(p, 466, 121, "48", 37)
+        cpu_load = self.readings.get("cpu_percent") if self.readings else None
+        cpu_color = "#ff4455" if cpu_load is not None and cpu_load >= 85 else CYAN
+        text(p, 113, 162, self.value("cpu_percent", 18) + "%", 26, cpu_color)
+        gauge(p, 279, 105, 79, self.value("cpu_frequency_ghz", 2.4, 1), "GHz", True)
+        text(p, 466, 121, self.value("gpu_temperature_c", 48), 37)
         text(p, 519, 117, "°C", 20)
-        text(p, 469, 161, "32%", 26, CYAN)
-        gauge(p, 630, 98, 58, "1.6", "GHz")
-        text(p, 603, 173, "4.2 / 8.0 GB", 15, "#b6cfff")
+        text(p, 469, 161, self.value("gpu_percent", 32) + "%", 26, CYAN)
+        gauge(p, 630, 98, 58, self.gpu_ghz(), "GHz", "gpu")
+        text(p, 603, 173, self.gpu_vram(), 15, "#b6cfff")
         for x, w, percent, detail in [(754, 162, "44%", "14.2 / 32.0 GB"),
                                        (964, 185, "62%", "372 / 1.0 TB")]:
             text(p, x+w-59, 109, percent, 27)
@@ -201,12 +248,12 @@ class HudCanvas(QWidget):
             meter(p, 1238, y, 69, (.68, .54, .42)[i])
             text(p, 1318, y+10, ("1240", "1580", "980")[i]+" RPM", 12, "#b7cfff")
         text(p, 1432, 115, "↓", 22, CYAN)
-        text(p, 1454, 114, "12.8 MB/s", 15)
+        text(p, 1454, 114, self.value("net_down_mbs", 12.8, 1) + " MB/s", 15)
         text(p, 1432, 143, "↑", 22, CYAN)
-        text(p, 1454, 142, "1.6 MB/s", 15)
+        text(p, 1454, 142, self.value("net_up_mbs", 1.6, 1) + " MB/s", 15)
         points = [(1434+i*5, 166+math.sin(i*1.7)*3+math.cos(i*.5)*2) for i in range(25)]
         line(p, points, CYAN, 1.3)
-        text(p, 26, 191, "APERÇU STATIQUE • AUCUN CAPTEUR ACTIF", 8, "#78aad0", False)
+        text(p, 26, 191, "DÉMO" if self.readings is None else "CAPTEURS LOCAUX", 8, "#78aad0", False)
 
     def paint_compact(self, p):
         columns = 2 if self.width() < 520 else 3
