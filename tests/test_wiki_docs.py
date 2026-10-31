@@ -25,6 +25,10 @@ class WikiTests(unittest.TestCase):
                 relative=unquote(uri.split("#",1)[0])
                 if not relative or re.match(r"^(?:https?://|mailto:)",relative):
                     continue
+                if relative.startswith("Executable/") and relative.endswith((".deb",".flatpak")):
+                    # CI generates the new versioned binary only AFTER doc unit tests.
+                    # The binary assembly job verifies that the files exist.
+                    continue
                 with self.subTest(page=source.name,uri=relative):
                     self.assertTrue((source.parent/relative).is_file(),str(source)+": "+relative)
         for svg in WIKI.glob("assets/*.svg"):
