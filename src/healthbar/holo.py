@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QPainter, QPen, QLinearGradient, QPainterPath,
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
                                QGridLayout, QPushButton, QGraphicsOpacityEffect, QSizePolicy, QStyleOptionButton, QStyle)
 
-from .ui_kit import QColor
+from .ui_kit import QColor, holo_background
 
 BLUE = "#007CFF"
 CYAN = "#5EEBFF"
@@ -91,12 +91,12 @@ class CpuHoloPanel(QWidget):
         self._opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         from .ui_kit import stylesheet
         self.base_style = """
-            QLabel {color: #DBEEFF; background: transparent; border: 0;}
+            QLabel {color: #DDE5EF; background: transparent; border: 0;}
             QLabel#holoTitle { color: #91EEFF; font-size: 14px; font-weight: 900; letter-spacing: 2px; }
-            QLabel#holoSubtitle {color:#6CBFD9; font-size: 12px;}
-            QLabel#holoHeading {color:#5EEBFF; font-size: 12px; font-weight: 700;}
-            QLabel#holoValue {color:#EAF7FF; font-size: 12px; font-weight: 700;}
-            QLabel#holoFoot {color:#80B2CA; font-size: 11px;}
+            QLabel#holoSubtitle {color:#9CAABD; font-size: 12px;}
+            QLabel#holoHeading {color:#AEBED0; font-size: 12px; font-weight: 700;}
+            QLabel#holoValue {color:#F0F5FB; font-size: 12px; font-weight: 700;}
+            QLabel#holoFoot {color:#8E9CAA; font-size: 11px;}
             QPushButton {background: transparent; color:#9FEAFF; border: 1px solid #1AB8EF;
                          border-radius: 6px; padding: 3px 8px;}
             QPushButton:hover {color:#FFFFFF; border: 1px solid #C8FFFF;}
@@ -106,7 +106,7 @@ class CpuHoloPanel(QWidget):
         """
         self.setStyleSheet(stylesheet(self.base_style))
         root = QVBoxLayout(self)
-        root.setContentsMargins(20, 18, 20, 18)
+        root.setContentsMargins(24, 22, 24, 20)
         root.setSpacing(6)
         top = QHBoxLayout()
         title = HoloLabel("◈ CPU CORE MATRIX")
@@ -235,9 +235,9 @@ class CpuHoloPanel(QWidget):
         logical = data.get("cpu_logical_cores")
         self.topology.setText(f"CORES : {physical if physical is not None else '—'}  /  THREADS : {logical if logical is not None else '—'}")
         self.summary.setText(
-            f"TEMP {readout(data.get('cpu_temperature_c'), '°C',0)}     "
-            f"FREQ {readout(data.get('cpu_frequency_ghz'), 'GHz',2)}     "
-            f"LOAD {readout(data.get('cpu_percent'), '%',0)}     "
+            f"TEMP {readout(data.get('cpu_temperature_c'), '°C',0)}  "
+            f"FREQ {readout(data.get('cpu_frequency_ghz'), 'GHz',2)}  "
+            f"LOAD {readout(data.get('cpu_percent'), '%',0)}  "
             f"PACKAGE {readout(data.get('cpu_power_w'), 'W',1)}")
         while self.grid.count():
             item = self.grid.takeAt(0)
@@ -266,22 +266,37 @@ class CpuHoloPanel(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = QRectF(self.rect()).adjusted(12,12,-12,-12)
         path = QPainterPath()
-        cut = 16
-        path.moveTo(rect.left()+cut,rect.top())
-        path.lineTo(rect.right()-cut,rect.top())
-        path.lineTo(rect.right(),rect.top()+cut)
-        path.lineTo(rect.right(),rect.bottom()-cut)
-        path.lineTo(rect.right()-cut,rect.bottom())
-        path.lineTo(rect.left()+cut,rect.bottom())
-        path.lineTo(rect.left(),rect.bottom()-cut)
-        path.lineTo(rect.left(),rect.top()+cut)
+        # Asymmetric 45-degree chamfers and a recessed shoulder in the upper rim.
+        points = [(rect.left()+22,rect.top()), (rect.right()-46,rect.top()),
+                  (rect.right()-38,rect.top()+8), (rect.right()-10,rect.top()+8),
+                  (rect.right(),rect.top()+18), (rect.right(),rect.bottom()-28),
+                  (rect.right()-28,rect.bottom()), (rect.left()+14,rect.bottom()),
+                  (rect.left(),rect.bottom()-14), (rect.left(),rect.top()+22)]
+        path.moveTo(*points[0])
+        for point in points[1:]:path.lineTo(*point)
         path.closeSubpath()
-        # The desktop remains visible through every Holo surface.
+        # One shared uniform glass surface under labels, charts and scroll areas.
+        painter.fillPath(path, holo_background())
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        for width,rgba in ((21,(0,64,255,12)),(13,(0,145,255,34)),(7,(0,194,255,58)),
-                           (3,(2,120,255,190)),(1.2,(129,241,255,245))):
+        for width,rgba in ((15,(0,64,255,9)),(9,(0,145,255,22)),(5,(0,194,255,38)),
+                           (2,(2,120,255,190)),(.9,(129,241,255,245))):
             painter.setPen(QPen(QColor(*rgba),width))
             painter.drawPath(path)
+        # Fine inset routes and diagonal corner guards; the information area stays clean.
+        painter.setPen(QPen(QColor(30,170,230,90),.7))
+        painter.drawLine(QPoint(int(rect.left()+24),int(rect.bottom()-6)),
+                         QPoint(int(rect.right()-36),int(rect.bottom()-6)))
+        painter.drawLine(QPoint(int(rect.left()+6),int(rect.top()+34)),
+                         QPoint(int(rect.left()+6),int(rect.bottom()-22)))
+        for index in range(3):
+            x=rect.right()-36+index*6; y=rect.bottom()-6-index*6
+            painter.setPen(QPen(QColor(85,220,255,210),1.1))
+            painter.drawLine(QPoint(round(x-3),round(y)),QPoint(round(x+1),round(y-4)))
+        painter.setPen(QPen(QColor(90,225,255,220),1))
+        painter.drawLine(QPoint(int(rect.left()-3),int(rect.top()+18)),
+                         QPoint(int(rect.left()+18),int(rect.top()-3)))
+        painter.drawLine(QPoint(int(rect.right()-20),int(rect.bottom()+3)),
+                         QPoint(int(rect.right()+3),int(rect.bottom()-20)))
         # Segmented circuit traces and travelling electric node, independent of text.
         track = QRectF(rect.left()+9,rect.top()+9,rect.width()-18,rect.height()-18)
         painter.setPen(QPen(QColor(0,168,255,115),1))

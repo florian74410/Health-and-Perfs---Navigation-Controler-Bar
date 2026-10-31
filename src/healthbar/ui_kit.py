@@ -20,8 +20,25 @@ def QColor(*args):
         color.setHsvF(.37 if _active == "green-matrix" else .98, saturation, value, alpha)
     return color
 
+def holo_background():
+    """Uniform theme-tinted glass: 85% opaque, 15% desktop visible."""
+    color = QColor('#061224')
+    color.setAlpha(217)
+    return color
+
+
 def stylesheet(text):
-    return re.sub(r"#[0-9a-fA-F]{6}\b", lambda m: QColor(m[0]).name(), text)
+    # Theme controls frames and surfaces; information keeps its own readable palette.
+    def retint(match):
+        prefix=text[max(0,match.start()-40):match.start()]
+        if re.search(r"(?<![-\w])color\s*:\s*$",prefix):
+            return match[0]
+        return QColor(match[0]).name()
+    result=re.sub(r"#[0-9a-fA-F]{6}\b",retint,text)
+    # Titles are the only text role inheriting the decorative accent.
+    return re.sub(r"(QLabel#holoTitle\s*\{[^}]*?\bcolor\s*:\s*)(#[0-9a-fA-F]{6})",
+                  lambda m:m[1]+QColor(m[2]).name(),result)
+
 
 def pcb(p, bounds):
     """Routes reach both endpoints of the full window, including the action area."""

@@ -59,3 +59,11 @@ Les textes et boutons ont un contour sombre opaque pour rester lisibles sur les 
 ![Réseau lisible sur fond clair et sombre](../../Assets/Previews/novabar-v052-network-contrast.png)
 
 *Données de démonstration ; le graphique réel utilise les compteurs de l’interface suivie et le ping ICMP vers 1.1.1.1.*
+
+## Style Holo 0.5.3
+
+Les six panneaux ont maintenant un **fond uni sombre à 85 % d’opacité**, teinté selon le thème. Les tableaux et graphiques partagent ce fond. Les cadres néon fins ont des angles biseautés et des détails diagonaux. Les valeurs sont blanches, les libellés gris bleuté et les titres accentués ; Green Matrix ne recolore plus toutes les écritures en vert. Les couleurs du réseau restent UP vert / DOWN rouge / ping bleu.
+
+![Holo CPU et Réseau](../../Assets/Previews/novabar-v053-cpu-network.png)
+
+*Données de démonstration. [Guide 0.5.3](../UPDATE_V053.md).*

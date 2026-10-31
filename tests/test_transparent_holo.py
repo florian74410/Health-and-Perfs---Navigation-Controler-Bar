@@ -13,7 +13,7 @@ class TransparentHoloTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_panels_are_compact_and_empty_surfaces_have_zero_alpha(self):
+    def test_panels_are_compact_with_uniform_glass_and_transparent_exterior(self):
         for panel in [CpuHoloPanel()] + [SensorHoloPanel(s) for s in SensorHoloPanel.FIELDS]:
             with self.subTest(panel=panel.windowTitle()):
                 self.assertLessEqual(panel.width(), 460)
@@ -22,7 +22,8 @@ class TransparentHoloTests(unittest.TestCase):
                 panel._fade.setOpacity(1)
                 self.assertFalse(panel.scroll.viewport().autoFillBackground())
                 image = panel.grab().toImage()
-                self.assertEqual(image.pixelColor(panel.width()-30, panel.height()//2).alpha(), 0)
+                self.assertEqual(image.pixelColor(panel.width()-30, panel.height()//2).alpha(), 217)
+                self.assertEqual(image.pixelColor(0, 0).alpha(), 0)
                 panel.show_at(QRect(400, 0, 100, 72), QRect(0, 0, 800, 600))
                 self.assertTrue(QRect(0, 0, 800, 600).contains(panel.geometry()))
                 panel.close()

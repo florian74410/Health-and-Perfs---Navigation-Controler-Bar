@@ -68,3 +68,11 @@ Les Holo CPU (460 × 330 px) et capteurs (380 × 280 px) sont compacts, transpar
 Le texte est dessiné avec un contour sombre et un intérieur néon, sans fond opaque. Le Holo Réseau contient deux courbes, **UP verte** et **DOWN rouge**, et un **histogramme bleu de ping**. L’échelle de débit est à gauche, le ping en ms à droite. Le réseau conserve son historique de 120 secondes lorsque le Holo est fermé. Le panneau mesure 460 × 360 px ; les autres panneaux gardent leur format compact.
 
 [Guide 0.5.2](../UPDATE_V052.md)
+
+## Style Holo 0.5.3
+
+Les six panneaux ont maintenant un **fond uni sombre à 85 % d’opacité**, teinté selon le thème. Les tableaux et graphiques partagent ce fond. Les cadres néon fins ont des angles biseautés et des détails diagonaux. Les valeurs sont blanches, les libellés gris bleuté et les titres accentués ; Green Matrix ne recolore plus toutes les écritures en vert. Les couleurs du réseau restent UP vert / DOWN rouge / ping bleu.
+
+![Holo CPU et Réseau](../../Assets/Previews/novabar-v053-cpu-network.png)
+
+*Données de démonstration. [Guide 0.5.3](../UPDATE_V053.md).*

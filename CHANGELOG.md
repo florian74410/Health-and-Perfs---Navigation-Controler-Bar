@@ -1,3 +1,11 @@
+# NovaBar 0.5.3
+
+- Fond Holo uni sombre à 85 % d’opacité, teinté selon le thème, commun aux tableaux et graphiques.
+- Cadres fins avec angles biseautés, décrochement asymétrique et gardes diagonales.
+- Valeurs blanches, libellés gris bleuté et titres accentués ; les plugins et fenêtres ne sont plus entièrement recolorés en vert.
+- Couleurs réseau inchangées : UP vert, DOWN rouge et ping bleu.
+- 77 tests locaux réussis ; nouveaux aperçus Qt dans Assets/Previews.
+
 # NovaBar 0.5.2
 
 - Lisibilité des Holo : caractères et boutons avec contour sombre, fonds toujours transparents.
