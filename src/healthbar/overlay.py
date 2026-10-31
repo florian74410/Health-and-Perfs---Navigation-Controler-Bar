@@ -32,10 +32,11 @@ def apply_priority(widget, enabled):
 
 
 def apply_all_workspaces(widget):
-    """Best-effort EWMH sticky window for all virtual desktops on X11/XFCE.
+    """Request 'on all desktops' from the X11 window manager after mapping.
 
-    No workspace API is uniformly portable to Wayland, Windows Virtual Desktops
-    or macOS Spaces; do not claim success on those platforms.
+    EWMH requires _NET_WM_DESKTOP = 0xFFFFFFFF. Set the property and send
+    a client message because a window may already be mapped by the time
+    Qt emits showEvent. Both paths are needed under xfwm4.
     """
     if not sys.platform.startswith("linux"):
         return False
@@ -47,21 +48,47 @@ def apply_all_workspaces(widget):
         connection = display.Display()
         try:
             window = connection.create_resource_object("window", int(widget.winId()))
-            all_desktops = 0xFFFFFFFF
-            atom = connection.intern_atom("_NET_WM_DESKTOP")
-            window.change_property(atom, Xatom.CARDINAL, 32, [all_desktops])
             root = connection.screen().root
-            message = protocol.event.ClientMessage(
-                window=window, client_type=atom, data=(32, [all_desktops, 1, 0, 0, 0]))
-            root.send_event(message, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
-            sticky = connection.intern_atom("_NET_WM_STATE_STICKY")
-            state = protocol.event.ClientMessage(
-                window=window, client_type=connection.intern_atom("_NET_WM_STATE"),
-                data=(32, [1, sticky, 0, 1, 0]))
-            root.send_event(state, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
+            desktop = connection.intern_atom("_NET_WM_DESKTOP", only_if_exists=False)
+            sticky = connection.intern_atom("_NET_WM_STATE_STICKY", only_if_exists=False)
+            state = connection.intern_atom("_NET_WM_STATE", only_if_exists=False)
+            all_desktops = 0xFFFFFFFF
+            window.change_property(desktop, Xatom.CARDINAL, 32, [all_desktops])
+            root.send_event(
+                protocol.event.ClientMessage(
+                    window=window, client_type=desktop,
+                    data=(32, [all_desktops, 1, 0, 0, 0])),
+                event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
+            root.send_event(
+                protocol.event.ClientMessage(
+                    window=window, client_type=state,
+                    data=(32, [1, sticky, 0, 1, 0])),
+                event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
             connection.flush()
+            connection.sync()
         finally:
             connection.close()
         return True
-    except (OSError, ImportError, ValueError):
+    except (OSError, ImportError, ValueError, RuntimeError):
         return False
+
+
+def schedule_all_workspaces(widget):
+    """Retry when the Xfce WM has finished mapping the actual top-level XID."""
+    if not sys.platform.startswith("linux") or not os.getenv("DISPLAY"):
+        return
+    from PySide6.QtCore import QTimer
+    import weakref
+    ref = weakref.ref(widget)
+    def request():
+        target = ref()
+        if target is None:
+            return
+        try:
+            if target.isVisible():
+                apply_all_workspaces(target)
+        except RuntimeError:
+            # Qt window deleted before the queued request executes.
+            pass
+    for delay_ms in (0, 180, 750):
+        QTimer.singleShot(delay_ms, request)
