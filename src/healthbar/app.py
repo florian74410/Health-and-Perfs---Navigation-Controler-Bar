@@ -298,7 +298,8 @@ class Bar(QWidget):
         from .xfce_panel_skin import apply_skin, remove_skin
         enabled = bool(self.settings.xfce_skin_enabled)
         if enabled:
-            ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds)
+            ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,
+                                     self.settings.xfce_skin_scale_percent)
             self.xfce_skin_status = message
             if ok:
                 self._xfce_skin_was_active = True
@@ -420,7 +421,23 @@ class Bar(QWidget):
         toggle.triggered.connect(
             lambda checked: self.quick_settings(xfce_skin_enabled=bool(checked)))
         xfce.addAction("Gérer les icônes et raccourcis…", self.xfce_panel_preferences).setEnabled(xfce_available())
-        note = xfce.addAction("Délai : 10 s · épaisseur d'origine")
+        shortcuts = xfce.addMenu("Rétraction rapide")
+        for seconds in (3, 5, 10, 15, 30, 60):
+            action = shortcuts.addAction(f"{seconds} secondes")
+            action.setCheckable(True)
+            action.setChecked(self.settings.xfce_skin_delay_seconds == seconds)
+            action.triggered.connect(lambda checked=False, n=seconds:
+                                     self.quick_settings(xfce_skin_delay_seconds=n))
+        thickness = xfce.addMenu("Épaisseur")
+        for percent in (100, 125, 150, 175, 200):
+            action = thickness.addAction(f"{percent} %")
+            action.setCheckable(True)
+            action.setChecked(self.settings.xfce_skin_scale_percent == percent)
+            action.triggered.connect(lambda checked=False, n=percent:
+                                     self.quick_settings(xfce_skin_scale_percent=n))
+        note = xfce.addAction(
+            f"Délai : {self.settings.xfce_skin_delay_seconds} s · "
+            f"épaisseur : {self.settings.xfce_skin_scale_percent} %")
         note.setEnabled(False)
         menu.addAction("⚙ Préférences…", self.preferences)
         menu.addAction("◈ Plugin Manager…", self.plugins)
