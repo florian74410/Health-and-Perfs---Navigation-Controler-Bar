@@ -125,6 +125,9 @@ def icon(p, kind, x, y, size=36):
             blade.cubicTo(-19, -25, 14, -25, 5, -3)
             p.drawPath(blade)
             p.restore()
+    elif kind == "power":
+        p.drawPolygon(QPolygonF([QPointF(22,1), QPointF(9,22), QPointF(19,22),
+                                  QPointF(15,39), QPointF(33,16), QPointF(22,16)]))
     elif kind == "network":
         p.drawEllipse(QRectF(2, 2, 36, 36))
         p.drawEllipse(QRectF(12, 2, 16, 36))
@@ -251,7 +254,7 @@ class HudCanvas(QWidget):
     layout_changed = Signal(list)
     module_activated = Signal(str)
     ORIGINAL = ["cpu", "gpu", "ram", "storage", "fans", "network"]
-    WIDTHS = {"cpu":380, "gpu":350, "ram":210, "storage":235, "fans":240, "network":165}
+    WIDTHS = {"cpu":380, "gpu":350, "ram":210, "storage":235, "fans":240, "network":165, "power":210}
     def __init__(self, registry, vertical=False, parent=None):
         super().__init__(parent)
         self.registry = registry
@@ -260,6 +263,7 @@ class HudCanvas(QWidget):
         self.labels = {}
         self.readings = None
         self.slot_order = self.ORIGINAL.copy()
+        self.hidden_modules = ["power"]
         self._drag_origin = None
         self._drag_start = None
         self._hover_slot = None
@@ -271,6 +275,26 @@ class HudCanvas(QWidget):
         self.visual_timer.start()
         self.refresh_plugins()
         self.setToolTip("Mesures réelles si sonde disponible • tiret = indisponible")
+
+    @property
+    def active_slots(self):
+        ordered = list(dict.fromkeys(self.slot_order + ["power"]))
+        return [slot for slot in ordered if slot not in self.hidden_modules]
+
+    def power_value(self):
+        data = self.readings or {}
+        n = data.get("power_total_w")
+        return f"{n:.1f} W" if isinstance(n, (float, int)) else "— W"
+
+    def power_detail(self):
+        data = self.readings or {}
+        cpu = data.get("cpu_power_w")
+        battery = data.get("battery_discharge_w")
+        if isinstance(cpu, (float, int)):
+            return f"CPU {cpu:.1f} W · total prise inconnu"
+        if isinstance(battery, (float, int)):
+            return f"Batterie {battery:.1f} W · secteur inconnu"
+        return "Consommation secteur non mesurable"
 
     def animate_neon(self):
         if self.isVisible() and not getattr(self.window(),"retracted",False):
@@ -327,9 +351,11 @@ class HudCanvas(QWidget):
         retracted = bool(getattr(self.window(), "retracted", False))
         if retracted:
             self.paint_retracted(p)
+        elif self.vertical and self.active_slots != self.ORIGINAL:
+            self.paint_vertical_dynamic(p)
         elif self.vertical:
             self.paint_vertical(p)
-        elif self.height() <= 150:
+        elif self.height() <= 150 or set(self.active_slots) != set(self.ORIGINAL) or len(self.active_slots) != 6:
             self.paint_slim(p)
         elif self.width() < 1400:
             self.paint_compact(p)
@@ -343,7 +369,7 @@ class HudCanvas(QWidget):
                 self.paint_reordered(p)
         p.resetTransform()
         if not retracted:
-            for kind in self.slot_order:
+            for kind in self.active_slots:
                 bounds = self.module_icon_rect(kind)
                 icon(p,kind,bounds.x(),bounds.y(),bounds.width())
         p.end()
@@ -368,54 +394,59 @@ class HudCanvas(QWidget):
             offset += width
 
     def module_at(self, pos):
+        count = max(1, len(self.active_slots))
         if getattr(self.window(), "retracted", False):
             dimension = pos.y() / max(1, self.height()) if self.vertical else pos.x() / max(1, self.width())
-            return min(5, max(0, int(dimension * 6)))
+            return min(count-1, max(0, int(dimension * count)))
         if self.vertical:
-            return min(5, max(0, int(pos.y() * 6/max(1, self.height()))))
-        if self.height() <= 150:
-            columns=6 if self.width()>=840 else 3
-            rows=(6+columns-1)//columns
+            return min(count-1, max(0, int(pos.y() * count/max(1, self.height()))))
+        if self.height() <= 150 or set(self.active_slots) != set(self.ORIGINAL) or count != 6:
+            columns=count if self.width()>=840 else min(3,count)
+            rows=(count+columns-1)//columns
             col=min(columns-1,max(0,int(pos.x()*columns/max(1,self.width()))))
             row=min(rows-1,max(0,int(pos.y()*rows/max(1,self.height()))))
-            return min(5,row*columns+col)
+            return min(count-1,row*columns+col)
         if self.width() < 1400:
             columns = 2 if self.width() < 520 else 3
-            rows = (6 + columns - 1)//columns
+            rows = (count + columns - 1)//columns
             col = min(columns-1, max(0, int(pos.x()*columns/max(1,self.width()))))
             row = min(rows-1, max(0, int(pos.y()*rows/max(1,self.height()))))
-            return min(5,row*columns+col)
+            return min(count-1,row*columns+col)
         scale=min(self.width()/1580,self.height()/200)
         left=(self.width()-1580*scale)/2
         x=max(0,min(1580,(pos.x()-left)/max(.01,scale)))
         width = 0
-        for i, kind in enumerate(self.slot_order):
+        for i, kind in enumerate(self.active_slots):
             width += self.WIDTHS[kind]
             if x < width:
                 return i
-        return 5
+        return count-1
 
     def module_rect(self,kind):
         """Single geometry contract for drawing, clicks, dragging and plugin popovers."""
-        index=self.slot_order.index(kind)
+        active = self.active_slots
+        if kind not in active:
+            return QRect()
+        index=active.index(kind)
+        count=len(active)
         if getattr(self.window(), "retracted", False):
             length = self.height() if self.vertical else self.width()
-            start = round(index * length / 6)
-            end = round((index+1) * length / 6)
+            start = round(index * length / count)
+            end = round((index+1) * length / count)
             return QRect(0, start, self.width(), end-start) if self.vertical else QRect(start, 0, end-start, self.height())
         if self.vertical:
-            top=round(index*self.height()/6);bottom=round((index+1)*self.height()/6)
+            top=round(index*self.height()/count);bottom=round((index+1)*self.height()/count)
             return QRect(0,top,self.width(),bottom-top)
-        if self.height()<=150 or self.width()<1400:
-            columns=(6 if self.width()>=840 else 3) if self.height()<=150 else (2 if self.width()<520 else 3)
-            rows=(6+columns-1)//columns
+        if self.height()<=150 or self.width()<1400 or count!=6 or set(active)!=set(self.ORIGINAL):
+            columns=(count if self.width()>=840 else min(3,count)) if (self.height()<=150 or count!=6 or set(active)!=set(self.ORIGINAL)) else (2 if self.width()<520 else 3)
+            rows=(count+columns-1)//columns
             col,row=index%columns,index//columns
             left,right=round(col*self.width()/columns),round((col+1)*self.width()/columns)
             top,bottom=round(row*self.height()/rows),round((row+1)*self.height()/rows)
             return QRect(left,top,right-left,bottom-top)
         scale=min(self.width()/1580,self.height()/200)
         left=(self.width()-1580*scale)/2
-        offset=sum(self.WIDTHS[slot] for slot in self.slot_order[:index])
+        offset=sum(self.WIDTHS[slot] for slot in active[:index])
         return QRect(round(left+offset*scale),0,round(self.WIDTHS[kind]*scale),round(200*scale))
 
     def module_icon_rect(self, kind):
@@ -431,7 +462,7 @@ class HudCanvas(QWidget):
         return QRect(self.mapToGlobal(bounds.topLeft()),bounds.size())
 
     def mouseMoveEvent(self, event):
-        hover = self.slot_order[self.module_at(event.position())]
+        hover = self.active_slots[self.module_at(event.position())]
         if hover != self._hover_slot:
             self._hover_slot = hover
             self.update()
@@ -451,17 +482,19 @@ class HudCanvas(QWidget):
 
     def mouseReleaseEvent(self, event):
         if self._drag_origin is not None and self._drag_start is not None:
+            active = self.active_slots
             index = self.module_at(event.position())
             moved = (event.position().toPoint() - self._drag_start).manhattanLength() > 10
             if moved and index != self._drag_origin:
-                slot = self.slot_order.pop(self._drag_origin)
-                self.slot_order.insert(index, slot)
+                slot = active.pop(self._drag_origin)
+                active.insert(index, slot)
+                self.slot_order = active + [x for x in self.slot_order if x not in active]
                 self.layout_changed.emit(self.slot_order.copy())
                 self.update()
             elif (not moved and index == self._drag_origin and
-                  self.module_icon_rect(self.slot_order[index]).contains(event.position().toPoint()) and
-                  self.module_icon_rect(self.slot_order[index]).contains(self._drag_start)):
-                self.module_activated.emit(self.slot_order[index])
+                  self.module_icon_rect(active[index]).contains(event.position().toPoint()) and
+                  self.module_icon_rect(active[index]).contains(self._drag_start)):
+                self.module_activated.emit(active[index])
         self._drag_origin = None
         self._drag_start = None
         super().mouseReleaseEvent(event)
@@ -536,8 +569,9 @@ class HudCanvas(QWidget):
             line(p,[(cx-17,y),(cx-2,y)],"#42e5ff",1.4)
 
     def paint_slim(self,p):
-        columns=6 if self.width()>=840 else 3
-        rows=(6+columns-1)//columns
+        slots = self.active_slots
+        columns=len(slots) if self.width()>=840 else min(3, len(slots))
+        rows=(len(slots)+columns-1)//columns
         width,height=self.width()/columns,self.height()/rows
         entries=[
             ("cpu","CPU",self.value("cpu_temperature_c",52)+" °C",self.value("cpu_percent",18)+"% · "+self.value("cpu_frequency_ghz",2.4,1)+" GHz","cpu_percent"),
@@ -545,8 +579,10 @@ class HudCanvas(QWidget):
             ("ram","RAM",self.value("ram_percent",44)+"%",self.used_free("ram","14.2 / 17.8 GB"),"ram_percent"),
             ("storage","SSD",self.value("disk_percent",62)+"%",self.used_free("disk","372 / 628 GB"),"disk_percent"),
             ("fans","FANS",str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "—", "Ventilation",None),
-            ("network","RÉSEAU","↓ "+format_rate((self.readings or {}).get("net_down_mbs")),"↑ "+format_rate((self.readings or {}).get("net_up_mbs"))+" · "+format_ping(self.readings or {}),None)]
-        entries.sort(key=lambda entry:self.slot_order.index(entry[0]))
+            ("network","RÉSEAU","↓ "+format_rate((self.readings or {}).get("net_down_mbs")),"↑ "+format_rate((self.readings or {}).get("net_up_mbs"))+" · "+format_ping(self.readings or {}),None),
+            ("power","POWER",self.power_value(),self.power_detail(),None)]
+        entries = [entry for entry in entries if entry[0] in slots]
+        entries.sort(key=lambda entry:slots.index(entry[0]))
         for index,(kind,label,value,detail,key) in enumerate(entries):
             bounds=self.module_rect(kind)
             x,y,width,height=bounds.x(),bounds.y(),bounds.width(),bounds.height()
@@ -629,8 +665,9 @@ class HudCanvas(QWidget):
             "fans": ("FANS", (str(round(fan_rpm)) if isinstance(fan_rpm, (int, float)) else "—") + " RPM"),
             "network": ("RÉSEAU", "↓" + format_rate(readings.get("net_down_mbs")) +
                         "  ↑" + format_rate(readings.get("net_up_mbs"))),
+            "power": ("POWER", self.power_value()),
         }
-        for kind in self.slot_order:
+        for kind in self.active_slots:
             bounds = self.module_rect(kind)
             x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
             if w < 8 or h < 8:
@@ -683,6 +720,30 @@ class HudCanvas(QWidget):
             icon(p, kind, x+12, y+10, 21)
             text(p, x+42, y+26, self.labels.get(kind, label)[:12], 12)
             text(p, x+12, y+cell_h-15, value, 12 if cell_w < 210 else 16)
+
+    def paint_vertical_dynamic(self, p):
+        """Vertical presentation for arbitrary module selections."""
+        slots = self.active_slots
+        cell = self.height() / max(1, len(slots))
+        labels = {"cpu": "CPU", "gpu": "GPU", "ram": "RAM", "storage": "SSD",
+                  "fans": "FANS", "network": "RÉSEAU", "power": "POWER"}
+        values = {
+            "cpu": self.value("cpu_temperature_c", 52)+" °C",
+            "gpu": self.value("gpu_temperature_c", 48)+" °C",
+            "ram": self.value("ram_percent", 44)+" %",
+            "storage": self.value("disk_percent", 62)+" %",
+            "fans": str(self.fans()[0].get("rpm", "—"))+" RPM" if self.fans() else "— RPM",
+            "network": "↓"+format_rate((self.readings or {}).get("net_down_mbs")),
+            "power": self.power_value(),
+        }
+        for index, slot in enumerate(slots):
+            bounds = self.module_rect(slot)
+            x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
+            path=QPainterPath()
+            path.addRoundedRect(QRectF(x+3, y+3, w-6, h-6), 6, 6)
+            outline(p, path, module_background(self.module_opacity))
+            fitted_text(p, x+9, y+min(20,h*.37), labels[slot], max(1,w-18), 11)
+            fitted_text(p, x+9, y+min(h-8,h*.76), values[slot], max(1,w-18), 12)
 
     def paint_vertical(self, p):
         if self.width()<120:
