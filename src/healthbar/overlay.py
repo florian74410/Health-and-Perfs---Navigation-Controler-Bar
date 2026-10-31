@@ -29,3 +29,39 @@ def apply_priority(widget, enabled):
         except Exception as error:
             return 'X11 : priorité Qt uniquement ('+str(error)+').'
     return 'macOS : priorité Qt ; Spaces et plein écran contrôlés par macOS.'
+
+
+def apply_all_workspaces(widget):
+    """Best-effort EWMH sticky window for all virtual desktops on X11/XFCE.
+
+    No workspace API is uniformly portable to Wayland, Windows Virtual Desktops
+    or macOS Spaces; do not claim success on those platforms.
+    """
+    if not sys.platform.startswith("linux"):
+        return False
+    from PySide6.QtWidgets import QApplication
+    if QApplication.platformName() != "xcb" or not os.getenv("DISPLAY"):
+        return False
+    try:
+        from Xlib import X, Xatom, display, protocol
+        connection = display.Display()
+        try:
+            window = connection.create_resource_object("window", int(widget.winId()))
+            all_desktops = 0xFFFFFFFF
+            atom = connection.intern_atom("_NET_WM_DESKTOP")
+            window.change_property(atom, Xatom.CARDINAL, 32, [all_desktops])
+            root = connection.screen().root
+            message = protocol.event.ClientMessage(
+                window=window, client_type=atom, data=(32, [all_desktops, 1, 0, 0, 0]))
+            root.send_event(message, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
+            sticky = connection.intern_atom("_NET_WM_STATE_STICKY")
+            state = protocol.event.ClientMessage(
+                window=window, client_type=connection.intern_atom("_NET_WM_STATE"),
+                data=(32, [1, sticky, 0, 1, 0]))
+            root.send_event(state, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
+            connection.flush()
+        finally:
+            connection.close()
+        return True
+    except (OSError, ImportError, ValueError):
+        return False
