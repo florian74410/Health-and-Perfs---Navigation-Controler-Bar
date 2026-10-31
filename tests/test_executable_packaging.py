@@ -42,6 +42,18 @@ class ExecutablePackagingTests(unittest.TestCase):
         with patch.dict(os.environ, NOVABAR_PACKAGED='flatpak'):
             self.assertEqual(launch_command(), ['flatpak', 'run', 'io.github.florian74410.NovaBar'])
 
+    def test_new_version_retires_only_previous_downloaded_linux_packages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'Executable/Linux';root.mkdir(parents=True)
+            old_deb=root/'NovaBar_0.3.5_amd64.deb'
+            old_flatpak=root/'NovaBar_0.3.5_x86_64.flatpak'
+            note=root/'README.md'
+            for path in (old_deb,old_flatpak,note):path.write_text('original')
+            packager.retire_stale_linux_packages(root.parent)
+            self.assertFalse(old_deb.exists())
+            self.assertFalse(old_flatpak.exists())
+            self.assertEqual(note.read_text(),'original')
+
     def test_unsafe_archive_paths_are_rejected_before_packaging(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);archive=root/'bad.zip'

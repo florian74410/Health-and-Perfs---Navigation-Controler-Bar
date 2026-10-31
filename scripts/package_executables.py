@@ -81,9 +81,22 @@ def one_file(root,pattern):
     return found[0]
 
 
+def retire_stale_linux_packages(output):
+    """Remove only previous downloadable DEB/Flatpak builds from the output folder.
+
+    Never modify user profiles, runtime installations, or unrelated files.
+    """
+    root = Path(output) / 'Linux'
+    for pattern in ('NovaBar_*_amd64.deb', 'NovaBar_*_x86_64.flatpak'):
+        for old in root.glob(pattern):
+            if old.is_file() and not old.is_symlink():
+                old.unlink()
+
+
 def assemble(artifacts,output,version,source_sha=''):
     output=Path(output)
     for folder in ('Linux','Windows','MacOS'):(output/folder).mkdir(parents=True,exist_ok=True)
+    retire_stale_linux_packages(output)
     files=[linux_run(one_file(artifacts,'NovaBar-runtime-linux-x86_64.zip'),output/'Linux/CyberNexusHUD-Linux-x86_64.run',version)]
     for pattern,folder in (('NovaBar_*_amd64.deb','Linux'),
                            ('NovaBar_*_x86_64.flatpak','Linux'),
