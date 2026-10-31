@@ -80,10 +80,10 @@ class Settings:
                 raise ValueError(f"Activation de barre invalide : {name}")
         if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled):
             raise ValueError("Activer au moins une des trois barres NovaBar")
-        if not (1 <= self.xfce_skin_delay_seconds <= 30 and
-                type(self.xfce_skin_delay_seconds) is int and
-                type(self.xfce_skin_fx_intensity) is int and
-                0 <= self.xfce_skin_fx_intensity <= 100):
+        if (type(self.xfce_skin_delay_seconds) is not int or
+                not 1 <= self.xfce_skin_delay_seconds <= 30 or
+                type(self.xfce_skin_fx_intensity) is not int or
+                not 0 <= self.xfce_skin_fx_intensity <= 100):
             raise ValueError("Délai ou intensité des effets XFCE invalide")
         if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
             raise ValueError("Un dock Dossiers et un dock Applications sont requis")
