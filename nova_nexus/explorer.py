@@ -41,17 +41,18 @@ def run(start=None):
             self.setStyleSheet("""
                 QMainWindow, QWidget#root {background:transparent;color:#F2F8FF;}
                 QLabel {color:#E5F8FF;background:transparent;}
-                QFrame#sidebar {background:#091D2B;border:1px solid #17637A;}
-                QFrame#toolbar {background:#0C2533;border:1px solid #1A6377;}
-                QPushButton {background:#102A39;color:#E8FBFF;border:1px solid #23677B;
+                QFrame#sidebar {background:rgba(14,39,54,205);border:1px solid #1E7E97;}
+                QFrame#toolbar {background:rgba(18,48,66,210);border:1px solid #2490A8;}
+                QPushButton {background:rgba(18,49,67,215);color:#E8FBFF;border:1px solid #2D8CA3;
                     padding:7px 11px;min-height:20px;border-radius:0;}
-                QPushButton:hover {border:1px solid #00DAFF;background:#144357;}
-                QPushButton:pressed {background:#08617A;}
-                QLineEdit {background:#061723;color:white;border:1px solid #2A7184;
+                QPushButton:hover {border:1px solid #3EEBFF;background:rgba(26,84,108,235);}
+                QPushButton:pressed {background:rgba(11,101,126,235);}
+                QLineEdit {background:rgba(6,24,36,232);color:#F4FCFF;border:1px solid #39B9D0;
                     padding:8px;border-radius:0;}
-                QListView, QTreeView {background:#071B29;color:#E9F6FF;border:0;
-                    selection-background-color:#12526A;selection-color:#FFFFFF;
-                    alternate-background-color:#0A2130;}
+                QLineEdit:focus {background:rgba(9,31,46,238);border:1px solid #6EF2FF;}
+                QListView, QTreeView {background:rgba(7,28,42,198);color:#E9F6FF;border:0;
+                    selection-background-color:rgba(33,126,156,190);selection-color:#FFFFFF;
+                    alternate-background-color:rgba(11,37,54,165);}
                 QListView::item:hover,QTreeView::item:hover{background:#123A50;}
                 QHeaderView::section {background:#102D3D;color:#8FE9F6;padding:6px;border:0;}
                 QScrollBar:vertical {background:#081D2B;width:11px;}
@@ -161,7 +162,7 @@ def run(start=None):
             self.tiles.setResizeMode(W.QListView.Adjust)
             self.tiles.setMovement(W.QListView.Static)
             self.tiles.setIconSize(C.QSize(68,68))
-            self.tiles.setStyleSheet("QListView{background:rgba(5,25,38,229);border:1px solid #1A687F;} QListView::item:hover{background:rgba(0,190,230,55);} QListView::item:selected{background:rgba(0,160,210,95);border:1px solid #00E4FF;}")
+            self.tiles.setStyleSheet("QListView{background:rgba(9,34,49,205);border:1px solid #25849B;} QListView::item:hover{background:rgba(0,190,230,55);} QListView::item:selected{background:rgba(0,160,210,95);border:1px solid #00E4FF;}")
             self.tiles.setGridSize(C.QSize(120,112))
             self.tiles.setWordWrap(True)
             self.tiles.setSpacing(8)
@@ -209,11 +210,11 @@ def run(start=None):
             outline.closeSubpath()
             p.setClipPath(outline)
             bg=G.QLinearGradient(0,0,w,h)
-            bg.setColorAt(0,G.QColor(14,42,57,240))
-            bg.setColorAt(.5,G.QColor(5,21,34,244))
-            bg.setColorAt(1,G.QColor(10,37,52,240))
+            bg.setColorAt(0,G.QColor(18,52,70,220))
+            bg.setColorAt(.5,G.QColor(7,24,38,226))
+            bg.setColorAt(1,G.QColor(15,46,64,220))
             p.fillPath(outline,bg)
-            p.setOpacity(.17)
+            p.setOpacity(.13)
             p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
             p.setOpacity(1)
             p.setClipping(False)
