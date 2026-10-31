@@ -13,7 +13,7 @@ from .config import data_dir
 API_VERSION = 2
 MAX_PACKAGE = 16 * 1024 * 1024
 MAX_UNPACKED = 32 * 1024 * 1024
-SLOTS = ("cpu", "gpu", "ram", "storage", "fans", "network")
+SLOTS = ("cpu", "gpu", "ram", "storage", "fans", "network", "power")
 
 
 def validate_manifest(raw):
