@@ -29,6 +29,14 @@ class Settings:
     retract_mode: str = ""
     always_on_top: bool = True
     holo_enabled: bool = True
+    # Any combination of the three panels may be enabled.
+    hud_enabled: bool = True
+    dock_left_enabled: bool = True
+    dock_right_enabled: bool = True
+    dock_left_kind: str = "folders"
+    dock_right_kind: str = "apps"
+    dock_folder_paths: list = field(default_factory=list)
+    dock_app_paths: list = field(default_factory=list)
     hide_seconds: int = 15
     autostart: bool = False
     configured: bool = False
@@ -62,6 +70,16 @@ class Settings:
         self.auto_hide = self.retract_mode == "auto"
         if type(self.always_on_top) is not bool or type(self.holo_enabled) is not bool:
             raise ValueError("Option affichage invalide")
+        for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled"):
+            if type(getattr(self, name)) is not bool:
+                raise ValueError(f"Activation de barre invalide : {name}")
+        if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
+            raise ValueError("Un dock Dossiers et un dock Applications sont requis")
+        for key in ("dock_folder_paths", "dock_app_paths"):
+            values = getattr(self, key)
+            if not isinstance(values, list) or len(values) > 128 or any(
+                    not isinstance(p, str) or len(p) > 2048 or "\\x00" in p for p in values):
+                raise ValueError(f"Favoris de dock invalides : {key}")
         if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
@@ -116,6 +134,9 @@ class Settings:
             f"- Opacité: {self.opacity}%",
             f"- Délai de rétractation: {self.hide_seconds}s",
             f"- Démarrage automatique: {self.autostart}",
+            f"- NovaBar en haut: {self.hud_enabled}",
+            f"- Dock gauche: {self.dock_left_enabled} ({self.dock_left_kind})",
+            f"- Dock droit: {self.dock_right_enabled} ({self.dock_right_kind})",
             f"- Thème: {self.theme}",
             f"- Modules: {', '.join(self.slot_order)}",
             "",
