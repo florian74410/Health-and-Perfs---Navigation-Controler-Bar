@@ -19,8 +19,23 @@ from .overlay import apply_all_workspaces, apply_priority
 from .xfce_panel_skin import PALETTES
 
 
+def _is_bottom_native_panel(rect, screen_geometry):
+    """Bottom anchored, sufficiently wide visible native panel."""
+    if rect.width() < 120 or rect.height() < 15 or rect.height() > 210:
+        return False
+    edge = screen_geometry.y() + screen_geometry.height()
+    return (abs(rect.bottom() + 1 - edge) <= 16
+            and rect.right() >= screen_geometry.left()
+            and rect.left() <= screen_geometry.right())
+
+
 def panel_x11_bounds(screen_geometry):
-    """Find a visible Xfce panel along the bottom screen edge (no guessed bounds)."""
+    """Locate the REAL xfce4-panel window from X11 clients or their descendants.
+
+    Xfwm4 does not guarantee the panel to be an immediate root-window child:
+    recurse through window wrappers and prefer the widest bottom-anchored
+    visible native panel. Never synthesize a second system tray.
+    """
     if not sys.platform.startswith("linux") or not os.environ.get("DISPLAY"):
         return None
     try:
@@ -28,31 +43,40 @@ def panel_x11_bounds(screen_geometry):
         connection = display.Display()
         try:
             root = connection.screen().root
-            children = root.query_tree().children
-            matching = []
-            for window in children:
-                try:
-                    klass = " ".join(window.get_wm_class() or ()).lower()
-                    title = (window.get_wm_name() or "").lower()
-                    if "xfce4-panel" not in klass and "xfce4-panel" not in title:
-                        continue
-                    attrs = window.get_attributes()
-                    if attrs.map_state != X.IsViewable:
-                        continue
-                    rect = window.get_geometry()
-                    location = window.translate_coords(root, 0, 0)
-                    x, y, w, h = location.x, location.y, rect.width, rect.height
-                    # Hidden autohide stubs may have 1-3px; those get no overlay.
-                    if w < 120 or h < 15 or h > 180:
-                        continue
-                    if abs((y+h) - (screen_geometry.y()+screen_geometry.height())) > 12:
-                        continue
-                    if x+w <= screen_geometry.left() or x >= screen_geometry.right():
-                        continue
-                    matching.append(QRect(x, y, w, h))
-                except (error.XError, OSError, ValueError, TypeError):
+            candidates = []
+            seen = set()
+            pending = [(root, 0)]
+            while pending and len(seen) < 1200:
+                parent, depth = pending.pop()
+                if depth > 5:
                     continue
-            return max(matching, key=lambda r:r.width()) if matching else None
+                try:
+                    children = parent.query_tree().children
+                except (error.XError, OSError, ValueError):
+                    continue
+                for window in children:
+                    xid = window.id
+                    if xid in seen:
+                        continue
+                    seen.add(xid)
+                    try:
+                        klass = " ".join(window.get_wm_class() or ()).lower()
+                        title = (window.get_wm_name() or "").lower()
+                        attrs = window.get_attributes()
+                        if ("xfce4-panel" in klass or "xfce4-panel" in title) and (
+                                attrs.map_state == X.IsViewable):
+                            rect = window.get_geometry()
+                            pos = window.translate_coords(root, 0, 0)
+                            bounds = QRect(pos.x, pos.y, rect.width, rect.height)
+                            if _is_bottom_native_panel(bounds, screen_geometry):
+                                candidates.append(bounds)
+                        # Children may contain the real top-level Xfce panel
+                        # even when the WM decorates or reparents the window.
+                        if depth < 5:
+                            pending.append((window, depth+1))
+                    except (error.XError, OSError, ValueError, TypeError, AttributeError):
+                        continue
+            return max(candidates, key=lambda r: (r.width(), r.height())) if candidates else None
         finally:
             connection.close()
     except (ImportError, OSError, ValueError, RuntimeError):
@@ -98,6 +122,8 @@ class XFCEPanelCircuitEffects(QWidget):
         rect = panel_x11_bounds(screen.geometry())
         if rect is None:
             self.hide()
+            self.timer.stop()
+            self._native_bounds = None
             return
         if self._native_bounds != rect:
             self._native_bounds = rect
