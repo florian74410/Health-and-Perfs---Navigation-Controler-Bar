@@ -1,3 +1,13 @@
+## ⚡ NovaBar 0.6.9 — CYBER NEXUS HUD
+
+**Version multi-surface :** HUD de performances visible sur tous les bureaux XFCE/X11 (avec surveillance EWMH), docks Dossiers et Applications au style PCB animé, Holo détaillés, sélection de plugins affichés, et quatrième surface optionnelle habillant le **panneau système XFCE d'origine** sans enlever Wi-Fi, son, notifications ou fenêtres.
+
+La barre du bas conserve les icônes et applets natives, peut être activée séparément et propose une rétractation de 1 à 120 secondes, une épaisseur de 100 à 200 % et une restauration des réglages d'origine. Tests automatisés multi-OS ; **validation visuelle sur XFCE/X11 réel à confirmer**.
+
+[⬇️ Téléchargements 0.6.9](Executable/README.md) · [📖 Notes de version](docs/UPDATE_V069.md) · [🧪 Diagnostic XFCE](docs/wiki/XFCE-Cyber-Skin.md)
+
+[📖 XFCE Cyber Skin](docs/wiki/XFCE-Cyber-Skin.md) · [📁 Docks latéraux](docs/wiki/Docks.md)
+
 <p align="center">
   <img src="docs/wiki/assets/banner.svg" alt="CYBER NEXUS HUD — NovaBar, cockpit néon" width="100%">
 </p>
@@ -6,7 +16,7 @@
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.5.3-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.6.9-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
@@ -23,7 +33,7 @@
 
 ## 🌌 Découvrez la NovaBar
 
-<p align="center"><img src="Assets/Previews/novabar-v053-overview.png" width="100%" alt="NovaBar 0.5.3 : compte-tours et panneaux Holo en verre teinté à angles biseautés"></p>
+<p align="center"><img src="Assets/Previews/novabar-v051-transparent-holo.png" width="100%" alt="NovaBar 0.5.1 : compte-tours et panneaux Holo transparents CPU et réseau"></p>
 <sub>📸 Aperçu de l'application, avec données d'illustration : les valeurs affichées ne sont pas celles de votre machine.</sub>
 
 NovaBar reste au bord de votre bureau pour exposer les informations pertinentes sans encombrer l'écran : contours PCB cyan, panneaux vitrés, reflets, halo au survol et transparence hors des modules. **72 px** par défaut, **50–150 px** réglables et **100 % de largeur** initialement.
@@ -39,7 +49,7 @@ Les informations proviennent des capteurs du système : une valeur **—** signi
 ## ✨ L'expérience NovaBar
 
 - **🎨 Mode néon** — halos cyan, reflet de verre, opacité modulable, barre responsive et rétractable.
-- **📟 Compte-tours 0.5.1** — CPU/GPU en GHz, RAM/SSD en pourcentage ; proportions conservées de 50 à 150 px.
+- **📟 Instruments 0.5.4 (en préparation)** — CPU/GPU et ventilateur en cadrans segmentés sans aiguilles ; GHz/RPM centrés. RAM/SSD en jauges de batterie segmentées, sans compte-tour. En rétractation : données lisibles au bord de l'écran, aucun cadran ni logo Holo.
 - **🧠 Holo compacts et transparents** — CPU 460 × 330 px, autres capteurs 380 × 280 px ; détails au clic sur le logo en haut à droite, tableaux défilants sans fond gris ou blanc.
 - **🌐 Réseau détaillé** — état, vitesse de lien et débits individuels des interfaces.
 - **🧩 Plugin Control Center 2-en-1** — onglets **Plugins / Sources**, ZIP versionnés, sources GitHub configurables et restauration.
@@ -75,28 +85,28 @@ Holo lisibles sur fond clair grâce au contour sombre des caractères ; réseau 
 
 Les consommations CPU/GPU sont affichées uniquement lorsqu’une sonde les fournit. Les valeurs initiales ou inconnues restent « — ». Les images utilisent des données de démonstration.
 
-## 📦 Télécharger & installer
+## 📦 Télécharger & installer — NovaBar 0.6.9
 
-| Système | Installateur | Usage |
-|---|---|---|
-| 🐧 **Linux Mint XFCE / Ubuntu** | [NovaBar 0.5.3 (.deb)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_amd64.deb) | Paquet natif recommandé |
-| 🧊 **Linux avec Flatpak** | [NovaBar 0.5.3 (.flatpak)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_x86_64.flatpak) | Bundle isolé |
-| 🐧 **Linux autonome** | [CyberNexusHUD (.run)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/CyberNexusHUD-Linux-x86_64.run) | Installeur autonome historique |
-| 🪟 **Windows 10/11** | [Setup (.exe)](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/CyberNexusHUD-Setup-Windows.exe) | Assistant graphique |
-| 🍎 **macOS Intel** | [DMG x86_64](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/CyberNexusHUD-macOS-x86_64.dmg) | macOS 12+ |
-| 🍏 **macOS Apple Silicon** | [DMG arm64](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/CyberNexusHUD-macOS-arm64.dmg) | macOS 12+ |
+Les installateurs natifs sont distribués depuis la [release 0.6.9](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.9) et classés dans [Executable/](Executable/README.md) avec les sommes de contrôle.
 
-> ⚠️ Le pipeline GitHub Actions publie les exécutables après les tests multi-OS. **Vérifiez la version dans [Executable/manifest.json](Executable/manifest.json)** : la documentation peut être mise à jour avant les binaires. Les paquets ne sont pas signés/notarisés.
+| Système | Fichier |
+| --- | --- |
+| 🐧 Linux Mint XFCE / Ubuntu | [NovaBar_0.6.9_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/NovaBar_0.6.9_amd64.deb) |
+| 🪟 Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-Setup-Windows.exe) |
+| 🍎 macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-macOS-arm64.dmg) |
+| 🍏 macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-macOS-x86_64.dmg) |
 
-****Téléchargez d’abord le `.deb` 0.5.3 ci-dessus**, puis fermez NovaBar avant de lancer l’installation :**
+Installation sur Linux Mint après téléchargement :
 
 ```bash
-cd "$(xdg-user-dir DOWNLOAD)" &&
-sudo apt install ./NovaBar_0.5.3_amd64.deb &&
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.6.9_amd64.deb
 novabar
 ```
 
-[📦 Procédure complète et désinstallation](docs/wiki/Installation.md) · [🔄 Mise à jour sans effacer les profils](docs/wiki/Mises-a-jour.md)
+Une mise à jour native conserve les préférences locales. Les binaires ne sont pas signés ou notarisés. Les tests automatiques ne remplacent pas une validation graphique en session XFCE/X11.
+
+[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V069.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
 
 ## 🧩 Plugin Manager
 
@@ -132,7 +142,7 @@ Projet en développement. La compatibilité des overlays Wayland/Bazzite et le c
 
 Voir [CHANGELOG](CHANGELOG.md). Les sources de développement et les exécutables publiés peuvent avoir des versions différentes ; le manifeste des exécutables reste la référence pour les téléchargements.
 
-## NovaBar Next · sources 0.5.3
+## NovaBar Next · sources 0.5.2
 
 Les deux updates sont décrites dans le [changelog](CHANGELOG.md).
 
@@ -141,4 +151,4 @@ Les deux updates sont décrites dans le [changelog](CHANGELOG.md).
 
 [Downloader et packaging](docs/wiki/Downloader.md) · [CPU Mode et limitations OS](docs/wiki/CPU-Mode.md).
 
-La release **0.5.3** regroupe les nouveaux paquets et leurs manifestes de contrôle SHA-256. Les fichiers historiques dans `Executable/` restent identifiés par leur version ; privilégiez les téléchargements de la release pour cette mise à jour.
+La release **0.5.2** regroupe les nouveaux paquets et leurs manifestes de contrôle SHA-256. Les fichiers historiques dans `Executable/` restent identifiés par leur version ; privilégiez les téléchargements de la release pour cette mise à jour.

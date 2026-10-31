@@ -1,15 +1,31 @@
-# NovaBar 0.5.3 — Linux
+# Linux — Mint XFCE / Ubuntu / Bazzite Desktop
 
-[Télécharger NovaBar_0.5.3_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_amd64.deb) · [Tous les paquets de la release](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.5.3)
+### Nouveau — formats natifs (.deb et .flatpak)
+- `NovaBar_0.3.5_amd64.deb` : installation Mint/Ubuntu directement par gestionnaire de paquets.
+  Double-cliquer le .deb ou `sudo apt install ./NovaBar_0.3.5_amd64.deb`.
+  Lancer ensuite « NovaBar » depuis le menu, ou exécuter `novabar`.
+- `NovaBar_0.3.5_x86_64.flatpak` : bundle Flatpak installable avec
+  `flatpak install --user ./NovaBar_0.3.5_x86_64.flatpak`,
+  puis `flatpak run io.github.florian74410.NovaBar`.
+  Nécessite Flatpak et le runtime Freedesktop 25.08 (téléchargement séparé possible).
 
-Téléchargez le fichier dans Téléchargements, fermez NovaBar puis installez :
+Les deux paquets contiennent directement NovaBar et ouvrent la configuration au
+premier lancement. Ils remplacent leurs propres fichiers programme lors d'une
+mise à niveau sans effacer les profils, thèmes et plugins. **Ils ne désinstallent
+pas automatiquement un précédent runtime installé par l'ancien .run** :
+fermer toute instance encore ouverte et éviter de lancer deux versions en parallèle.
 
-```bash
-cd "$(xdg-user-dir DOWNLOAD)" &&
-sudo apt install ./NovaBar_0.5.3_amd64.deb &&
-novabar
+Le Flatpak utilise un sandbox : certaines sondes CPU/GPU, nvidia-smi et le
+démarrage automatique peuvent être limités. Pour un monitoring matériel
+complet sur Linux Mint XFCE, privilégier le .deb.
+
+### Installateur autonome historique (.run)
+
+Télécharger `CyberNexusHUD-Linux-x86_64.run` puis exécuter :
+
+```sh
+sh CyberNexusHUD-Linux-x86_64.run
 ```
 
-Le nouveau Flatpak et le lanceur `.run` sont également disponibles dans cette release. Les fichiers historiques présents dans ce dossier restent identifiés par leur version ; ils ne sont pas la mise à jour 0.5.3.
-
-[Guide d’installation](../../docs/wiki/Installation.md) · [Diagnostic](../../docs/wiki/Depannage.md)
+Le fichier contient l’installateur graphique, NovaBar et ses dépendances.
+Bazzite Desktop reste expérimental. Pas de mode Gaming.

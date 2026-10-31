@@ -1,5 +1,8 @@
 # Documentation CYBER NEXUS HUD / NovaBar
 
+- [⚡ Mise à jour 0.6.9 — HUD multi-workspaces, docks PCB et panneau XFCE](../docs/UPDATE_V069.md)
+- [📦 Télécharger NovaBar 0.6.9](../Executable/README.md)
+
 - [Wiki de NovaBar](../docs/wiki/Home.md)
 - [Mise à jour 0.5.3 : verre teinté, cadres et palette](../docs/UPDATE_V053.md)
 - [Mise à jour 0.5.2 : contraste et graphique réseau](../docs/UPDATE_V052.md)
