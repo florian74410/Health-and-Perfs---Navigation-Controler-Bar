@@ -70,7 +70,7 @@ class EdgeTelemetryTests(unittest.TestCase):
             tachometer(p, QRectF(10, 10, 70, 70), number, 3000 if unit == "RPM" else 3.5, unit)
             p.end()
             self.assertFalse(image.isNull())
-            self.assertGreater(image.pixelColor(45, 10).alpha(), 0)
+            self.assertGreater(image.pixelColor(45, 12).alpha(), 0)
         def battery_snapshot(percent):
             image = QImage(82, 30, QImage.Format.Format_ARGB32_Premultiplied)
             image.fill(0)
