@@ -1,0 +1,25 @@
+name: NOVA foundation tests
+
+on:
+  push:
+    branches:
+      - feature/nova-nexus-hd-foundation
+  pull_request:
+    paths:
+      - "nova_nexus/**"
+      - "tests/test_nova_*.py"
+      - ".github/workflows/nova-foundation-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check syntax
+        run: python -m compileall -q nova_nexus
+      - name: Run tests
+        run: python -m unittest discover -s tests -p "test_nova_*.py" -v
