@@ -89,7 +89,8 @@ def extract_runtime(archive,destination):
         names=set();links=[]
         for item in infos:
             path=PurePosixPath(item.filename)
-            if (not item.filename or path.is_absolute() or ".." in path.parts or "\\" in item.filename
+            raw_name=getattr(item,"orig_filename",item.filename)
+            if ("\\" in raw_name or "\x00" in raw_name or not item.filename or path.is_absolute() or ".." in path.parts or "\\" in item.filename
                 or ":" in item.filename or path.as_posix().casefold() in names):
                 raise ValueError("Chemin de mise à jour interdit")
             names.add(path.as_posix().casefold())

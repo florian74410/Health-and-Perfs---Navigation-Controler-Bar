@@ -341,10 +341,24 @@ class InstallerWizard(QDialog):
 
 def main():
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument("--preview");args=parser.parse_args()
-    if args.preview:os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
+    parser=argparse.ArgumentParser();parser.add_argument("--preview");parser.add_argument("--verify-payload",action="store_true");args=parser.parse_args()
+    if args.preview or args.verify_payload:os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
     app=QApplication(sys.argv[:1]);app.setApplicationName("CYBER NEXUS HUD")
     payload=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"payload"
+    if args.verify_payload:
+        import tempfile
+        from .updates import extract_runtime
+        from .install_engine import payload_executable, self_test
+        archives=list(payload.glob("NovaBar-runtime-*.zip"))
+        if len(archives)!=1:
+            raise ValueError("Le lanceur doit contenir un runtime unique")
+        with tempfile.TemporaryDirectory(prefix="nexus-verify-") as temporary:
+            extract_runtime(archives[0],temporary)
+            executable=payload_executable(temporary)
+            if not executable:
+                raise ValueError("Exécutable absent du lanceur")
+            self_test(executable,Path(temporary)/"verify.log")
+        return 0
     source=os.getenv("HEALTHBAR_SOURCE_ROOT") or str(Path(__file__).resolve().parents[2])
     wizard=InstallerWizard(source_root=source,payload=payload if payload_executable_available(payload) else None)
     wizard.show()

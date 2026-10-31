@@ -127,7 +127,7 @@ class InstallerTests(unittest.TestCase):
         for name in ('../escape','/absolute','C:/drive','a\\b'):
             with zipfile.ZipFile(archive,'w') as z:
                 entry=zipfile.ZipInfo('placeholder');entry.filename=name;z.writestr(entry,'bad')
-            with self.assertRaises(ValueError):extract_runtime(archive,self.root/'stage')
+            with self.subTest(name=name), self.assertRaises(ValueError):extract_runtime(archive,self.root/'stage')
         with zipfile.ZipFile(archive,'w') as z:
             item=zipfile.ZipInfo('link');item.external_attr=(stat.S_IFLNK|0o777)<<16;z.writestr(item,'outside')
         with self.assertRaises(ValueError):extract_runtime(archive,self.root/'stage')

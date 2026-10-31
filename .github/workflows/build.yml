@@ -29,6 +29,7 @@ jobs:
       - run: python scripts/build.py
       - run: python scripts/package_runtime.py
       - run: python scripts/test_runtime_package.py
+      - run: python scripts/test_installer_package.py
       - name: Package first-party ZIP plugins
         run: python scripts/build_plugins.py
       - name: Test the exact packaged runtime
