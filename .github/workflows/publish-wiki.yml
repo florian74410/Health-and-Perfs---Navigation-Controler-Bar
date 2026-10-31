@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs
+          sparse-checkout-cone-mode: true
       - name: Open native GitHub Wiki repository, if initialized
         id: wiki
         env:
