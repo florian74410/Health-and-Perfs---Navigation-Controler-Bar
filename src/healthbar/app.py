@@ -62,6 +62,36 @@ def button_icon(kind):
     return QIcon(pix)
 
 
+class NeonButton(QPushButton):
+    """Paint the background ourselves, avoiding opaque native Windows QPushButton fills."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.panel_opacity = 88
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        background = QColor("#061020")
+        background.setAlpha(round(255 * self.panel_opacity / 100))
+        edge = QColor("#33dfff" if self.underMouse() else "#068cff")
+        p.setBrush(background)
+        p.setPen(QPen(edge, 1.6))
+        panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
+        p.drawRoundedRect(panel, 9, 9)
+        icon = self.icon()
+        if not icon.isNull():
+            size = min(32, max(18, min(self.width(), self.height()) - 14))
+            x = 8 if self.text() else (self.width() - size)//2
+            icon.paint(p, QRect(x, (self.height()-size)//2, size, size))
+        if self.text():
+            p.setPen(QColor("#e7f3ff"))
+            p.setFont(self.font())
+            p.drawText(QRect(43, 0, max(0, self.width()-45), self.height()),
+                       Qt.AlignmentFlag.AlignVCenter, self.text())
+        p.end()
+
+
 class Bar(QWidget):
     def __init__(self, settings):
         super().__init__()
@@ -105,7 +135,7 @@ class Bar(QWidget):
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
         self.action_layout.addWidget(self.buttons)
-        self.expand_button = QPushButton()
+        self.expand_button = NeonButton()
         self.expand_button.setObjectName("nav")
         self.expand_button.setIcon(button_icon("expand"))
         self.expand_button.setFixedSize(34, 29)
@@ -180,7 +210,7 @@ class Bar(QWidget):
             QMessageBox.warning(self, "Enregistrement", str(error))
 
     def make_button(self, kind, tooltip, callback):
-        button = QPushButton()
+        button = NeonButton()
         button.setObjectName("nav")
         button.setIcon(button_icon(kind))
         from PySide6.QtCore import QSize
@@ -205,6 +235,11 @@ class Bar(QWidget):
         self.canvas.vertical = vertical
         self.canvas.module_opacity = self.settings.opacity
         self.canvas.update()
+        for child in self.buttons.findChildren(NeonButton):
+            child.panel_opacity = self.settings.opacity
+            child.update()
+        self.expand_button.panel_opacity = self.settings.opacity
+        self.expand_button.update()
         alpha = round(255*self.settings.opacity/100)
         self.actions.setStyleSheet(f"""
             QPushButton#nav {{ background: rgba(2,15,34,{alpha}); }}
