@@ -28,3 +28,7 @@ Les quatre builds natifs de la 0.5.1 ont terminé avec succès dans le [run 4119
 ## Complément 0.5.2
 
 75 tests locaux et quatre builds natifs réussis : lisibilité Holo sur fonds clairs/sombres, faible débit, sélection de route, panne CPU indépendante, ICMP borné et cache, historique de 120 secondes et couleurs de graphique invariantes. [CI et publication](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41199061850).
+
+## Complément 0.5.3
+
+77 tests locaux et quatre builds natifs réussis. Fond Holo uni à 85 % d’opacité, trois teintes et contours transparents vérifiés. Palette de texte indépendante du thème ; données du graphique UP/DOWN/ping inchangées. Rendus Qt inspectés et ajoutés à Assets/Previews. [CI 0.5.3](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41200596827).

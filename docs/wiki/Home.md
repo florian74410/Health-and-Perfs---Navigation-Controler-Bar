@@ -56,3 +56,11 @@ Compte-tours proportionnels, Holo plus petits et transparents, débits par inter
 ## Version 0.5.2
 
 Holo lisibles sur fond clair, faibles débits visibles, connexion active prioritaire et graphique UP vert / DOWN rouge / ping bleu : [guide 0.5.2](../UPDATE_V052.md).
+
+## Style Holo 0.5.3
+
+Les six panneaux ont maintenant un **fond uni sombre à 85 % d’opacité**, teinté selon le thème. Les tableaux et graphiques partagent ce fond. Les cadres néon fins ont des angles biseautés et des détails diagonaux. Les valeurs sont blanches, les libellés gris bleuté et les titres accentués ; Green Matrix ne recolore plus toutes les écritures en vert. Les couleurs du réseau restent UP vert / DOWN rouge / ping bleu.
+
+![Holo CPU et Réseau](../../Assets/Previews/novabar-v053-cpu-network.png)
+
+*Données de démonstration. [Guide 0.5.3](../UPDATE_V053.md).*

@@ -10,22 +10,22 @@
 
 **Paquet Debian natif — recommandé pour le monitoring matériel :**
 
-1. Téléchargez [NovaBar_0.5.2_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.2/NovaBar_0.5.2_amd64.deb) dans Téléchargements.
+1. Téléchargez [NovaBar_0.5.3_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_amd64.deb) dans Téléchargements.
 2. Fermez la barre en cours.
 3. Exécutez :
 
 ```bash
 cd "$(xdg-user-dir DOWNLOAD)" &&
-sudo apt install ./NovaBar_0.5.2_amd64.deb &&
+sudo apt install ./NovaBar_0.5.3_amd64.deb &&
 novabar
 ```
 
 Vous pouvez aussi double-cliquer le `.deb` pour passer par le gestionnaire de paquets local. Le nom exact peut changer après une nouvelle version.
 
-**Flatpak — plus isolé :** téléchargez le [bundle 0.5.2](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.2/NovaBar_0.5.2_x86_64.flatpak) avant les commandes suivantes.
+**Flatpak — plus isolé :** téléchargez le [bundle 0.5.3](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_x86_64.flatpak) avant les commandes suivantes.
 
 ```bash
-flatpak install --user ./NovaBar_0.5.2_x86_64.flatpak
+flatpak install --user ./NovaBar_0.5.3_x86_64.flatpak
 flatpak run io.github.florian74410.NovaBar
 ```
 
