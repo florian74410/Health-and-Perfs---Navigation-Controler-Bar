@@ -1,3 +1,9 @@
+## NovaBar 0.6.0 — Cyber Nexus quatre surfaces (développement)
+
+Le HUD NovaBar, les deux docks de raccourcis latéraux et l'habillage facultatif du panneau XFCE sont regroupés dans le même programme. Le panneau XFCE original conserve ses icônes et son épaisseur ; NovaBar lui ajoute du néon, des routes PCB animées et une rétractation native après 10 secondes, avec restauration possible. Couleurs harmonisées et logo dans la zone de notification. **Non publié, validation XFCE X11 en cours.**
+
+[📖 XFCE Cyber Skin](docs/wiki/XFCE-Cyber-Skin.md) · [📁 Docks latéraux](docs/wiki/Docks.md)
+
 <p align="center">
   <img src="docs/wiki/assets/banner.svg" alt="CYBER NEXUS HUD — NovaBar, cockpit néon" width="100%">
 </p>
