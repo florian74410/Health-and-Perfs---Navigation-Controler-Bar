@@ -31,7 +31,10 @@ class Item(ServiceInterface):
 class Menu(ServiceInterface):
  def __init__(self):super().__init__('com.canonical.dbusmenu')
  @method()
+ def AboutToShow(self,parent:'i')->'b':path.write_text('about-to-show');return True
+ @method()
  def GetLayout(self,parent:'i',depth:'i',names:'as')->'u(ia{sv}av)':
+  assert path.read_text()=='about-to-show','Dynamic menu was not prepared'
   return [1,[0,{},[Variant('(ia{sv}av)',[7,{'label':Variant('s','Action native'),'enabled':Variant('b',True)},[]])]]]
  @method()
  def Event(self,item:'i',event:'s',data:'v',timestamp:'u'):path.write_text('menu-'+str(item))

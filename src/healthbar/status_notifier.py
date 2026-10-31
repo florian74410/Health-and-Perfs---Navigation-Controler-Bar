@@ -90,10 +90,10 @@ class StatusNotifierHost(QThread):
         from dbus_next.service import ServiceInterface,dbus_property,method,signal
         from dbus_next.constants import PropertyAccess
         self.bus=await asyncio.wait_for(MessageBus(bus_type=BusType.SESSION).connect(),timeout=2)
-        host_name=f'org.kde.StatusNotifierHost.NovaBar{os.getpid()}'
+        host_name=f'org.kde.StatusNotifierHost-NovaBar{os.getpid()}'
         await self.bus.request_name(host_name)
         await self.bus.request_name(f'org.x.StatusIconMonitor.NovaBar_{os.getpid()}')
-        registered=set();owned_items=set();host=self
+        registered=set();owned_items=set()
         class Watcher(ServiceInterface):
             def __init__(self):super().__init__('org.kde.StatusNotifierWatcher')
             @dbus_property(access=PropertyAccess.READ)
@@ -172,6 +172,8 @@ class StatusNotifierHost(QThread):
                         elif action=='context' or record.get('ItemIsMenu'):
                             menu=record.get('Menu')
                             if menu and menu!='/':
+                                try:await self.call(record['service'],menu,'com.canonical.dbusmenu','AboutToShow','i',[0])
+                                except Exception:pass
                                 layout=(await self.call(record['service'],menu,'com.canonical.dbusmenu','GetLayout','iias',[0,-1,[]]))[1]
                                 self.menu_ready.emit(key,layout,x,y)
                             else:await self.call(record['service'],record['path'],record['interface'],'ContextMenu','ii',[x,y])

@@ -95,7 +95,13 @@ jobs:
           mkdir -p dmg
           cp -R dist/CyberNexusInstaller.app dmg/
           ARCH=$(uname -m)
-          hdiutil create -volname 'CYBER NEXUS HUD' -srcfolder dmg -ov -format UDZO CyberNexusHUD-macOS-$ARCH.dmg
+          DMG="CyberNexusHUD-macOS-$ARCH.dmg"
+          for attempt in 1 2 3; do
+            if hdiutil create -volname 'CYBER NEXUS HUD' -srcfolder dmg -ov -format UDZO "$DMG"; then break; fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 3
+          done
+          hdiutil verify "$DMG
       - uses: actions/upload-artifact@v4
         with:
           name: CyberNexusHUD-${{ matrix.os }}
