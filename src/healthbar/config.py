@@ -32,6 +32,7 @@ class Settings:
     refresh_seconds: int = 2
     shell_dir: str = ""
     theme: str = "cyber-futuriste"
+    slot_order: list = None
 
     def validate(self):
         if self.position not in ("top", "bottom", "right") or self.alignment not in ("left", "center", "right"):
@@ -49,6 +50,11 @@ class Settings:
             raise ValueError("Dossier des scripts invalide")
         if self.theme != "cyber-futuriste":
             raise ValueError("Thème non reconnu")
+        expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
+        if self.slot_order is None:
+            self.slot_order = expected.copy()
+        if not isinstance(self.slot_order, list) or len(self.slot_order) != 6 or sorted(self.slot_order) != sorted(expected):
+            raise ValueError("Disposition des modules invalide")
         return self
 
     @classmethod
