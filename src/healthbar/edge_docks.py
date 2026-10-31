@@ -8,10 +8,12 @@ import configparser
 import os
 import subprocess
 import sys
+import math
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, QPoint, Signal, QFileInfo, QSize
-from PySide6.QtGui import QCursor, QDesktopServices, QIcon
+from PySide6.QtCore import Qt, QTimer, QUrl, QPoint, QPointF, QRectF, Signal, QFileInfo, QSize
+from PySide6.QtGui import (QCursor, QDesktopServices, QIcon, QPainter, QPen,
+                            QColor, QPolygonF, QPainterPath, QLinearGradient)
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,
@@ -19,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from .overlay import apply_priority, apply_all_workspaces
-from .ui_kit import QColor
+from .xfce_panel_skin import PALETTES
 
 
 def xdg_folder(name: str) -> Path:
@@ -237,6 +239,103 @@ class DockGrip(QLabel):
         super().mouseReleaseEvent(event)
 
 
+def dock_colors(theme):
+    primary, secondary, _rgb = PALETTES.get(theme, PALETTES["blue-neon"])
+    return primary, secondary
+
+
+def dock_stylesheet(theme):
+    accent, secondary = dock_colors(theme)
+    return f"""
+        QFrame#dockBody {{ background: transparent; border: none; }}
+        QFrame#dockBody QLabel {{ color: #d9edfa; font-size: 11px; background: transparent; }}
+        QFrame#dockBody QPushButton {{
+            background: rgba(8,29,48,185); color: #e7fbff;
+            border: 1px solid {secondary}; border-radius: 3px; padding: 4px;
+        }}
+        QFrame#dockBody QPushButton:hover {{
+            background: rgba(18,63,83,220); border-color: {accent};
+        }}
+        QFrame#dockBody QListWidget {{
+            background: rgba(3,13,26,184); border: 1px solid {secondary};
+            border-radius: 3px; color: #e7f5ff; outline: none;
+            font-size: 11px; padding: 3px;
+        }}
+        QFrame#dockBody QListWidget::item {{
+            min-height: 45px; border-bottom: 1px solid #16344d;
+            margin: 2px; padding: 4px; border-radius: 2px;
+        }}
+        QFrame#dockBody QListWidget::item:hover {{
+            background: rgba(34,95,111,190); border-left: 2px solid {accent};
+        }}
+        QFrame#dockBody QListWidget::item:selected {{
+            background: rgba(16,77,104,210); border-left: 2px solid {accent};
+        }}
+    """
+
+
+class PCBDockFrame(QFrame):
+    """Cut-corner circuit board body, painted beneath real clickable widgets."""
+
+    def __init__(self, settings, parent=None):
+        super().__init__(parent)
+        self.settings = settings
+        self.phase = 0.0
+        self.setObjectName("dockBody")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+        if w < 40 or h < 30:
+            p.end()
+            return
+        accent_text, secondary_text = dock_colors(self.settings.theme)
+        accent = QColor(accent_text)
+        secondary = QColor(secondary_text)
+        shell = QPainterPath()
+        shell.addPolygon(QPolygonF([
+            QPointF(2, 18), QPointF(18, 2), QPointF(w-23, 2),
+            QPointF(w-2, 23), QPointF(w-2, h-25),
+            QPointF(w-23, h-2), QPointF(17, h-2), QPointF(2, h-17)]))
+        shell.closeSubpath()
+        p.setPen(QPen(accent, 1.8))
+        p.setBrush(QColor(4, 14, 29, 237))
+        p.drawPath(shell)
+        p.setClipPath(shell)
+        p.setPen(QPen(secondary, 1))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        inner = shell.toFillPolygon()
+        p.drawLine(QPointF(24, 10), QPointF(w-28, 10))
+        p.drawLine(QPointF(19, h-10), QPointF(w-27, h-10))
+        # Two tall PCI-style conductors run along the outside of the controls.
+        for side in (9, w-10):
+            for y in range(34, h-30, 42):
+                shift = 11 if side < w/2 else -11
+                p.setPen(QPen(secondary, 1))
+                p.drawLine(QPointF(side, y), QPointF(side, y+12))
+                p.drawLine(QPointF(side, y+12), QPointF(side+shift, y+21))
+                p.setPen(QPen(accent, 1))
+                p.drawEllipse(QPointF(side+shift, y+21), 1.7, 1.7)
+        # Animated microprocessor blocks, live traces, and small LEDs.
+        pulse_y = 36 + self.phase * max(1, h-72)
+        for side in (9, w-10):
+            p.setPen(QPen(QColor(accent.red(), accent.green(), accent.blue(), 65), 4))
+            p.drawLine(QPointF(side, max(15,pulse_y-32)), QPointF(side, pulse_y))
+            p.setPen(QPen(accent, 2.1))
+            p.drawEllipse(QPointF(side, pulse_y), 2.6, 2.6)
+        for x in range(39, w-28, 33):
+            p.setPen(QPen(secondary, .8))
+            p.drawLine(QPointF(x, 13), QPointF(x+9, 13))
+            p.drawLine(QPointF(x+9, 13), QPointF(x+13, 18))
+            p.drawLine(QPointF(x+13, 18), QPointF(x+21, 18))
+            if int(self.phase*15+x/7)%3 == 0:
+                p.setPen(QPen(accent, 1.5))
+                p.drawEllipse(QPointF(x+21, 18), 1.5, 1.5)
+        p.end()
+
+
 class EdgeDock(QWidget):
     """Independent 3-second auto-hiding top-level panel, preserving the edge trigger."""
     moved_to_other_side = Signal(str)
@@ -265,22 +364,8 @@ class EdgeDock(QWidget):
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(0)
-        self.content = QFrame()
-        self.content.setObjectName("dockBody")
-        self.content.setStyleSheet("""
-        QFrame#dockBody {background: rgba(4,15,31,226); border: 1px solid #02cfe7;
-                         border-radius: 9px;}
-        QLabel {color: #deefff; font-size: 11px;}
-        QPushButton {background: #102d43; color: #d9f6ff;
-                     border: 1px solid #118aa2; border-radius: 5px; padding: 4px;}
-        QPushButton:hover {background: #14516b; border-color: #00edcf;}
-        QListWidget {background: rgba(3,13,27,210); border: none; color: #e6f2ff;
-                     outline: none; font-size: 11px; padding: 2px;}
-        QListWidget::item {min-height: 46px; border-bottom: 1px solid #15425e;
-                           margin: 2px; padding: 3px; border-radius: 5px;}
-        QListWidget::item:hover {background: #16485c;}
-        QListWidget::item:selected {background: #156178;}
-        """)
+        self.content = PCBDockFrame(settings)
+        self.content.setStyleSheet(dock_stylesheet(settings.theme))
         layout = QVBoxLayout(self.content)
         layout.setContentsMargins(7, 9, 7, 8)
         layout.setSpacing(6)
@@ -300,7 +385,8 @@ class EdgeDock(QWidget):
         title.addWidget(self.options)
         layout.addLayout(title)
         self.heading = QLabel("DOSSIERS" if kind == "folders" else "APPLICATIONS")
-        self.heading.setStyleSheet("color: #00dfc8; font-size: 13px; font-weight: bold;")
+        self.heading.setStyleSheet(f"color: {dock_colors(settings.theme)[0]}; "
+                                   "font-size: 13px; font-weight: bold; letter-spacing: 1px;")
         layout.addWidget(self.heading)
         self.items = DockItems(kind)
         self.items.itemClicked.connect(self.open_item)
@@ -321,9 +407,29 @@ class EdgeDock(QWidget):
         self.pointer_timer.setInterval(120)
         self.pointer_timer.timeout.connect(self.check_pointer)
         self.pointer_timer.start()
+        self.fx_timer = QTimer(self)
+        self.fx_timer.setInterval(70)
+        self.fx_timer.timeout.connect(self.animate_circuit)
         self.items_list = []
         self.set_items(self.default_items())
         self.place()
+
+    def animate_circuit(self):
+        if self.isVisible() and not self.collapsed:
+            self.content.phase = (self.content.phase + .012) % 1
+            self.content.update()
+        else:
+            self.fx_timer.stop()
+
+    def apply_theme(self):
+        """Repaint every neon surface when the global HUD palette changes."""
+        self.content.settings = self.settings
+        self.content.setStyleSheet(dock_stylesheet(self.settings.theme))
+        self.heading.setStyleSheet(
+            f"color: {dock_colors(self.settings.theme)[0]}; "
+            "font-size: 13px; font-weight: bold; letter-spacing: 1px;")
+        self.content.update()
+        self.update()
 
     def default_items(self):
         saved = self.settings.dock_folder_paths if self.kind == "folders" else self.settings.dock_app_paths
@@ -409,6 +515,7 @@ class EdgeDock(QWidget):
         self.setMaximumWidth(16777215)
         self.setGeometry(*self.full_rect)
         self.content.show()
+        self.fx_timer.start()
         self.update()
 
     def collapse(self):
@@ -417,6 +524,7 @@ class EdgeDock(QWidget):
         self.hide_timer.stop()
         x, y, width, height = self.full_rect
         self.content.hide()
+        self.fx_timer.stop()
         # QWidget layout hints can otherwise keep a 170+ px invisible dock
         # even after the entire body has been hidden.
         self.setFixedWidth(self.edge_width)
@@ -445,18 +553,21 @@ class EdgeDock(QWidget):
         super().leaveEvent(event)
 
     def paintEvent(self, event):
-        from PySide6.QtGui import QPainter, QPen
-        from .ui_kit import QColor
+        if not self.collapsed:
+            return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        if self.collapsed:
-            painter.setBrush(QColor("#071728"))
-            painter.setPen(QPen(QColor("#00ddb5"), 1.4))
-            painter.drawRoundedRect(self.rect().adjusted(1, 2, -1, -3), 3, 3)
-            painter.setPen(QPen(QColor("#a9fded"), 1.5))
-            mid = self.height()/2
-            x = 3 if self.side == "left" else self.width()-4
-            painter.drawLine(x, mid-22, x, mid+22)
+        accent = QColor(dock_colors(self.settings.theme)[0])
+        mid = self.height()/2
+        painter.setBrush(QColor(4, 17, 31, 245))
+        painter.setPen(QPen(accent, 1.2))
+        painter.drawRoundedRect(self.rect().adjusted(1, 2, -1, -3), 2, 2)
+        painter.setPen(QPen(accent, 1.8))
+        x = 3 if self.side == "left" else self.width()-4
+        painter.drawLine(QPointF(x, mid-27), QPointF(x, mid+27))
+        for offset in (-27,-16,-5,6,17):
+            painter.drawLine(QPointF(x, mid+offset), QPointF(x+1 if self.side=="left" else x-1,
+                                                            mid+offset+4))
         painter.end()
 
     def showEvent(self, event):
@@ -468,4 +579,5 @@ class EdgeDock(QWidget):
     def closeEvent(self, event):
         self.hide_timer.stop()
         self.pointer_timer.stop()
+        self.fx_timer.stop()
         super().closeEvent(event)
