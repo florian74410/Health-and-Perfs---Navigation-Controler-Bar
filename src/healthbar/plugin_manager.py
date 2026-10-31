@@ -436,12 +436,23 @@ class PluginsDialog(QDialog):
             QMessageBox.warning(self,"Runtime incompatible",problem + "\nMettez à jour NovaBar une fois pour acquérir cette nouvelle API.")
             self.status.setText("Plugin incompatible avec le moteur actuel")
             return
+        dependency_details = ""
+        try:
+            with zipfile.ZipFile(path) as archive:
+                if "DEPENDENCY.md" in archive.namelist() and archive.getinfo("DEPENDENCY.md").file_size <= 32768:
+                    dependency_details = archive.read("DEPENDENCY.md").decode("utf-8", errors="replace").strip()
+        except (OSError, ValueError, zipfile.BadZipFile):
+            dependency_details = ""
+        if dependency_details:
+            dependency_details = "\nDépendances du paquet :\n" + dependency_details[:1100] + "\n"
         answer = QMessageBox.question(self, "NovaBar • Installation du plugin",
             f"{manifest['name']}  ·  {manifest['version']}\n"
             f"Slot : {manifest['slot']}\n"
             f"Dépendances déclarées : {', '.join(manifest.get('requires', [])) or 'aucune'}\n"
             f"Permissions : {', '.join(manifest.get('permissions', [])) or 'aucune'}\n"
-            f"Empreinte SHA-256 : {digest[:20]}…\n\n"
+            f"RAM minimale déclarée : {manifest.get('min_ram_mb', 0)} Mio\n"
+            f"Empreinte SHA-256 : {digest[:20]}…\n"
+            f"{dependency_details}\n"
             "Installer cette archive dans votre profil ?\n"
             "Aucun install.sh ni installation système ne sera exécuté.")
         if answer == QMessageBox.StandardButton.Yes:
