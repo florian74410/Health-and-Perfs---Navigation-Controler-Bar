@@ -7,8 +7,13 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 from build_plugins import build as build_plugins
 build_plugins(root/"src/healthbar/assets/plugins")
+sys.path.insert(0, str(root/"src"))
+from healthbar.app_icon import save_brand_assets
+_, windows_icon = save_brand_assets(root/"dist")
 common=[sys.executable,"-m","PyInstaller","--noconfirm","--clean","--windowed",
         "--paths",str(root/"src"),"--add-data",str(root/"src/healthbar/assets")+os.pathsep+"healthbar/assets"]
+if sys.platform == "win32":
+    common += ["--icon", str(windows_icon)]
 # Some managed Python distributions load a companion CA policy file from ssl.py.
 # Preserve that trust policy when freezing; normal CPython needs no extra file.
 import ssl
