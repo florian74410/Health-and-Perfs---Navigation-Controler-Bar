@@ -1,3 +1,12 @@
+# NovaBar 0.6.9 — correctif XFCE (développement, non publié)
+
+- HUD CPU/GPU/RAM/SSD : demande EWMH `_NET_WM_DESKTOP=0xFFFFFFFF` et fenêtre « sticky » après mise en carte par XFWM4 ; vérification toutes les 2,5 secondes et réparation uniquement si nécessaire, y compris après un changement d'espace de travail.
+- Docks Dossiers/Applications : panneaux PCB à angles coupés, circuit néon animé en bordure, couleurs de l'HUD synchronisées, style du déclencheur rétracté assorti au thème. Conservation des dossiers, lanceurs et fonction glisser-déposer.
+- Panneau système inférieur natif : détection X11 améliorée y compris fenêtres reparentées ; dialogue d'activation proposé une seule fois aux profils où l'habillage XFCE était désactivé, sans masquer définitivement le panneau original.
+- Depuis l'icône de notification NovaBar : diagnostic en lecture seule du panneau inférieur (identifiant XFCE, taille, masquage, détection visuelle).
+- Garde l'habillage réversible, la barre d'origine et ses icônes, le réglage de délai 1–120 secondes, l'épaisseur 100–200 % et la palette CYBER NEXUS.
+- Tests automatisés ajoutés ; validation visuelle sur vrai Linux Mint XFCE/X11 encore nécessaire.
+
 # NovaBar 0.6.0 — développement (non publié)
 
 - Quatrième surface facultative XFCE Cyber Skin : panneau système natif conservé (icônes, Wi-Fi, fenêtres, horloge) avec habillage GTK3, microcircuits PCB et impulsions animées transparentes aux clics. Rétractation native avec bord de rappel 1 px, temporisation réglable de 1 à 120 s (10 s par défaut), épaisseur de 100 à 200 % de l'originale (175 % par défaut), et couleurs synchronisées aux thèmes. Sauvegarde et restauration du panneau d'origine, y compris lors d'un arrêt normal.
