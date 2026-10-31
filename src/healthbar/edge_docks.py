@@ -397,7 +397,8 @@ class EdgeDock(QWidget):
         self.full_rect = (x, top, self.panel_width, height)
         self.collapse()
         if self.isVisible():
-            apply_all_workspaces(self)
+            from .overlay import schedule_all_workspaces
+            schedule_all_workspaces(self)
 
     def expand(self):
         if not self.collapsed or not self.full_rect: return
@@ -461,7 +462,8 @@ class EdgeDock(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         apply_priority(self, self.settings.always_on_top)
-        apply_all_workspaces(self)
+        from .overlay import schedule_all_workspaces
+        schedule_all_workspaces(self)
 
     def closeEvent(self, event):
         self.hide_timer.stop()
