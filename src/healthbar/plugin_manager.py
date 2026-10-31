@@ -85,7 +85,7 @@ class SourceEditDialog(QDialog):
             ("branch", "Branche", "main"),
             ("folder", "Dossier des ZIP", "Plugins"),
         ):
-            field = QLineEdit((source or {}).get(key, ""))
+            field = QLineEdit((source or {}).get(key, {"branch": "main", "folder": "Plugins"}.get(key, "")))
             field.setPlaceholderText(placeholder)
             self.fields[key] = field
             form.addRow(title, field)
