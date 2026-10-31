@@ -17,6 +17,7 @@ from .config import Settings, data_dir
 from .dialogs import SettingsDialog, PluginsDialog, STYLE
 from .plugins import PluginRegistry
 from .hud import HudCanvas
+from .holo import CpuHoloPanel
 from .telemetry import Telemetry
 
 
@@ -127,6 +128,7 @@ class Bar(QWidget):
         self.canvas = HudCanvas(self.registry)
         self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
         self.canvas.layout_changed.connect(self.save_layout)
+        self.canvas.module_activated.connect(self.open_module_holo)
         self.root.addWidget(self.canvas, 1)
         self.actions = QWidget()
         self.action_layout = QVBoxLayout(self.actions)
@@ -181,6 +183,7 @@ class Bar(QWidget):
         for screen in app.screens():
             screen.geometryChanged.connect(lambda rect: self.apply_settings())
         self.apply_settings()
+        self.holo = CpuHoloPanel(self)
         self.sensors = Telemetry()
         self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
         self.sensor_future = None
@@ -196,7 +199,10 @@ class Bar(QWidget):
     def poll_sensors(self):
         if self.sensor_future is not None and self.sensor_future.done():
             try:
-                self.canvas.set_telemetry(self.sensor_future.result())
+                readings = self.sensor_future.result()
+                self.canvas.set_telemetry(readings)
+                if self.holo.isVisible():
+                    self.holo.set_telemetry(readings)
             except (OSError, RuntimeError, ValueError):
                 pass
             self.sensor_future = None
@@ -206,10 +212,25 @@ class Bar(QWidget):
             self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
 
     def closeEvent(self, event):
+        self.holo.close_panel()
         self.sensor_timer.stop()
         self.hotkeys.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
+
+    def open_module_holo(self, slot):
+        # The host supplies the CPU hologram; ZIP modules only declare capabilities.
+        if slot != "cpu":
+            return
+        if self.holo.isVisible():
+            self.holo.close_panel()
+            return
+        app = QApplication.instance()
+        screens = app.screens()
+        screen = screens[min(self.settings.screen, len(screens)-1)]
+        anchor = self.canvas.module_global_rect("cpu")
+        self.holo.set_telemetry(self.canvas.readings or {})
+        self.holo.show_at(anchor, screen.availableGeometry(), self.settings.position)
 
     def save_layout(self, order):
         self.settings.slot_order = order
@@ -325,6 +346,8 @@ class Bar(QWidget):
             rect.translate(-rect.width()+4, 0)
         else:
             rect.translate(rect.width()-4, 0)
+        if self.holo.isVisible() and not self.holo.pinned:
+            self.holo.close_panel()
         self.retracted = True
         self.animate(rect)
 
@@ -359,6 +382,8 @@ class Bar(QWidget):
             self.arm_hide()
 
     def preferences(self):
+        if self.holo.isVisible() and not self.holo.pinned:
+            self.holo.close_panel()
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(), parent=self)) == QDialog.DialogCode.Accepted:
             self.apply_settings()
             self.hotkeys.configure(self.settings.shortcuts)
