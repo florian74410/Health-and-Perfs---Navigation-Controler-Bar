@@ -295,7 +295,7 @@ class Bar(QWidget):
 
     def sync_xfce_skin(self):
         """Manage the native Xfce panel without taking ownership of its icons."""
-        from .xfce_panel_skin import apply_skin, remove_skin
+        from .xfce_panel_skin import apply_skin, remove_skin, backup_path
         enabled = bool(self.settings.xfce_skin_enabled)
         if enabled:
             ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,
@@ -311,9 +311,9 @@ class Bar(QWidget):
             elif self.xfce_skin_fx is not None:
                 self.xfce_skin_fx.hide()
         else:
-            if self._xfce_skin_was_active:
+            if self._xfce_skin_was_active or backup_path().exists():
                 _ok, self.xfce_skin_status = remove_skin()
-                self._xfce_skin_was_active = False
+                self._xfce_skin_was_active = not _ok
             if self.xfce_skin_fx is not None:
                 self.xfce_skin_fx.close()
                 self.xfce_skin_fx.deleteLater()
@@ -478,6 +478,12 @@ class Bar(QWidget):
             self.sensor_future = self.sensor_worker.submit(self.sample_sensors)
 
     def quit_app(self):
+        # Return the original desktop to XFCE when NovaBar exits normally.
+        if getattr(self, "_xfce_skin_was_active", False):
+            from .xfce_panel_skin import remove_skin
+            ok, message = remove_skin()
+            self.xfce_skin_status = message
+            self._xfce_skin_was_active = not ok
         self.close()
         QApplication.instance().quit()
 
