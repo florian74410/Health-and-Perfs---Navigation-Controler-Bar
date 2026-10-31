@@ -31,7 +31,7 @@ class BootstrapTests(unittest.TestCase):
             item=asset('good.deb');item.update(name=name,url=url)
             with self.assertRaises(ValueError):package_candidates({'schema_version':1,'version':'0.5.0','packages':{'linux-x86_64':[item]}},'linux-x86_64')
     def test_install_failure_is_not_success(self):
-        with patch('healthbar.bootstrapper.sys.platform','linux'),patch('healthbar.bootstrapper.os.geteuid',return_value=1000),patch('healthbar.bootstrapper.shutil.which',side_effect=lambda name:'/usr/bin/'+name),patch('healthbar.bootstrapper.subprocess.run') as run:
+        with patch('healthbar.bootstrapper.sys.platform','linux'),patch('healthbar.bootstrapper.os.geteuid',return_value=1000,create=True),patch('healthbar.bootstrapper.shutil.which',side_effect=lambda name:'/usr/bin/'+name),patch('healthbar.bootstrapper.subprocess.run') as run:
             run.return_value.returncode=1
             with self.assertRaises(OSError):install_package(Path('/tmp/package.deb'))
             self.assertEqual(run.call_args.args[0][:2],['/usr/bin/pkexec','/usr/bin/apt-get'])
