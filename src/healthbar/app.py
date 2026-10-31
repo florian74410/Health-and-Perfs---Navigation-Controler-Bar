@@ -355,6 +355,31 @@ class Bar(QWidget):
         if self.settings.xfce_skin_enabled and "actif" not in self.xfce_skin_status:
             QMessageBox.warning(None, "CYBER NEXUS", self.xfce_skin_status)
 
+    def xfce_panel_diagnostics(self):
+        """Explain why the fourth surface is not visible without altering XFCE."""
+        from .xfce_panel_skin import available, bottom_panel_id, panel_setting
+        from .xfce_panel_effects import panel_x11_bounds
+        from PySide6.QtWidgets import QApplication
+        if not available():
+            result = "La session XFCE/X11 ou ses commandes ne sont pas disponibles."
+        else:
+            number = bottom_panel_id()
+            if number is None:
+                result = ("Aucun panneau XFCE fixé au bord inférieur n'a été trouvé. "
+                          "Ouvrez les préférences du panneau XFCE et vérifiez sa position.")
+            else:
+                screen = QApplication.screens()[min(self.settings.screen, len(QApplication.screens())-1)]
+                rect = panel_x11_bounds(screen.geometry())
+                state = panel_setting(number, "autohide-behavior")
+                height = panel_setting(number, "size")
+                result = (f"Panneau natif : panel-{number}\\n"
+                          f"Masquage XFCE : {state or 'indisponible'}\\n"
+                          f"Épaisseur native : {height or 'indisponible'} px\\n"
+                          f"Détection X11 : {'visible' if rect is not None else 'masqué / introuvable'}\\n"
+                          f"Habillage NovaBar : {'activé' if self.settings.xfce_skin_enabled else 'désactivé'}\\n"
+                          f"État : {self.xfce_skin_status}")
+        QMessageBox.information(None, "CYBER NEXUS • Diagnostic panneau inférieur", result)
+
     def xfce_panel_preferences(self):
         from .xfce_panel_skin import available
         if not available():
@@ -457,6 +482,7 @@ class Bar(QWidget):
         toggle.triggered.connect(
             lambda checked: self.quick_settings(xfce_skin_enabled=bool(checked)))
         xfce.addAction("Gérer les icônes et raccourcis…", self.xfce_panel_preferences).setEnabled(xfce_available())
+        xfce.addAction("🔎 Diagnostiquer le panneau inférieur", self.xfce_panel_diagnostics)
         shortcuts = xfce.addMenu("Rétraction rapide")
         for seconds in (3, 5, 10, 15, 30, 60):
             action = shortcuts.addAction(f"{seconds} secondes")
