@@ -10,10 +10,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, QPoint, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, QPoint, Signal, QFileInfo, QSize
 from PySide6.QtGui import QCursor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
-    QApplication, QAbstractItemView, QFileIconProvider, QFileInfo, QFrame,
+    QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,
     QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
@@ -145,7 +145,7 @@ class DockItems(QListWidget):
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.setIconSize(__import__("PySide6.QtCore", fromlist=["QSize"]).QSize(30, 30))
+        self.setIconSize(QSize(30, 30))
         self.model().rowsMoved.connect(lambda *args: self.changed.emit(self.values()))
 
     def values(self):
