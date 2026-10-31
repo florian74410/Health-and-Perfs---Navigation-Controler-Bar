@@ -139,6 +139,30 @@ class SettingsDialog(QDialog):
             installer_button.setEnabled(False)
             installer_button.setToolTip("Le paquet Linux gère les fichiers du programme ; utiliser les préférences et le gestionnaire de plugins.")
         general_form.addRow("NovaBar", installer_button)
+        # All three independent panels live in the same NovaBar executable.
+        docks = QWidget()
+        docks_layout = QVBoxLayout(docks)
+        docks_layout.addWidget(QLabel("NOVABAR • TROIS PANNEAUX INDÉPENDANTS"))
+        docks_layout.addWidget(QLabel("Chaque panneau peut être activé séparément. Les docks se rétractent après 3 secondes et s'ouvrent au survol du bord."))
+        self.hud_enabled = QCheckBox("Barre principale • télémétrie CPU/GPU/RAM/SSD")
+        self.hud_enabled.setChecked(settings.hud_enabled)
+        docks_layout.addWidget(self.hud_enabled)
+        self.dock_left_enabled = QCheckBox("Dock gauche actif")
+        self.dock_left_enabled.setChecked(settings.dock_left_enabled)
+        docks_layout.addWidget(self.dock_left_enabled)
+        self.dock_right_enabled = QCheckBox("Dock droit actif")
+        self.dock_right_enabled.setChecked(settings.dock_right_enabled)
+        docks_layout.addWidget(self.dock_right_enabled)
+        self.dock_left_kind = QComboBox()
+        self.dock_left_kind.addItem("Dossiers personnels", "folders")
+        self.dock_left_kind.addItem("Applications du Bureau", "apps")
+        self.dock_left_kind.setCurrentIndex(max(0, self.dock_left_kind.findData(settings.dock_left_kind)))
+        docks_layout.addWidget(QLabel("Contenu du dock gauche (l'autre dock reçoit automatiquement l'autre contenu) :"))
+        docks_layout.addWidget(self.dock_left_kind)
+        docks_layout.addWidget(QLabel("⠿ Glissez la poignée d'un dock vers le bord opposé ou cliquez ↔ pour échanger les deux."))
+        docks_layout.addWidget(QLabel("Glissez des dossiers depuis Thunar ou des lanceurs .desktop du Bureau pour les ajouter ou les réorganiser."))
+        docks_layout.addWidget(QLabel("Les raccourcis sont conservés dans votre profil NovaBar ; aucun fichier n'est déplacé ou effacé."))
+        docks_layout.addStretch()
         display = QWidget()
         display.setLayout(form)
         edit = QWidget()
@@ -175,6 +199,7 @@ class SettingsDialog(QDialog):
             wiki_layout.addWidget(button)
         wiki_layout.addStretch()
         tabs.addTab(wiki, "Wiki")
+        tabs.addTab(docks, "Docks")
         for name, widget in (("Générale", general), ("Affichage", display),
                               ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
             tabs.addTab(widget, name)
@@ -255,7 +280,12 @@ class SettingsDialog(QDialog):
             autostart=self.autostart.isChecked(), configured=True,
             length_percent=self.length_percent.value(),
             alignment=("left", "center", "right")[self.alignment.currentIndex()],
-            refresh_seconds=self.refresh_seconds.value(), shell_dir=self.shell_dir.text().strip())
+            refresh_seconds=self.refresh_seconds.value(), shell_dir=self.shell_dir.text().strip(),
+            hud_enabled=self.hud_enabled.isChecked(),
+            dock_left_enabled=self.dock_left_enabled.isChecked(),
+            dock_right_enabled=self.dock_right_enabled.isChecked(),
+            dock_left_kind=self.dock_left_kind.currentData(),
+            dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders")
         try:
             set_enabled(updated.autostart)
             updated.save()
