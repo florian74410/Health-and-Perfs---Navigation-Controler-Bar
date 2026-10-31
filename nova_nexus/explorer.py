@@ -41,27 +41,27 @@ def run(start=None):
             self.setStyleSheet("""
                 QMainWindow, QWidget#root {background:transparent;color:#F2F8FF;}
                 QLabel {color:#E5F8FF;background:transparent;}
-                QFrame#sidebar {background:rgba(14,39,54,205);border:1px solid #1E7E97;}
-                QFrame#toolbar {background:rgba(18,48,66,210);border:1px solid #2490A8;border-top:1px solid #B34056;}
-                QPushButton {background:rgba(18,49,67,215);color:#E8FBFF;border:1px solid #2D8CA3;
+                QFrame#sidebar {background:rgba(24,56,73,202);border:1px solid #1E7E97;}
+                QFrame#toolbar {background:rgba(29,66,84,207);border:1px solid #2490A8;border-top:1px solid #B34056;}
+                QPushButton {background:rgba(27,66,85,214);color:#E8FBFF;border:1px solid #2D8CA3;
                     padding:7px 11px;min-height:20px;border-radius:0;}
                 QPushButton:hover {border:1px solid #3EEBFF;background:rgba(26,84,108,235);}
                 QPushButton:pressed {background:rgba(11,101,126,235);}
-                QLineEdit {background:rgba(6,24,36,232);color:#F4FCFF;border:1px solid #39B9D0;
+                QLineEdit {background:rgba(12,35,49,228);color:#F4FCFF;border:1px solid #39B9D0;
                     padding:8px;border-radius:0;}
                 QLineEdit:focus {background:rgba(9,31,46,238);border:1px solid #6EF2FF;}
-                QListView, QTreeView {background:rgba(7,28,42,198);color:#E9F6FF;border:0;
+                QListView, QTreeView {background:rgba(15,43,59,198);color:#E9F6FF;border:0;
                     selection-background-color:rgba(33,126,156,190);selection-color:#FFFFFF;
-                    alternate-background-color:rgba(11,37,54,165);}
+                    alternate-background-color:rgba(20,52,70,166);}
                 QListView::item:hover,QTreeView::item:hover{background:#123A50;}
                 QHeaderView::section {background:#102D3D;color:#8FE9F6;padding:6px;border:0;}
                 QScrollBar:vertical {background:#081D2B;width:11px;}
                 QScrollBar::handle:vertical {background:#16718B;min-height:25px;}
                 QMenu {background:#0B2231;color:#EFFBFF;border:1px solid #00BBDD;}
                 QMenu::item:selected {background:#12536B;}
-                QStatusBar {background:transparent;color:#A8F3FF;border-top:1px solid #A13A4E;margin:0;padding:0;}
+                QStatusBar {background:transparent;color:#A8F3FF;border:none;margin:0;padding:0;}
                 QPushButton#navBack, QPushButton#navForward {
-                    background:rgba(18,49,67,215);color:#FF526A;border:1px solid #2D8CA3;
+                    background:rgba(27,66,85,214);color:#FF526A;border:1px solid #2D8CA3;
                     font-weight:bold;
                 }
                 QPushButton#navBack:hover, QPushButton#navForward:hover {
@@ -178,7 +178,7 @@ def run(start=None):
             self.tiles.setResizeMode(W.QListView.Adjust)
             self.tiles.setMovement(W.QListView.Static)
             self.tiles.setIconSize(C.QSize(68,68))
-            self.tiles.setStyleSheet("QListView{background:rgba(9,34,49,205);border:1px solid #25849B;} QListView::item:hover{background:rgba(0,190,230,55);} QListView::item:selected{background:rgba(0,160,210,95);border:1px solid #00E4FF;}")
+            self.tiles.setStyleSheet("QListView{background:rgba(15,43,61,204);border:1px solid #25849B;} QListView::item:hover{background:rgba(0,190,230,55);} QListView::item:selected{background:rgba(0,160,210,95);border:1px solid #00E4FF;}")
             self.tiles.setGridSize(C.QSize(120,112))
             self.tiles.setWordWrap(True)
             self.tiles.setSpacing(8)
@@ -200,7 +200,7 @@ def run(start=None):
             self.setCentralWidget(root)
             self.statusBar().setSizeGripEnabled(False)
             self.statusBar().setFixedHeight(22)
-            self.statusBar().setContentsMargins(24,0,24,5)
+            self.statusBar().setContentsMargins(55,0,55,3)
             self.statusBar().showMessage("NOVA Explorer prêt")
             self.effect = W.QGraphicsOpacityEffect(self.views)
             self.views.setGraphicsEffect(self.effect)
@@ -237,9 +237,9 @@ def run(start=None):
             outline.closeSubpath()
             p.setClipPath(outline)
             bg=G.QLinearGradient(0,0,w,h)
-            bg.setColorAt(0,G.QColor(18,52,70,220))
-            bg.setColorAt(.5,G.QColor(7,24,38,226))
-            bg.setColorAt(1,G.QColor(15,46,64,220))
+            bg.setColorAt(0,G.QColor(29,65,83,215))
+            bg.setColorAt(.5,G.QColor(14,39,56,218))
+            bg.setColorAt(1,G.QColor(24,58,77,215))
             p.fillPath(outline,bg)
             footer=G.QPainterPath()
             footer.moveTo(6,h-39)
@@ -250,11 +250,11 @@ def run(start=None):
             footer.lineTo(6,h-26)
             footer.closeSubpath()
             foot=G.QLinearGradient(0,h-39,0,h-6)
-            foot.setColorAt(0,G.QColor(19,55,70,218))
-            foot.setColorAt(1,G.QColor(9,38,53,235))
+            foot.setColorAt(0,G.QColor(28,68,85,215))
+            foot.setColorAt(1,G.QColor(16,49,65,225))
             p.fillPath(footer,foot)
             p.setPen(G.QPen(G.QColor(18,163,190,135),1))
-            p.drawLine(C.QPointF(7,h-39),C.QPointF(w-7,h-39))
+            p.drawLine(C.QPointF(29,h-39),C.QPointF(w-29,h-39))
             p.setPen(C.Qt.NoPen)
             p.setOpacity(.13)
             p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
