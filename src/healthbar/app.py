@@ -264,6 +264,7 @@ class Bar(QWidget):
                 dock.show()
             else:
                 existing.settings = self.settings
+                existing.apply_theme()
                 existing.set_items(existing.default_items())
                 existing.place()
                 existing.show()
