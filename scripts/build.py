@@ -11,7 +11,8 @@ sys.path.insert(0, str(root/"src"))
 from healthbar.app_icon import save_brand_assets
 _, windows_icon = save_brand_assets(root/"dist")
 common=[sys.executable,"-m","PyInstaller","--noconfirm","--clean","--windowed",
-        "--paths",str(root/"src"),"--add-data",str(root/"src/healthbar/assets")+os.pathsep+"healthbar/assets"]
+        "--paths",str(root/"src"),"--add-data",str(root/"src/healthbar/assets")+os.pathsep+"healthbar/assets",
+        "--add-data",str(root/"src/nova_nexus/assets")+os.pathsep+"nova_nexus/assets"]
 if sys.platform == "win32":
     common += ["--icon", str(windows_icon)]
 # Some managed Python distributions load a companion CA policy file from ssl.py.

@@ -32,12 +32,12 @@ class BrandHeader(QWidget):
         path = QPainterPath(QPointF(24, 59))
         for x,y in ((49,26),(75,59),(49,92),(24,59),(49,48),(75,59)):
             path.lineTo(x,y)
-        for width, color in ((9, "#153d63"), (3, "#00c9ff"), (1, "#a3ff57")):
+        for width, color in ((9, "#153d63"), (3, "#00c9ff"), (1, "#a3f5ff")):
             p.setPen(QPen(QColor(color), width)); p.drawPath(path)
         p.setFont(QFont("DejaVu Sans", 21, QFont.Weight.Bold))
         for delta, alpha in ((2, 45), (0, 255)):
-            color=QColor("#9eff65");color.setAlpha(alpha);p.setPen(color)
-            p.drawText(QPointF(99+delta, 54), "CYBER NEXUS HUD")
+            color=QColor("#00dfff");color.setAlpha(alpha);p.setPen(color)
+            p.drawText(QPointF(99+delta, 54), "NOVA NEXUS HD")
         p.setFont(QFont("DejaVu Sans", 10));p.setPen(QColor("#8ddaff"))
         p.drawText(QPointF(102, 76), "NOVABAR / VOTRE PC. VOTRE COCKPIT.")
         p.setFont(QFont("DejaVu Sans", 9));p.setPen(QColor("#cae6ff"))

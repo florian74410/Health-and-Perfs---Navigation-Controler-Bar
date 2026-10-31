@@ -112,20 +112,8 @@ def launcher_metadata(path: Path):
 def launch_item(value: str, kind: str) -> bool:
     """Use native open handlers; desktop files only via GIO, never shell=True."""
     if kind == "folders":
-        if value == "recent:///":
-            if sys.platform == "darwin":
-                return subprocess.Popen(["osascript", "-e", 'tell application "Finder" to open (home as alias)']).pid > 0
-            if sys.platform == "win32":
-                target = Path(os.getenv("APPDATA", str(Path.home()))) / "Microsoft/Windows/Recent"
-                return QDesktopServices.openUrl(QUrl.fromLocalFile(str(target)))
-            try:
-                subprocess.Popen(["gio", "open", "recent:///"], stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL, start_new_session=True, env=native_env())
-                return True
-            except OSError:
-                return QDesktopServices.openUrl(QUrl("recent:///"))
-        directory = Path(value)
-        return directory.is_dir() and QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
+        from .nova_components import open_explorer
+        return open_explorer(value)
     target = Path(value)
     if sys.platform == "win32":
         if not target.is_file() or target.suffix.lower() not in (".lnk", ".url"):
@@ -573,6 +561,9 @@ class EdgeDock(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        if self.settings.always_on_top:
+            from .overlay import mark_desktop_panel
+            mark_desktop_panel(self)
         apply_priority(self, self.settings.always_on_top)
         from .overlay import schedule_all_workspaces
         schedule_all_workspaces(self)

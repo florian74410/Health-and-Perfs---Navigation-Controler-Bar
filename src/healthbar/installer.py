@@ -55,9 +55,9 @@ WIZARD_STYLE = """
 QDialog { color: #e1f3ff; }
 QWidget#card { background: rgba(2,12,27,205); border: 1px solid #075e84; border-radius: 10px; }
 QLabel { color: #d8efff; font-size: 13px; background: transparent; }
-QLabel#step { color: #8eff75; font-size: 17px; font-weight: bold; }
-QLabel#caption { color: #73e7bc; font-size: 10px; font-style: italic; }
-QLabel#status { color: #a3ff78; font-size: 18px; }
+QLabel#step { color: #8fe9ff; font-size: 17px; font-weight: bold; }
+QLabel#caption { color: #a6bfcd; font-size: 10px; font-style: italic; }
+QLabel#status { color: #e7f7ff; font-size: 18px; }
 QLineEdit, QComboBox, QSpinBox, QKeySequenceEdit { background: #06182a; color: #e2f5ff;
  border: 1px solid #0878ae; border-radius: 5px; padding: 7px; min-height: 21px; }
 QTextBrowser { background: rgba(1,9,24,215); color: #d4eaff; border: 1px solid #087198;
@@ -66,19 +66,19 @@ QScrollArea { background: transparent; border: none; }
 QScrollArea > QWidget > QWidget { background: transparent; }
 QPushButton { background: #08263b; color: #dff7ff; border: 1px solid #0cb8e5;
  border-radius: 6px; padding: 10px 17px; font-weight: bold; }
-QPushButton:hover { border-color: #9eff65; color: #baff89; background: #103b48; }
+QPushButton:hover { border-color: #3eeaff; color: #effbff; background: #103b48; }
 QPushButton:disabled { color: #567283; border-color: #1c4054; }
-QPushButton#primary { background: #174b47; color: #b4ff89; border: 1px solid #98ff68; }
+QPushButton#primary { background: #174b47; color: #e7f7ff; border: 1px solid #00cbf3; }
 QPushButton#help { background: #064ee8; border-radius: 16px; padding: 2px; color: white; }
 QCheckBox { color: #ceebf5; spacing: 9px; padding: 3px; background: transparent; }
 QCheckBox::indicator { width: 16px; height: 16px; background: #06182a; border: 1px solid #1cb4ac; border-radius: 3px; }
-QCheckBox::indicator:checked { background: #65d877; border: 1px solid #b4ff9c; }
+QCheckBox::indicator:checked { background: #00a6cb; border: 1px solid #7eeaff; }
 QTableWidget { background: #041322; color: #dcf3ff; border: 1px solid #137e94; }
 QHeaderView::section { background: #0b2c42; color: #a7f9ec; padding: 6px; }
 QSlider::groove:horizontal { height: 4px; background: #0c5277; }
-QSlider::handle:horizontal { width: 15px; margin: -5px 0; background: #83fba1; border-radius: 6px; }
+QSlider::handle:horizontal { width: 15px; margin: -5px 0; background: #00cbf3; border-radius: 6px; }
 QProgressBar { background: #031020; border: 1px solid #118faa; color: #dffff0; border-radius: 8px; text-align: center; min-height: 25px; }
-QProgressBar::chunk { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #007dff,stop:1 #81ff9b); border-radius: 7px; }
+QProgressBar::chunk { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #007dff,stop:1 #00cbf3); border-radius: 7px; }
 QScrollBar:vertical { background: #061729; width: 8px; }
 QScrollBar::handle:vertical { background: #126c81; min-height: 24px; border-radius: 4px; }
 """
@@ -96,8 +96,16 @@ class InstallWorker(QThread):
 
     def run(self):
         try:
-            self.completed.emit(install(self.settings,self.identity,self.desktop,self.progress.emit,
-                                        source_root=self.source,payload=self.payload))
+            state=install(self.settings,self.identity,self.desktop,self.progress.emit,
+                          source_root=self.source,payload=self.payload)
+            from .system_env import native_env
+            command=[state["executable"],"--nova-theme","apply" if getattr(self,"apply_nova_theme",False) else "install"]
+            if sys.platform.startswith("linux"):
+                try:
+                    subprocess.run(command,check=True,timeout=60,env=dict(native_env(),PYINSTALLER_RESET_ENVIRONMENT="1"),capture_output=True)
+                except (OSError,subprocess.SubprocessError) as error:
+                    state["theme_warning"]="Runtime installé ; thème non appliqué : " + str(error)
+            self.completed.emit(state)
         except Exception as error:
             self.failed.emit(str(error))
 
@@ -108,7 +116,7 @@ class InstallerWizard(QDialog):
         self.settings=settings or Settings.load()
         self.source_root=source_root;self.payload=payload
         self.state=None;self.worker=None;self.identity=None
-        self.setWindowTitle("CYBER NEXUS HUD · Installation de NovaBar")
+        self.setWindowTitle("NOVA NEXUS HD · Installation complète")
         self.setStyleSheet(WIZARD_STYLE)
         self.scene=QPixmap(str(Path(__file__).parent/"assets/installer-scene.png"))
         screen=QApplication.primaryScreen().availableGeometry()
@@ -191,6 +199,18 @@ class InstallerWizard(QDialog):
 
     def build_preferences_page(self):
         box=self.scroll_page();form=QFormLayout();form.setSpacing(12)
+        components=QLabel("NOVA NEXUS HD " + __version__ + " · INSTALLATION COMPLÈTE\nHUD + Holo · 8 plugins · 2 panneaux latéraux · cockpit et NEXUS\nNOVA Explorer · NOVA Terminal (Linux) · thème GTK3/XFWM4 · fond PCB · Upgrade\nNotifications : aperçu NOVA ; service XFCE conservé.")
+        components.setWordWrap(True);box.addWidget(components)
+        self.hud_component=QCheckBox("Afficher le HUD");self.hud_component.setChecked(self.settings.hud_enabled)
+        self.left_component=QCheckBox("Activer le panneau latéral gauche");self.left_component.setChecked(self.settings.dock_left_enabled)
+        self.right_component=QCheckBox("Activer le panneau latéral droit");self.right_component.setChecked(self.settings.dock_right_enabled)
+        self.bottom_component=QCheckBox("Activer le cockpit inférieur (Linux/X11)");self.bottom_component.setChecked(self.settings.bottom_dock_enabled)
+        self.bottom_component.setEnabled(sys.platform.startswith("linux"))
+        self.bottom_height=QSpinBox();self.bottom_height.setRange(60,112);self.bottom_height.setValue(self.settings.bottom_dock_height);self.bottom_height.setSuffix(" px")
+        self.apply_nova_theme=QCheckBox("Activer le bureau NOVA : thème XFCE, panneaux et explorateur par défaut (restaurable)")
+        self.apply_nova_theme.setEnabled(sys.platform.startswith("linux"));self.apply_nova_theme.setChecked(False)
+        for component in (self.hud_component,self.left_component,self.right_component,self.bottom_component):form.addRow(component)
+        form.addRow("Hauteur du cockpit",self.bottom_height);form.addRow(self.apply_nova_theme)
         self.autostart=QCheckBox("Afficher NovaBar à chaque ouverture de session");self.autostart.setChecked(self.settings.autostart if self.settings.configured else True)
         self.desktop=QCheckBox("Créer un raccourci sur le bureau");self.desktop.setChecked(True)
         self.opacity=QSlider(Qt.Orientation.Horizontal);self.opacity.setRange(0,100);self.opacity.setValue(self.settings.opacity)
@@ -293,11 +313,15 @@ class InstallerWizard(QDialog):
                     length_percent=self.length.value(),opacity=self.opacity.value(),auto_hide=self.retract_mode.currentData()=="auto",
                     retract_mode=self.retract_mode.currentData(),theme=self.theme.currentData(),
                     always_on_top=self.always_on_top.isChecked(),holo_enabled=self.holo_enabled.isChecked(),
-                    autostart=self.autostart.isChecked(),shortcuts=self.bindings()).validate()
+                    autostart=self.autostart.isChecked(),shortcuts=self.bindings(),
+                    hud_enabled=self.hud_component.isChecked(),dock_left_enabled=self.left_component.isChecked(),
+                    dock_right_enabled=self.right_component.isChecked(),bottom_dock_enabled=self.bottom_component.isChecked(),
+                    bottom_dock_height=self.bottom_height.value()).validate()
             except ValueError as error:QMessageBox.warning(self,"Configuration",str(error));return
             self.stack.setCurrentIndex(2);self.step.setText("03 / INSTALLATION & VÉRIFICATION")
             self.next.setEnabled(False);self.cancel.setEnabled(False)
             self.worker=InstallWorker(settings,self.identity,self.desktop.isChecked(),self.source_root,self.payload,self)
+            self.worker.apply_nova_theme=self.apply_nova_theme.isChecked()
             self.worker.progress.connect(self.report_progress);self.worker.failed.connect(self.failed)
             self.worker.completed.connect(self.completed);self.worker.start()
         elif self.state:
@@ -311,6 +335,8 @@ class InstallerWizard(QDialog):
 
     def completed(self,state):
         self.state=state;self.status.setText("✓ INSTALLATION RÉUSSIE")
+        if state.get("theme_warning"):
+            QMessageBox.warning(self,"Thème NOVA",state["theme_warning"])
         self.next.setText("OUVRIR NOVABAR");self.next.setEnabled(True)
         self.cancel.setText("FERMER");self.cancel.setEnabled(True)
         QMessageBox.information(self,"✓ Installation réussie","Le programme a passé son test de lancement.\nNovaBar va maintenant s’ouvrir.")

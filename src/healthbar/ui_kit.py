@@ -46,16 +46,16 @@ def pcb(p, bounds):
     p.save()
     for i in range(6):
         y = 2 + i * 3
-        path = QPainterPath(QPointF(0, y))
-        x = 0
-        while x < w:
-            path.lineTo(min(x+38,w),y)
-            path.lineTo(min(x+48,w),y+6)
-            path.lineTo(min(x+76,w),y+6)
-            path.lineTo(min(x+86,w),y)
+        path = QPainterPath(QPointF(12, y))
+        x = 12
+        while x < w-12:
+            path.lineTo(min(x+38,w-12),y)
+            path.lineTo(min(x+48,w-12),y+6)
+            path.lineTo(min(x+76,w-12),y+6)
+            path.lineTo(min(x+86,w-12),y)
             x += 130
-        path.lineTo(w,y)
-        for width, alpha in ((5,22),(2,90),(.7,210)):
+        path.lineTo(w-12,y)
+        for width, alpha in ((6,35),(3.2,110),(1.65,230)):
             color=QColor("#25cfff");color.setAlpha(alpha)
             p.setPen(QPen(color,width));p.drawPath(path)
         p.translate(0,h-2*y)

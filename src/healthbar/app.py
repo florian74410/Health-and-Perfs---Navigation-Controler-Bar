@@ -80,38 +80,29 @@ class NeonButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.panel_opacity = 88
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        background = QColor("#061020")
-        background.setAlpha(round(255 * self.panel_opacity / 100))
-        edge = QColor("#33dfff" if self.underMouse() else "#068cff")
-        p.setBrush(background)
-        p.setPen(QPen(edge, 1.6))
-        panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
-        p.drawRoundedRect(panel, 9, 9)
+        from .cockpit_style import cut_path
         from PySide6.QtGui import QLinearGradient
-        glass=QLinearGradient(0,2,0,22)
-        glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
-        glass.setColorAt(1,QColor(0,0,0,0))
-        shine=QPainterPath();shine.addRoundedRect(panel,9,9)
-        p.fillPath(shine,glass)
+        panel=QRectF(self.rect()).adjusted(2,2,-2,-2)
+        shape=cut_path(panel,7)
+        glass=QLinearGradient(0,0,0,self.height())
+        for stop,color in ((0,"#24526b"),(.23,"#102a42"),(.6,"#061020"),(1,"#102e43")):
+            tone=QColor(color);tone.setAlpha(round(255*self.panel_opacity/100));glass.setColorAt(stop,tone)
+        p.fillPath(shape,glass)
         p.setBrush(Qt.BrushStyle.NoBrush)
-        light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
-        p.setPen(QPen(light,.65));p.drawRoundedRect(panel.adjusted(1,1,-1,-1),8,8)
-        icon = self.icon()
-        if not icon.isNull():
-            size = min(32, max(18, min(self.width(), self.height()) - 14))
-            x = 8 if self.text() else (self.width() - size)//2
-            icon.paint(p, QRect(x, (self.height()-size)//2, size, size))
+        p.setPen(QPen(QColor("#7aeaff" if self.underMouse() else "#158dbb"),1.6));p.drawPath(shape)
+        p.setPen(QPen(QColor("#8dd2e6"),.65));p.drawPath(cut_path(panel.adjusted(2,2,-2,-2),5))
+        size=max(16,min(28,min(self.width(),self.height())-14))
+        if not self.icon().isNull():
+            self.icon().paint(p,QRect((self.width()-size)//2,(self.height()-size)//2,size,size))
         if self.text():
-            p.setPen(QColor("#e7f3ff"))
-            p.setFont(self.font())
-            left = 43 if not icon.isNull() else 4
-            p.drawText(QRect(left, 0, max(0, self.width()-left-2), self.height()),
-                       Qt.AlignmentFlag.AlignVCenter, self.text())
+            font=p.font();font.setPixelSize(8);p.setFont(font);p.setPen(QColor("#e7f3ff"))
+            p.drawText(QRect(2,self.height()-12,self.width()-4,10),Qt.AlignmentFlag.AlignCenter,self.text())
         p.end()
 
 
@@ -161,8 +152,8 @@ class Bar(QWidget):
         self.button_layout.setContentsMargins(0, 0, 0, 0)
         self.button_layout.setSpacing(5)
         self.turbo = self.make_button("turbo", "CPU Mode · contrôle matériel selon OS et permissions", self.turbo_menu)
-        self.turbo.setText("CPU Mode")
-        self.turbo.setIcon(QIcon())
+        self.turbo.setText("CPU")
+        self.turbo.setIcon(button_icon("turbo"))
         self.turbo.setFixedWidth(125)
         self.make_button("terminal", "Console • emplacement réservé", self.console_info)
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
@@ -702,7 +693,7 @@ class Bar(QWidget):
             self.buttons.setFixedHeight(total)
             for index in range(self.button_layout.count()):
                 button=self.button_layout.itemAt(index).widget()
-                button.setFixedSize(max(28,min(56,thickness-22)),button_height)
+                button.setFixedSize(button_height,button_height)
             self.turbo.setText("")
             shift = {"left": 0, "center": (g.height()-length)//2,
                      "right": g.height()-length}[self.settings.alignment]
@@ -711,19 +702,13 @@ class Bar(QWidget):
             self.button_layout.setDirection(QHBoxLayout.Direction.LeftToRight)
             self.actions.setMinimumHeight(0)
             self.actions.setMaximumHeight(16777215)
-            button_height = max(28,min(48,thickness-12))
-            self.buttons.setFixedHeight(button_height)
-            width = self.actions.width()
-            turbo_width = 96 if width >= 350 else 76
-            utility_width = 28
-            count = self.button_layout.count() - 3  # turbo, expand, quit
-            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
-            self.turbo.setFixedSize(turbo_width,button_height)
-            self.turbo.setText("CPU Mode")
-            for index in range(1, 1+count):
-                self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
-            self.expand_button.setFixedSize(utility_width,button_height)
-            self.quit_button.setFixedSize(utility_width,button_height)
+            side=max(28,min(44,thickness-16,round(g.width()*.04)))
+            count=self.button_layout.count()
+            self.actions.setFixedWidth(count*side+(count-1)*5+10)
+            self.buttons.setFixedHeight(side)
+            for index in range(count):
+                self.button_layout.itemAt(index).widget().setFixedSize(side,side)
+            self.turbo.setText("CPU")
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
             length = max(290, round(g.width()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.width()-length)//2,
@@ -745,6 +730,9 @@ class Bar(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        if self.settings.always_on_top:
+            from .overlay import mark_desktop_panel
+            mark_desktop_panel(self)
         from .overlay import apply_priority
         self.overlay_status = apply_priority(self, self.settings.always_on_top)
         from .overlay import schedule_all_workspaces
@@ -885,7 +873,7 @@ class Bar(QWidget):
 
     def open_folder(self):
         data_dir().mkdir(parents=True, exist_ok=True)
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
+        __import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(data_dir())
 
     def console_info(self):
         folder = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
@@ -900,7 +888,7 @@ class Bar(QWidget):
         for script in files[:40]:
             menu.addAction(script.name, lambda checked=False, p=script: self.run_script(p))
         menu.addSeparator()
-        menu.addAction("Ouvrir le dossier", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))))
+        menu.addAction("Ouvrir le dossier", lambda: __import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(folder))
         self.busy = True
         self.hide_timer.stop()
         try:
@@ -987,9 +975,36 @@ def main():
     parser.add_argument("--expect-version")
     parser.add_argument("--wait-for-pid", type=int)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--nova-terminal", action="store_true")
+    parser.add_argument("--nova-pty-child", type=int)
+    parser.add_argument("--nova-shell", default="/bin/bash")
+    parser.add_argument("--components", action="store_true")
+    parser.add_argument("--nova-explorer", nargs="?", const=str(Path.home()))
+    parser.add_argument("--nova-theme", choices=("install", "apply", "restore"))
+    parser.add_argument("--nova-notification-preview", action="store_true")
     parser.add_argument("--setup", action="store_true", help="Reopen installation preferences")
     parser.add_argument("--preview", metavar="PNG", help="Render static HUD offscreen without changing user settings")
     args = parser.parse_args()
+    if args.nova_pty_child is not None:
+        from nova_nexus.terminal import pty_child
+        return pty_child(args.nova_pty_child,args.nova_shell)
+    if args.nova_terminal:
+        from nova_nexus.terminal_manager import run
+        return run()
+    if args.components:
+        from .nova_components import component_manifest
+        print(__import__("json").dumps(component_manifest(), ensure_ascii=False, indent=2))
+        return 0
+    if args.nova_theme:
+        from .nova_components import configure_theme
+        configure_theme(args.nova_theme)
+        return 0
+    if args.nova_explorer:
+        from nova_nexus.explorer import run
+        return run(args.nova_explorer)
+    if args.nova_notification_preview:
+        from nova_nexus.theme_pack import main as pack_main
+        return pack_main(["--preview-notification"])
     if args.restore_xfce_after_pid:
         from .desktop_backend import restore_after_exit
         restore_after_exit(args.restore_xfce_after_pid)
@@ -1022,6 +1037,8 @@ def main():
         if widget.grab().isNull():
             return 2
         widget.close()
+        from .nova_components import verify_components
+        verify_components()
         return 0
     if args.preview:
         settings = Settings(configured=True, auto_hide=False)
@@ -1052,6 +1069,12 @@ def main():
     if not args.preview:
         from .install_engine import refresh_active_shortcuts
         refresh_active_shortcuts()
+        if getattr(sys, "frozen", False):
+            from .nova_components import install_components
+            try:
+                install_components(settings)
+            except (OSError, ValueError) as error:
+                QMessageBox.warning(None,"Composants NOVA",str(error))
     bar = Bar(settings)
     app.aboutToQuit.connect(bar.close)
     if settings.hud_enabled or args.preview:

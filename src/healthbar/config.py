@@ -33,6 +33,7 @@ class Settings:
     hud_enabled: bool = True
     dock_left_enabled: bool = True
     dock_right_enabled: bool = True
+    bottom_dock_height: int = 70
     bottom_dock_enabled: bool = sys.platform.startswith("linux")
     dock_left_kind: str = "folders"
     dock_right_kind: str = "apps"
@@ -58,6 +59,8 @@ class Settings:
     shortcuts: list = field(default_factory=lambda: [{"action": "toggle", "sequence": "Ctrl+B"}])
 
     def validate(self):
+        if type(self.bottom_dock_height) is not int or not 60 <= self.bottom_dock_height <= 112:
+            raise ValueError("Hauteur du cockpit : 60 à 112 px")
         if self.position not in ("top", "bottom", "right", "left") or self.alignment not in ("left", "center", "right"):
             raise ValueError("Position invalide")
         for name, lo, hi in (("thickness", 50, 150), ("opacity", 0, 100), ("layout_revision", 1, 1),
