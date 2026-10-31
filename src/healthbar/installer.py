@@ -209,7 +209,7 @@ class InstallerWizard(QDialog):
         form.addRow("Épaisseur",self.thickness);form.addRow("Longueur",self.length)
         self.auto_hide=QCheckBox("Rétracter après 15 secondes sans survol");self.auto_hide.setChecked(self.settings.auto_hide)
         form.addRow("Rétractation",self.auto_hide);box.addLayout(form)
-        explanation=QLabel("Le fond général reste entièrement transparent. Seuls les fonds des modules et des boutons changent d’opacité.")
+        explanation=QLabel("Le fond général reste transparent. Les plugins compatibles peuvent ensuite être installés ou mis à jour sans réinstaller NovaBar, depuis Extensions → Plugin Manager → Sources. La source officielle GitHub est ajoutée au premier lancement ; vous pourrez en configurer d’autres.")
         explanation.setWordWrap(True);box.addWidget(explanation)
         box.addWidget(QLabel("RACCOURCIS · globaux selon le système et ses permissions"))
         self.keys=QTableWidget(0,2);self.keys.setHorizontalHeaderLabels(["Action","Combinaison"])
