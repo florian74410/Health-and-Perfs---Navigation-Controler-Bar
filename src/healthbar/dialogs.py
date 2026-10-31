@@ -224,7 +224,11 @@ class PluginsDialog(QDialog):
             manifest, digest = self.registry.inspect(path)
             answer = QMessageBox.question(self, "Installer cette extension ?",
                 f"{manifest['name']} • {manifest['version']}\nEmplacement : {manifest['slot']}\n"
-                f"SHA-256 : {digest}\n\nPaquet local déclaratif. Une copie de la version précédente sera conservée.")
+                f"SHA-256 : {digest}\n"
+                f"Dépendances : {', '.join(manifest.get('requires', [])) or 'aucune'}\n"
+                f"Permissions : {', '.join(manifest.get('permissions', [])) or 'aucune'}\n"
+                f"Capteurs : {', '.join(manifest.get('sensor_keys', [])) or 'aucun'}\n\n"
+                "Scripts du plugin conservés mais jamais exécutés automatiquement.")
             if answer == QMessageBox.StandardButton.Yes:
                 self.registry.install(path, digest)
                 self.refresh()
