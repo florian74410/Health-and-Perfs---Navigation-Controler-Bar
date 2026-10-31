@@ -51,6 +51,28 @@ class DesktopBackend:
         finally:
             if con:con.close()
 
+    def window_icon(self,xid):
+        """Read the actual EWMH application icon when a theme lookup is insufficient."""
+        from PySide6.QtGui import QIcon,QImage,QPixmap
+        if not x11_ready():return QIcon()
+        con=None
+        try:
+            con=self._connect();window=con.create_resource_object('window',int(xid))
+            values=self.prop(con,window,'_NET_WM_ICON',[]);index=0;icons=[]
+            while index+2<=len(values):
+                w,h=int(values[index]),int(values[index+1]);index+=2
+                if w<=0 or h<=0 or w*h>1024*1024 or index+w*h>len(values):break
+                if w<=256 and h<=256:icons.append((w,h,index))
+                index+=w*h
+            if not icons:return QIcon()
+            w,h,index=min(icons,key=lambda v:abs(v[0]-40));image=QImage(w,h,QImage.Format.Format_ARGB32)
+            for y in range(h):
+                for x in range(w):image.setPixel(x,y,int(values[index+y*w+x]))
+            return QIcon(QPixmap.fromImage(image))
+        except Exception:return QIcon()
+        finally:
+            if con:con.close()
+
     def action(self,xid,close=False,minimize=False):
         if not x11_ready():return False
         from Xlib import X,protocol

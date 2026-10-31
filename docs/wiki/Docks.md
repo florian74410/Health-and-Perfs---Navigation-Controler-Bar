@@ -1,4 +1,6 @@
-# Les quatre surfaces NovaBar — 0.6.10
+> **0.6.11 :** barre de 88 px au réglage par défaut, grandes icônes, fenêtres avec titres et coques biseautées. NEXUS propose catégories, favoris, recherche et grille de 44 px. Les indicateurs réseau/volume/Bluetooth/batterie sont réels ; les icônes StatusNotifier et XApp sont affichées avec leurs menus. [Détails et limites](../UPDATE_V0611.md).
+
+# Les quatre surfaces NovaBar — 0.6.11
 
 - HUD de performances : CPU, GPU, RAM, SSD, ventilateurs, réseau et Holo.
 - Dock Dossiers : répertoires personnels XDG, favoris et Récents.
@@ -13,11 +15,11 @@ Dans **Préférences → Docks**, chaque surface peut être activée séparémen
 
 ## Barre inférieure
 
-Le bouton **NEXUS** ouvre les applications installées avec recherche. Cliquer une fenêtre l’active ; cliquer la fenêtre déjà active la réduit. Clic droit : activer ou demander sa fermeture. Le menu **Système** ouvre les outils réseau, volume, Bluetooth, notifications et session disponibles sur le système. Les commandes absentes sont désactivées.
+Le bouton **NEXUS** ouvre une fenêtre organisée par catégories et favoris, avec recherche par nom/mots-clés et grille d’icônes de 44 px. Quatre favoris sont visibles sur la barre ; la liste complète reste accessible dans NEXUS. Cliquer une fenêtre l’active ; cliquer la fenêtre déjà active la réduit. Clic droit : activer ou demander sa fermeture. Les icônes réseau, volume, Bluetooth et batterie présentent leur état réel. Le volume dispose d’un curseur et d’une commande muet. Cliquer l’horloge ouvre le menu système, les réglages et les commandes de session disponibles. Les icônes StatusNotifier/AppIndicator et XApp de Linux Mint conservent leurs actions et menus.
 
 La barre existe même sans panneau XFCE détecté. Elle se replie après le délai réglé dans les préférences et réapparaît dans les 10 pixels du bord inférieur, sans trait visible.
 
-Le panneau XFCE inférieur d’origine est masqué pendant la session NovaBar, sans suppression de sa configuration. Il revient à la fermeture. Un processus de secours le restaure après un arrêt brutal. **Système → Afficher les icônes XFCE pendant 30 s** donne accès aux applets de notification, qui restent hébergées par XFCE.
+Le panneau XFCE inférieur d’origine est masqué pendant la session NovaBar, sans suppression de sa configuration. Il revient à la fermeture. Un processus de secours le restaure après un arrêt brutal. Les icônes StatusNotifier et XApp sont affichées dans NovaBar. Les anciennes applications exclusivement XEmbed restent accessibles via **Horloge → Icônes XFCE anciennes pendant 30 s**.
 
 ## Espaces de travail
 

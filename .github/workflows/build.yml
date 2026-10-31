@@ -32,6 +32,9 @@ jobs:
           sudo apt-get install -y xvfb xfwm4 xfce4-panel dbus-x11 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0
           python -c 'import PySide6,pathlib,subprocess; subprocess.run(["ldd",str(pathlib.Path(PySide6.__file__).parent/"Qt/plugins/platforms/libqxcb.so")],check=True)'
           xvfb-run -a -s "-screen 0 1280x720x24" dbus-run-session -- python scripts/test_xfce_session.py
+      - name: Real StatusNotifier and XApp session integration
+        if: runner.os == 'Linux'
+        run: QT_QPA_PLATFORM=offscreen dbus-run-session -- python scripts/test_status_notifier.py
       - run: python scripts/build.py
       - name: Smoke test packaged downloader (no network or install)
         shell: bash
@@ -92,7 +95,13 @@ jobs:
           mkdir -p dmg
           cp -R dist/CyberNexusInstaller.app dmg/
           ARCH=$(uname -m)
-          hdiutil create -volname 'CYBER NEXUS HUD' -srcfolder dmg -ov -format UDZO CyberNexusHUD-macOS-$ARCH.dmg
+          DMG="CyberNexusHUD-macOS-$ARCH.dmg"
+          for attempt in 1 2 3; do
+            if hdiutil create -volname 'CYBER NEXUS HUD' -srcfolder dmg -ov -format UDZO "$DMG"; then break; fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 3
+          done
+          hdiutil verify "$DMG"
       - uses: actions/upload-artifact@v4
         with:
           name: CyberNexusHUD-${{ matrix.os }}
@@ -107,7 +116,7 @@ jobs:
             dist/plugins/*.zip
             dist/NovaBarDownloader-*
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'fix/novabar-v0610-bottom-and-edges' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'fix/novabar-v0611-cockpit-tray' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -150,7 +159,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.event.pull_request.head.sha || github.sha }}" --title "CYBER NEXUS HUD / NovaBar $NOVABAR_RELEASE_TAG" --generate-notes
   executable-folder:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/novabar-v0610-bottom-and-edges'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/novabar-v0611-cockpit-tray'
     needs: build
     runs-on: ubuntu-22.04
     permissions:

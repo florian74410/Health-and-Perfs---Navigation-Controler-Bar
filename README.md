@@ -1,14 +1,16 @@
-## ⚡ NovaBar 0.6.10 — CYBER NEXUS HUD
+## ⚡ NovaBar 0.6.11 — Cockpit inférieur
 
-Une vraie barre inférieure NovaBar sous Linux/X11 : menu d’applications avec recherche, lanceurs XFCE, fenêtres ouvertes, activation/réduction, horloge et accès aux commandes système. Elle apparaît même si aucun panneau inférieur XFCE n’est détecté.
+Une barre inférieure plus proche du cockpit de référence : coque métallique, compartiments à angles coupés, rails lumineux, grandes icônes colorées et fenêtres avec titres lisibles.
 
-Le panneau XFCE inférieur est masqué pendant la session et restauré quand NovaBar quitte, sans supprimer sa configuration. Les applets de notification restent hébergées par XFCE : **Système → Afficher les icônes XFCE pendant 30 s** permet d’y accéder.
+**NEXUS** organise les applications par catégories et favoris, avec recherche et grille d’icônes de 44 px. La zone système affiche Wi-Fi/Ethernet, volume, Bluetooth et batterie, et accueille les icônes StatusNotifier et XApp de Linux Mint avec leurs actions et menus.
 
-Les docks latéraux repliés sont **entièrement invisibles** ; ils s’ouvrent dans les **10 px** du bord et se referment 3 s après la sortie. Dans **Paramètres → Upgrade**, NovaBar vérifie, télécharge, teste et active la nouvelle version puis redémarre en conservant les profils et plugins.
+**Depuis la 0.6.10 : Paramètres → Upgrade.** Le mécanisme de mise à jour est conservé ; profils et plugins restent en place.
 
-[⬇️ Téléchargements 0.6.10](Executable/README.md) · [📖 Notes de version](docs/UPDATE_V0610.md) · [📁 Docks](docs/wiki/Docks.md) · [🔄 Upgrade](docs/wiki/Mises-a-jour.md)
+![Cockpit Qt réel — données de démonstration](Assets/Previews/novabar-v0611-cockpit-1280.png)
 
-![Barre NovaBar réelle — données de démonstration](Assets/Previews/novabar-v0610-bottom.png)
+![NEXUS Qt réel — catalogue de démonstration](Assets/Previews/novabar-v0611-nexus.png)
+
+[⬇️ Téléchargements](Executable/README.md) · [📖 Notes et limites](docs/UPDATE_V0611.md) · [📁 Docks](docs/wiki/Docks.md) · [🔄 Upgrade](docs/wiki/Mises-a-jour.md)
 
 <p align="center">
   <img src="docs/wiki/assets/banner.svg" alt="CYBER NEXUS HUD — NovaBar, cockpit néon" width="100%">
@@ -18,7 +20,7 @@ Les docks latéraux repliés sont **entièrement invisibles** ; ils s’ouvrent 
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.6.10-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.6.11-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
@@ -87,28 +89,28 @@ Holo lisibles sur fond clair grâce au contour sombre des caractères ; réseau 
 
 Les consommations CPU/GPU sont affichées uniquement lorsqu’une sonde les fournit. Les valeurs initiales ou inconnues restent « — ». Les images utilisent des données de démonstration.
 
-## 📦 Télécharger & installer — NovaBar 0.6.10
+## 📦 Télécharger & installer — NovaBar 0.6.11
 
-Les installateurs natifs sont distribués depuis la [release 0.6.10](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.10) et classés dans [Executable/](Executable/README.md) avec les sommes de contrôle.
+Les installateurs natifs sont distribués depuis la [release 0.6.11](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.11) et classés dans [Executable/](Executable/README.md) avec les sommes de contrôle.
 
 | Système | Fichier |
 | --- | --- |
-| 🐧 Linux Mint XFCE / Ubuntu | [NovaBar_0.6.10_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/NovaBar_0.6.10_amd64.deb) |
-| 🪟 Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-Setup-Windows.exe) |
-| 🍎 macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-macOS-arm64.dmg) |
-| 🍏 macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-macOS-x86_64.dmg) |
+| 🐧 Linux Mint XFCE / Ubuntu | [NovaBar_0.6.11_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/NovaBar_0.6.11_amd64.deb) |
+| 🪟 Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-Setup-Windows.exe) |
+| 🍎 macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-macOS-arm64.dmg) |
+| 🍏 macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-macOS-x86_64.dmg) |
 
 Installation sur Linux Mint après téléchargement :
 
 ```bash
 cd "$(xdg-user-dir DOWNLOAD)"
-sudo apt install ./NovaBar_0.6.10_amd64.deb
+sudo apt install ./NovaBar_0.6.11_amd64.deb
 novabar
 ```
 
 Une mise à jour native conserve les préférences locales. Les binaires ne sont pas signés ou notarisés. Les tests automatiques ne remplacent pas une validation graphique en session XFCE/X11.
 
-[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V0610.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
+[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V0611.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
 
 ## 🧩 Plugin Manager
 
