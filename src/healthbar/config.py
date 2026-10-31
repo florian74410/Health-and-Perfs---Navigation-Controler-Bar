@@ -1,6 +1,8 @@
 """Per-user preferences, atomically persisted outside the installation."""
 import json
 import os
+import getpass
+import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -72,3 +74,23 @@ class Settings:
         tmp = root / "settings.tmp"
         tmp.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
         tmp.replace(root / "settings.json")
+        username = re.sub(r"[^A-Za-z0-9_-]+", "_", getpass.getuser())[:48] or "Default"
+        profile = root / "App" / "Profils" / username
+        profile.mkdir(parents=True, exist_ok=True)
+        details = [
+            "# NovaBar Profile.md",
+            "",
+            f"- Position: {self.position}",
+            f"- Screen: {self.screen}",
+            f"- Longueur: {self.length_percent}%",
+            f"- Épaisseur: {self.thickness}px",
+            f"- Alignement: {self.alignment}",
+            f"- Opacité: {self.opacity}%",
+            f"- Délai de rétractation: {self.hide_seconds}s",
+            f"- Démarrage automatique: {self.autostart}",
+            f"- Thème: {self.theme}",
+            f"- Modules: {', '.join(self.slot_order)}",
+            "",
+            "Le fichier settings.json est la source des préférences actives.",
+        ]
+        (profile / "Profile.md").write_text("\\n".join(details) + "\\n", encoding="utf-8")
