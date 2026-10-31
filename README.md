@@ -108,7 +108,7 @@ novabar
 
 Une mise à jour native conserve les préférences locales. Les binaires ne sont pas signés ou notarisés. Les tests automatiques ne remplacent pas une validation graphique en session XFCE/X11.
 
-[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V069.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
+[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V0610.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
 
 ## 🧩 Plugin Manager
 
