@@ -1,26 +1,6 @@
+from pathlib import Path
 """NOVA glass chassis v3: shared framed notification/dialog. No desktop takeover."""
 from .theme_engine import validate_theme, get_default_theme
-
-def routes(w,h):
-    """Twelve disjoint PCB traces, 45-degree bends and regular 12px spacing.
-
-    Three parallel, unfilled traces live in each corner. The repeated step
-    geometry resembles PCB meander routing; no intersections or triangles.
-    """
-    tracks=[]
-    for offset in (0,12,24):
-        y=52+offset
-        left=[(30,y),(48,y),(57,y-9),(78,y-9),
-              (87,y),(105,y),(114,y-9),(135,y-9),
-              (144,y),(172,y)]
-        tracks.extend([
-            left,
-            [(w-x,yy) for x,yy in left],
-            [(x,h-yy) for x,yy in left],
-            [(w-x,h-yy) for x,yy in left],
-        ])
-    return tracks
-
 
 def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=False):
     from PySide6 import QtCore as C, QtGui as G, QtWidgets as W
@@ -36,6 +16,16 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             self.setMinimumSize(500 if dialog else 460,235 if dialog else 195)
             self.resize(520 if dialog else 480,240 if dialog else 200)
             self.phase=0.0
+            from PySide6.QtSvg import QSvgRenderer
+            asset=Path(__file__).resolve().parent.parent / "Assets/Overlays/nova_pcb_overlay.svg"
+            self.overlay=G.QPixmap(640,360)
+            self.overlay.fill(C.Qt.transparent)
+            if asset.is_file():
+                renderer=QSvgRenderer(str(asset))
+                if renderer.isValid():
+                    painter=G.QPainter(self.overlay)
+                    renderer.render(painter)
+                    painter.end()
             self.drag_origin=None
             self.timer=C.QTimer(self)
             self.timer.setInterval(33)
@@ -126,6 +116,28 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 r,g,b,a=rgb
                 bg.setColorAt(at,G.QColor(r,g,b,int(a*t['effects']['opacity'])))
             p.fillPath(path,bg)
+            # Draw the transparent motherboard-routing asset beneath text.
+            pcb=self.overlay.scaled(w,h,C.Qt.IgnoreAspectRatio,C.Qt.SmoothTransformation)
+            p.save()
+            p.setOpacity(min(.7,max(.1,t['effects']['pcb_visibility'])))
+            p.drawPixmap(0,0,pcb)
+            p.restore()
+            if motion:
+                # A white neon pulse is clipped to the PCB trace alpha channel.
+                pulse=G.QPixmap(w,h)
+                pulse.fill(C.Qt.transparent)
+                pp=G.QPainter(pulse)
+                for i in range(3):
+                    cx=((self.phase+i/3)%1)*w
+                    light=G.QLinearGradient(cx-55,0,cx+55,0)
+                    light.setColorAt(0,G.QColor(255,255,255,0))
+                    light.setColorAt(.5,G.QColor(255,255,255,230))
+                    light.setColorAt(1,G.QColor(255,255,255,0))
+                    pp.fillRect(C.QRectF(cx-55,0,110,h),light)
+                pp.setCompositionMode(G.QPainter.CompositionMode_DestinationIn)
+                pp.drawPixmap(0,0,pcb)
+                pp.end()
+                p.drawPixmap(0,0,pulse)
             x=w*self.phase
             shine=G.QLinearGradient(x-100,0,x+110,h)
             shine.setColorAt(0,G.QColor(240,250,255,0))
@@ -140,29 +152,6 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 p.setPen(G.QPen(color,width,C.Qt.SolidLine,C.Qt.RoundCap,C.Qt.RoundJoin))
                 p.setBrush(C.Qt.NoBrush)
                 p.drawPath(path)
-            for n,vertices in enumerate(routes(w,h)):
-                trace=G.QPainterPath(C.QPointF(*vertices[0]))
-                for vertex in vertices[1:]:trace.lineTo(C.QPointF(*vertex))
-                dim=G.QColor(accent)
-                dim.setAlpha(int(105+140*t['effects']['pcb_visibility']))
-                p.setPen(G.QPen(dim,1.7,C.Qt.SolidLine,C.Qt.RoundCap,C.Qt.RoundJoin))
-                p.drawPath(trace)
-                for point in (vertices[0],vertices[-1]):
-                    center=C.QPointF(*point)
-                    p.setPen(G.QPen(dim,1))
-                    p.setBrush(G.QColor(4,25,40,230))
-                    p.drawEllipse(center,3.7,3.7)
-                    p.setPen(C.Qt.NoPen)
-                    p.setBrush(accent)
-                    p.drawEllipse(center,1.4,1.4)
-                if motion:
-                    pos=trace.pointAtPercent((self.phase+n*.127)%1)
-                    for radius,alpha in ((5,16),(3,70),(1.5,230)):
-                        color=G.QColor(accent)
-                        color.setAlpha(int(alpha*intensity))
-                        p.setPen(C.Qt.NoPen)
-                        p.setBrush(color)
-                        p.drawEllipse(pos,radius,radius)
             p.end()
     panel=Chrome()
     if dialog:
