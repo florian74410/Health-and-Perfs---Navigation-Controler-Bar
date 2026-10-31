@@ -198,6 +198,11 @@ class Bar(QWidget):
         self.edge_timer.setInterval(120)
         self.edge_timer.timeout.connect(self.check_edge)
         self.edge_timer.start()
+        # XFCE can reassign Qt.Tool windows to one desktop during virtual desktop switching.
+        self.workspace_timer = QTimer(self)
+        self.workspace_timer.setInterval(2500)
+        self.workspace_timer.timeout.connect(self.keep_visible_everywhere)
+        self.workspace_timer.start()
         self.tray = QSystemTrayIcon(novabar_icon(settings.theme), self)
         self.tray.setToolTip("NovaBar • CYBER NEXUS HUD")
         self.tray_menu = QMenu(self)
@@ -235,6 +240,15 @@ class Bar(QWidget):
         self._xfce_skin_was_active = False
         self.xfce_skin_status = "Non activé"
         self.sync_xfce_skin()
+
+    def keep_visible_everywhere(self):
+        from .overlay import maintain_all_workspaces
+        maintain_all_workspaces(self)
+        for dock in getattr(self, "sidebars", {}).values():
+            maintain_all_workspaces(dock)
+        panel = getattr(self, "xfce_skin_fx", None)
+        if panel is not None:
+            maintain_all_workspaces(panel)
 
     def sync_sidebars(self):
         """Create/hide the independent edge launchers without spawning processes."""
@@ -520,6 +534,7 @@ class Bar(QWidget):
         self.holo.close_panel()
         for panel in self.module_holos.values(): panel.close_panel()
         self.sensor_timer.stop()
+        self.workspace_timer.stop()
         self.hotkeys.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
