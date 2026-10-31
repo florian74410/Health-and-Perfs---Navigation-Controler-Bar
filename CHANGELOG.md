@@ -1,3 +1,12 @@
+# NovaBar 0.5.2
+
+- Lisibilité des Holo : caractères et boutons avec contour sombre, fonds toujours transparents.
+- Réseau : courbe UP verte, DOWN rouge et histogramme de ping bleu sur 120 secondes, avec deux échelles.
+- Ping ICMP vers 1.1.1.1 toutes les 10 secondes, timeout borné, indisponibilité explicite.
+- Petits débits visibles en B/s et kB/s ; connexion active prioritaire, sans double comptage des bridges Docker.
+- Collecte réseau indépendante d’une erreur CPU et protection contre les compteurs réinitialisés.
+- 75 tests locaux réussis et comparaison visuelle sur fonds clair/sombre.
+
 # NovaBar 0.5.1
 
 - Compte-tours circulaires dans la barre compacte : CPU/GPU en GHz, RAM/SSD en pourcentage. Les cadrans restent proportionnels de 50 à 150 px ; en espace réduit, les valeurs restent prioritaires.

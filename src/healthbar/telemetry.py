@@ -3,6 +3,7 @@ import math
 import subprocess
 import time
 from pathlib import Path
+from .network_detail import NetworkSampler, PingProbe
 from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
 try:
     import psutil
@@ -68,9 +69,9 @@ def nvidia_gpu():
 class Telemetry:
     def __init__(self):
         self.last_at = time.monotonic()
-        self.last_net = None
         self.last_disk = None
-        self.last_interfaces = {}
+        self.network = NetworkSampler()
+        self.ping = PingProbe()
         self.package_power = PackagePower()
         self.cpu_model = cpu_identity()
         if psutil:
@@ -90,6 +91,10 @@ class Telemetry:
         data["cpu_cores"] = []
         if psutil is None:
             return data
+        now = time.monotonic()
+        # Network acquisition is independent of CPU/sensor failures.
+        data.update(self.network.sample(psutil, now))
+        data.update(self.ping.sample(now))
         try:
             data["cpu_percent"] = _number(psutil.cpu_percent(interval=None))
             data["cpu_model"] = self.cpu_model
@@ -112,27 +117,7 @@ class Telemetry:
                             disk_free_gb=disk.free/2**30, disk_total_gb=disk.total/2**30)
             except OSError:
                 pass
-            now = time.monotonic()
             delta = max(0.001, now - self.last_at)
-            net = psutil.net_io_counters()
-            if self.last_net and net:
-                data["net_down_mbs"] = max(0, (net.bytes_recv-self.last_net.bytes_recv)/delta/1e6)
-                data["net_up_mbs"] = max(0, (net.bytes_sent-self.last_net.bytes_sent)/delta/1e6)
-            try:
-                counters = psutil.net_io_counters(pernic=True)
-                stats = psutil.net_if_stats()
-                for name, counter in sorted(counters.items()):
-                    info = stats.get(name)
-                    previous = self.last_interfaces.get(name)
-                    data["net_interfaces"].append({
-                        "name": name, "isup": bool(info and info.isup),
-                        "speed_mbps": info.speed if info and info.speed > 0 else None,
-                        "down_mbs": max(0, (counter.bytes_recv-previous.bytes_recv)/delta/1e6) if previous else None,
-                        "up_mbs": max(0, (counter.bytes_sent-previous.bytes_sent)/delta/1e6) if previous else None})
-                self.last_interfaces = counters
-            except (OSError, RuntimeError, ValueError):
-                self.last_interfaces = {}
-            self.last_net = net
             io = psutil.disk_io_counters()
             if self.last_disk and io:
                 data["disk_read_mbs"] = max(0, (io.read_bytes-self.last_disk.read_bytes)/delta/1e6)

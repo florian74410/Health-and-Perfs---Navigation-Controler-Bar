@@ -246,8 +246,11 @@ class Bar(QWidget):
                 if self.cpu_controller.mode is not None:
                     self.turbo.setText("CPU !" if cpu_state["error"] else ("AUTO" if cpu_state["mode"]=="auto" else ("ON" if cpu_state["enabled"] else "OFF")))
                 self.canvas.set_telemetry(readings)
-                for panel in self.module_holos.values():
-                    if panel.isVisible(): panel.set_telemetry(readings)
+                for slot, panel in self.module_holos.items():
+                    if panel.isVisible():
+                        panel.set_telemetry(readings)
+                    elif slot == 'network':
+                        panel.record_sample(readings)
                 if self.holo.isVisible():
                     self.holo.set_telemetry(readings)
             except (OSError, RuntimeError, ValueError):

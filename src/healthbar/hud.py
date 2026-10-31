@@ -6,6 +6,7 @@ from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
+from .network_detail import format_rate, format_ping
 from .ui_kit import QColor
 
 BLUE = "#1860ff"
@@ -467,9 +468,9 @@ class HudCanvas(QWidget):
         if len(self.fans()) > 3:
             text(p, 1193, 180, f"+{len(self.fans()) - 3} fans", 10, "#b7cfff")
         text(p, 1432, 115, "↓", 22, CYAN)
-        text(p, 1454, 114, self.value("net_down_mbs", 12.8, 1) + " MB/s", 15)
+        text(p, 1454, 114, format_rate((self.readings or {}).get("net_down_mbs")), 15)
         text(p, 1432, 143, "↑", 22, CYAN)
-        text(p, 1454, 142, self.value("net_up_mbs", 1.6, 1) + " MB/s", 15)
+        text(p, 1454, 142, format_rate((self.readings or {}).get("net_up_mbs")), 15)
         points = [(1434+i*5, 166+math.sin(i*1.7)*3+math.cos(i*.5)*2) for i in range(25)]
         line(p, points, CYAN, 1.3)
         text(p, 26, 191, "DÉMO" if self.readings is None else "CAPTEURS LOCAUX", 8, "#78aad0", False)
@@ -494,7 +495,7 @@ class HudCanvas(QWidget):
             ("ram","RAM",self.value("ram_percent",44)+"%",self.used_free("ram","14.2 / 17.8 GB"),"ram_percent"),
             ("storage","SSD",self.value("disk_percent",62)+"%",self.used_free("disk","372 / 628 GB"),"disk_percent"),
             ("fans","FANS",str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "—", "Ventilation",None),
-            ("network","RÉSEAU","↓"+self.value("net_down_mbs",12.8,1),"↑"+self.value("net_up_mbs",1.6,1)+" MB/s",None)]
+            ("network","RÉSEAU","↓ "+format_rate((self.readings or {}).get("net_down_mbs")),"↑ "+format_rate((self.readings or {}).get("net_up_mbs"))+" · "+format_ping(self.readings or {}),None)]
         entries.sort(key=lambda entry:self.slot_order.index(entry[0]))
         for index,(kind,label,value,detail,key) in enumerate(entries):
             bounds=self.module_rect(kind)
@@ -560,7 +561,7 @@ class HudCanvas(QWidget):
                    ("ram", "RAM", self.used_free("ram","14.2 / 17.8 GB")),
                    ("storage", "SSD", self.used_free("disk","372 / 628 GB")),
                    ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
-                   ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
+                   ("network", "NETWORK", "↓"+format_rate((self.readings or {}).get("net_down_mbs"))+" ↑"+format_rate((self.readings or {}).get("net_up_mbs")))]
         entries.sort(key=lambda item: self.slot_order.index(item[0]))
         for i, (kind, label, value) in enumerate(entries):
             x, y = (i % columns)*cell_w, (i // columns)*cell_h
@@ -588,7 +589,7 @@ class HudCanvas(QWidget):
                    ("ram", "RAM", self.used_free("ram","14.2 / 17.8 GB")),
                    ("storage", "SSD NVMe", self.used_free("disk","372 / 628 GB")),
                    ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
-                   ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
+                   ("network", "NETWORK", "↓"+format_rate((self.readings or {}).get("net_down_mbs"))+" ↑"+format_rate((self.readings or {}).get("net_up_mbs")))]
         entries.sort(key=lambda item: self.slot_order.index(item[0]))
         cell = h/6
         for i, (kind, title, value) in enumerate(entries):

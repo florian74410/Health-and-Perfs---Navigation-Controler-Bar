@@ -52,3 +52,7 @@
 ## Version 0.5.1
 
 Compte-tours proportionnels, Holo plus petits et transparents, débits par interface : [notes de mise à jour](../UPDATE_V051.md). Les visuels sont regroupés dans [Assets](../../Assets/README.md).
+
+## Version 0.5.2
+
+Holo lisibles sur fond clair, faibles débits visibles, connexion active prioritaire et graphique UP vert / DOWN rouge / ping bleu : [guide 0.5.2](../UPDATE_V052.md).

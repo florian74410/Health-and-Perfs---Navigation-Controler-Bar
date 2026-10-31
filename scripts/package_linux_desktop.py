@@ -84,7 +84,7 @@ def build_deb(version):
             "libxkbcommon-x11-0, libxcb-xkb1, libxcb-cursor0, "
             "libxcb-icccm4, libxcb-image0, libxcb-keysyms1, "
             "libxcb-render-util0, libxcb-randr0, libxcb-xinerama0, "
-            "libegl1, libgl1, libopengl0, libdbus-1-3\n"
+            "libegl1, libgl1, libopengl0, libdbus-1-3, iputils-ping\n"
             "Section: utils\nPriority: optional\n"
             "Homepage: https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar\n"
             "Description: NovaBar neon desktop telemetry HUD\n"

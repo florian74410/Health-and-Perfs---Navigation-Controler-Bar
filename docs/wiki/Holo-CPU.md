@@ -51,3 +51,11 @@ Le logo en haut à droite de **chaque plugin actif** ouvre son Holo. Les débits
 ---
 
 <sub>NovaBar • CYBER NEXUS HUD • Documentation maintenue dans le dépôt. Les illustrations utilisent des valeurs d'exemple ; les sondes réelles dépendent du système et du matériel.</sub>
+
+## Lisibilité et réseau — 0.5.2
+
+Les textes et boutons ont un contour sombre opaque pour rester lisibles sur les fonds clairs. Les surfaces restent transparentes. Le Holo Réseau utilise 460 × 360 px pour son graphique : UP vert, DOWN rouge et histogramme de ping bleu. Les détails supplémentaires restent dans un tableau défilant.
+
+![Réseau lisible sur fond clair et sombre](../../Assets/Previews/novabar-v052-network-contrast.png)
+
+*Données de démonstration ; le graphique réel utilise les compteurs de l’interface suivie et le ping ICMP vers 1.1.1.1.*
