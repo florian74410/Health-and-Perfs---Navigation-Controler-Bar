@@ -1,3 +1,12 @@
+# NovaBar 0.5.4 — développement (non publiée)
+
+- Barre réduite en véritable bandeau de télémétrie visible en haut, bas, gauche ou droite (au lieu de ne laisser que 4 px à l'écran).
+- Suppression des compte-tours et déclencheurs Holo dans ce mode, mesures essentielles toujours affichées.
+- CPU/GPU/FANS : compte-tours à segments lumineux, sans aiguille, valeurs et unités recentrées dans le cercle.
+- RAM/SSD : jauges de remplissage façon batterie, à sept segments et couleurs d'alerte.
+- Contrôle de survol évitant la réouverture immédiate après une minimisation manuelle.
+- Tests multi-OS de géométrie, de visibilité, de télémétrie et de rendu.
+
 # NovaBar 0.5.3
 
 - Fond Holo uni sombre à 85 % d’opacité, teinté selon le thème, commun aux tableaux et graphiques.
