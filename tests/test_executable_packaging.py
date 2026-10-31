@@ -25,6 +25,23 @@ class ExecutablePackagingTests(unittest.TestCase):
             data=output.read_bytes();output.write_bytes(data[:-1]+bytes([data[-1]^1]))
             self.assertNotEqual(subprocess.run(['sh',str(output),'--check'],capture_output=True).returncode,0)
 
+    def test_native_deb_and_flatpak_sources_and_entrypoints(self):
+        code = (Path(__file__).resolve().parents[1]/'scripts/package_linux_desktop.py').read_text()
+        self.assertIn('dpkg-deb', code)
+        self.assertIn('flatpak", "build-bundle"', code)
+        self.assertIn('NOVABAR_PACKAGED=deb', code)
+        self.assertIn('NOVABAR_PACKAGED=flatpak', code)
+        self.assertIn('io.github.florian74410.NovaBar', code)
+        self.assertIn('--filesystem=home', code)
+
+    def test_native_packaged_launch_paths(self):
+        from healthbar.autostart import launch_command
+        from unittest.mock import patch
+        with patch.dict(os.environ, NOVABAR_PACKAGED='deb'):
+            self.assertEqual(launch_command(), ['/usr/bin/novabar'])
+        with patch.dict(os.environ, NOVABAR_PACKAGED='flatpak'):
+            self.assertEqual(launch_command(), ['flatpak', 'run', 'io.github.florian74410.NovaBar'])
+
     def test_unsafe_archive_paths_are_rejected_before_packaging(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);archive=root/'bad.zip'

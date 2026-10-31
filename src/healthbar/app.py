@@ -567,7 +567,16 @@ def main():
             QMessageBox.information(None, "Health & Perfs", "Une instance est déjà ouverte dans cette session.")
             return 0
         settings = Settings.load()
-        if args.setup or not settings.configured:
+        packaged = os.getenv("NOVABAR_PACKAGED") in ("deb", "flatpak")
+        if (args.setup or not settings.configured) and packaged:
+            # A .deb/.flatpak already contains NovaBar: configure without
+            # launching the separate runtime installer or duplicating binaries.
+            from .dialogs import SettingsDialog
+            first_run = not settings.configured
+            dialog = SettingsDialog(settings, app.screens(), first_run=first_run)
+            if dialog.exec() != QDialog.DialogCode.Accepted or args.setup:
+                return 0
+        elif args.setup or not settings.configured:
             from .installer import InstallerWizard
             payload = None
             if getattr(sys, "frozen", False):

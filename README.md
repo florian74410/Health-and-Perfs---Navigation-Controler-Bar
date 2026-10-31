@@ -19,6 +19,15 @@ Les paquets autonomes, **NovaBar incluse**, sont rangés dans [Executable/](Exec
 Linux Mint XFCE / Ubuntu, Windows 10/11, macOS Intel et Apple Silicon.
 Le `.run` Linux s’ouvre avec `sh CyberNexusHUD-Linux-x86_64.run`, sans Python ni compilation.
 
+## Version 0.3.5 — paquets Linux natifs
+
+NovaBar est également disponible dans `Executable/Linux/` en `.deb`
+(Mint/Ubuntu) et en bundle `.flatpak` (runtime Freedesktop 25.08).
+Ces paquets installent **l'application**, pas un second lanceur d'installation.
+La première ouverture configure la barre depuis son interface native.
+Les préférences/plugins restent dans le dossier utilisateur lors des mises à jour.
+Voir [instructions et limites Linux](Executable/Linux/README.md).
+
 ## Version 0.3.4 — néons fidèles et remplacement de l'ancienne version
 
 Le rendu NovaBar slim conserve l'aperçu réel néon : reflets de verre,

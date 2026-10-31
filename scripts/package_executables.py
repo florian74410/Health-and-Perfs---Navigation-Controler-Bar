@@ -85,7 +85,9 @@ def assemble(artifacts,output,version,source_sha=''):
     output=Path(output)
     for folder in ('Linux','Windows','MacOS'):(output/folder).mkdir(parents=True,exist_ok=True)
     files=[linux_run(one_file(artifacts,'NovaBar-runtime-linux-x86_64.zip'),output/'Linux/CyberNexusHUD-Linux-x86_64.run',version)]
-    for pattern,folder in (('CyberNexusHUD-Setup-Windows.exe','Windows'),
+    for pattern,folder in (('NovaBar_*_amd64.deb','Linux'),
+                           ('NovaBar_*_x86_64.flatpak','Linux'),
+                           ('CyberNexusHUD-Setup-Windows.exe','Windows'),
                            ('CyberNexusHUD-macOS-arm64.dmg','MacOS'),
                            ('CyberNexusHUD-macOS-x86_64.dmg','MacOS')):
         source=one_file(artifacts,pattern)

@@ -72,6 +72,9 @@ class SettingsDialog(QDialog):
         form.addRow("Rétractation", self.auto_hide)
         self.autostart = QCheckBox("Lancer à l’ouverture de ma session")
         self.autostart.setChecked(settings.autostart)
+        if __import__("os").environ.get("NOVABAR_PACKAGED") == "flatpak":
+            self.autostart.setEnabled(False)
+            self.autostart.setToolTip("Démarrage automatique non géré dans cette édition Flatpak.")
         
         self.hide_seconds = QSpinBox()
         self.hide_seconds.setRange(3, 120)
@@ -110,6 +113,9 @@ class SettingsDialog(QDialog):
         general_form.addRow("CYBER NEXUS HUD", update_button)
         installer_button = QPushButton("Profil, confidentialité et raccourcis…")
         installer_button.clicked.connect(self.open_installer)
+        if __import__("os").environ.get("NOVABAR_PACKAGED") in ("deb", "flatpak"):
+            installer_button.setEnabled(False)
+            installer_button.setToolTip("Le paquet Linux gère les fichiers du programme ; utiliser les préférences et le gestionnaire de plugins.")
         general_form.addRow("NovaBar", installer_button)
         display = QWidget()
         display.setLayout(form)
