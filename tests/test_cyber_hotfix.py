@@ -116,7 +116,7 @@ class CyberHotfixTests(unittest.TestCase):
     def test_optional_system_skin_offer_is_one_time(self):
         from healthbar.app import Bar
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, HEALTHBAR_DATA_DIR=folder):
-            settings = Settings(configured=True, auto_hide=False, retract_mode="manual",
+            settings = Settings(bottom_dock_enabled=False, configured=True, auto_hide=False, retract_mode="manual",
                                 xfce_skin_enabled=False, dock_app_paths=[], dock_folder_paths=[])
             bar = Bar(settings)
             bar.sensor_timer.stop()

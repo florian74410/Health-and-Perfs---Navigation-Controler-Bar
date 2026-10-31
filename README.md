@@ -1,12 +1,14 @@
-## ⚡ NovaBar 0.6.9 — CYBER NEXUS HUD
+## ⚡ NovaBar 0.6.10 — CYBER NEXUS HUD
 
-**Version multi-surface :** HUD de performances visible sur tous les bureaux XFCE/X11 (avec surveillance EWMH), docks Dossiers et Applications au style PCB animé, Holo détaillés, sélection de plugins affichés, et quatrième surface optionnelle habillant le **panneau système XFCE d'origine** sans enlever Wi-Fi, son, notifications ou fenêtres.
+Une vraie barre inférieure NovaBar sous Linux/X11 : menu d’applications avec recherche, lanceurs XFCE, fenêtres ouvertes, activation/réduction, horloge et accès aux commandes système. Elle apparaît même si aucun panneau inférieur XFCE n’est détecté.
 
-La barre du bas conserve les icônes et applets natives, peut être activée séparément et propose une rétractation de 1 à 120 secondes, une épaisseur de 100 à 200 % et une restauration des réglages d'origine. Tests automatisés multi-OS ; **validation visuelle sur XFCE/X11 réel à confirmer**.
+Le panneau XFCE inférieur est masqué pendant la session et restauré quand NovaBar quitte, sans supprimer sa configuration. Les applets de notification restent hébergées par XFCE : **Système → Afficher les icônes XFCE pendant 30 s** permet d’y accéder.
 
-[⬇️ Téléchargements 0.6.9](Executable/README.md) · [📖 Notes de version](docs/UPDATE_V069.md) · [🧪 Diagnostic XFCE](docs/wiki/XFCE-Cyber-Skin.md)
+Les docks latéraux repliés sont **entièrement invisibles** ; ils s’ouvrent dans les **10 px** du bord et se referment 3 s après la sortie. Dans **Paramètres → Upgrade**, NovaBar vérifie, télécharge, teste et active la nouvelle version puis redémarre en conservant les profils et plugins.
 
-[📖 XFCE Cyber Skin](docs/wiki/XFCE-Cyber-Skin.md) · [📁 Docks latéraux](docs/wiki/Docks.md)
+[⬇️ Téléchargements 0.6.10](Executable/README.md) · [📖 Notes de version](docs/UPDATE_V0610.md) · [📁 Docks](docs/wiki/Docks.md) · [🔄 Upgrade](docs/wiki/Mises-a-jour.md)
+
+![Barre NovaBar réelle — données de démonstration](Assets/Previews/novabar-v0610-bottom.png)
 
 <p align="center">
   <img src="docs/wiki/assets/banner.svg" alt="CYBER NEXUS HUD — NovaBar, cockpit néon" width="100%">
@@ -16,7 +18,7 @@ La barre du bas conserve les icônes et applets natives, peut être activée sé
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.6.9-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.6.10-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
@@ -85,28 +87,28 @@ Holo lisibles sur fond clair grâce au contour sombre des caractères ; réseau 
 
 Les consommations CPU/GPU sont affichées uniquement lorsqu’une sonde les fournit. Les valeurs initiales ou inconnues restent « — ». Les images utilisent des données de démonstration.
 
-## 📦 Télécharger & installer — NovaBar 0.6.9
+## 📦 Télécharger & installer — NovaBar 0.6.10
 
-Les installateurs natifs sont distribués depuis la [release 0.6.9](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.9) et classés dans [Executable/](Executable/README.md) avec les sommes de contrôle.
+Les installateurs natifs sont distribués depuis la [release 0.6.10](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.10) et classés dans [Executable/](Executable/README.md) avec les sommes de contrôle.
 
 | Système | Fichier |
 | --- | --- |
-| 🐧 Linux Mint XFCE / Ubuntu | [NovaBar_0.6.9_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/NovaBar_0.6.9_amd64.deb) |
-| 🪟 Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-Setup-Windows.exe) |
-| 🍎 macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-macOS-arm64.dmg) |
-| 🍏 macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/CyberNexusHUD-macOS-x86_64.dmg) |
+| 🐧 Linux Mint XFCE / Ubuntu | [NovaBar_0.6.10_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/NovaBar_0.6.10_amd64.deb) |
+| 🪟 Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-Setup-Windows.exe) |
+| 🍎 macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-macOS-arm64.dmg) |
+| 🍏 macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/CyberNexusHUD-macOS-x86_64.dmg) |
 
 Installation sur Linux Mint après téléchargement :
 
 ```bash
 cd "$(xdg-user-dir DOWNLOAD)"
-sudo apt install ./NovaBar_0.6.9_amd64.deb
+sudo apt install ./NovaBar_0.6.10_amd64.deb
 novabar
 ```
 
 Une mise à jour native conserve les préférences locales. Les binaires ne sont pas signés ou notarisés. Les tests automatiques ne remplacent pas une validation graphique en session XFCE/X11.
 
-[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V069.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
+[🔧 Instructions de mise à jour et restauration](docs/UPDATE_V0610.md) · [📦 Installation détaillée](docs/INSTALLATION.md)
 
 ## 🧩 Plugin Manager
 

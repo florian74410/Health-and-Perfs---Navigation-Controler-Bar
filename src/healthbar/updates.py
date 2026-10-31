@@ -181,8 +181,9 @@ class UpdateWorker(QThread):
 
 
 class UpdateDialog(QDialog):
-    def __init__(self,parent=None):
+    def __init__(self,parent=None,auto_upgrade=False):
         super().__init__(parent)
+        self.auto_upgrade=auto_upgrade
         from .installer import WIZARD_STYLE
         self.setStyleSheet(WIZARD_STYLE+"QDialog { background: #061224; }")
         self.setWindowTitle("CYBER NEXUS HUD · Mises à jour de NovaBar")
@@ -194,11 +195,19 @@ class UpdateDialog(QDialog):
         self.button=QPushButton("Vérifier les mises à jour");self.button.clicked.connect(self.start);box.addWidget(self.button)
         note=QLabel("Les profils, thèmes et plugins restent conservés. Aucune adresse e-mail ni mesure matérielle n’est envoyée. La vérification contacte GitHub, qui reçoit les données habituelles d’une connexion réseau.")
         note.setWordWrap(True);box.addWidget(note)
+        if self.auto_upgrade:QTimer.singleShot(0,self.start)
 
     def start(self):
         if self.prepared:
-            subprocess.Popen([self.prepared["executable"],"--wait-for-pid",str(os.getpid())],stdin=subprocess.DEVNULL)
-            QApplication.instance().quit();return
+            from .system_env import native_env
+            env=dict(native_env(),PYINSTALLER_RESET_ENVIRONMENT="1")
+            subprocess.Popen([self.prepared["executable"],"--wait-for-pid",str(os.getpid())],stdin=subprocess.DEVNULL,env=env)
+            owner=self.parent()
+            while owner is not None and not callable(getattr(owner,"quit_app",None)):
+                owner=owner.parent()
+            if owner is not None:owner.quit_app()
+            else:QApplication.instance().quit()
+            return
         self.button.setEnabled(False)
         self.worker=UpdateWorker(self.release,self)
         self.worker.checked.connect(self.checked);self.worker.completed.connect(self.completed)
@@ -209,8 +218,10 @@ class UpdateDialog(QDialog):
         self.worker.wait();self.release=release;self.button.setEnabled(True)
         self.label.setText("Version "+release["version"]+" disponible. Installer cette mise à jour ?" if release else "Aucune version stable plus récente publiée pour cette installation.")
         self.button.setText("Installer la mise à jour" if release else "Vérifier à nouveau")
+        if release and self.auto_upgrade:QTimer.singleShot(0,self.start)
     def completed(self,state):
         self.worker.wait();self.prepared=state;self.button.setEnabled(True);self.button.setText("Redémarrer NovaBar")
+        if self.auto_upgrade:QTimer.singleShot(700,self.start)
     def failed(self,message):
         self.worker.wait();self.label.setText(message);self.button.setEnabled(True)
     def reject(self):
