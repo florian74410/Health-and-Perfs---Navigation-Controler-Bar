@@ -200,6 +200,34 @@ class SettingsDialog(QDialog):
         wiki_layout.addStretch()
         tabs.addTab(wiki, "Wiki")
         tabs.addTab(docks, "Docks")
+        modules_tab = QWidget()
+        modules_layout = QVBoxLayout(modules_tab)
+        title_modules = QLabel("MODULES DE LA BARRE PRINCIPALE")
+        modules_layout.addWidget(title_modules)
+        modules_description = QLabel(
+            "Décochez les plugins à masquer sur cette machine. "
+            "Les modules restent installés, leurs mesures ne sont pas supprimées. "
+            "Le module Power affiche uniquement les données réellement disponibles.")
+        modules_description.setWordWrap(True)
+        modules_layout.addWidget(modules_description)
+        from .hud import HudCanvas
+        labels = {
+            "cpu": "CPU — Fréquence et température",
+            "gpu": "GPU — Fréquence et utilisation",
+            "ram": "RAM — Utilisation et capacité",
+            "storage": "Stockage — SSD / HDD",
+            "fans": "Ventilateurs — RPM",
+            "network": "Réseau — Débits et ping",
+            "power": "Power ⚡ — Consommation et tensions",
+        }
+        self.module_checks = {}
+        for slot, name in labels.items():
+            control = QCheckBox(name)
+            control.setChecked(slot not in settings.hidden_modules)
+            self.module_checks[slot] = control
+            modules_layout.addWidget(control)
+        modules_layout.addStretch()
+        tabs.addTab(modules_tab, "Modules")
         for name, widget in (("Générale", general), ("Affichage", display),
                               ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
             tabs.addTab(widget, name)
@@ -285,7 +313,9 @@ class SettingsDialog(QDialog):
             dock_left_enabled=self.dock_left_enabled.isChecked(),
             dock_right_enabled=self.dock_right_enabled.isChecked(),
             dock_left_kind=self.dock_left_kind.currentData(),
-            dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders")
+            dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders",
+            hidden_modules=[slot for slot, checkbox in self.module_checks.items()
+                            if not checkbox.isChecked()])
         try:
             set_enabled(updated.autostart)
             updated.save()
