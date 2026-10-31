@@ -93,7 +93,7 @@ def validate_theme(candidate: Any) -> dict[str, Any]:
                 if value not in _POSITIONS:
                     raise ThemeError("Invalid notification position")
             else:
-                lo, hi = _RANGES[key]
+                lo, hi = (1000, 30000) if section == "notifications" and key == "duration_ms" else _RANGES[key]
                 if type(value) not in (int, float) or not math.isfinite(value) or not lo <= value <= hi:
                     raise ThemeError("Value out of range: " + key)
     return theme
