@@ -229,6 +229,13 @@ class CpuHoloPanel(QWidget):
         glass.setColorAt(0.5,QColor(0,24,73,20))
         glass.setColorAt(1,QColor(76,210,255,13))
         painter.fillPath(path,glass)
+        # Glass reflection in the upper rim; luminous details follow the same
+        # electric-cyan language as NovaBar slim, with no opaque outer backdrop.
+        gloss=QLinearGradient(rect.left(),rect.top(),rect.left(),rect.top()+75)
+        gloss.setColorAt(0,QColor(187,247,255,63))
+        gloss.setColorAt(.25,QColor(25,146,230,24))
+        gloss.setColorAt(1,QColor(5,24,46,0))
+        painter.fillPath(path,gloss)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         for width,rgba in ((21,(0,64,255,12)),(13,(0,145,255,34)),(7,(0,194,255,58)),
                            (3,(2,120,255,190)),(1.2,(129,241,255,245))):

@@ -1,6 +1,7 @@
 """Versioned per-user installs. Test staged binary before changing the active installation."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,57 @@ def install_root():
     if sys.platform == "darwin":
         return Path.home() / "Library/Application Support/NovaBar/runtime"
     return Path.home() / ".local/share/novabar"
+
+
+def read_installed_state(root=None):
+    """Read the existing installation without touching its settings or executables."""
+    root = Path(root) if root is not None else install_root()
+    path = root / "installation.json"
+    if not path.exists():
+        return None
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise ValueError("Métadonnées d'installation existantes illisibles : aucune suppression autorisée") from error
+    if not isinstance(state, dict) or not isinstance(state.get("version"), str):
+        raise ValueError("Métadonnées d'installation existantes invalides : aucune suppression autorisée")
+    return state
+
+
+def version_tuple(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+\\.[0-9]+\\.[0-9]+", value):
+        return None
+    return tuple(map(int, value.split(".")))
+
+
+def cleanup_obsolete_runtimes(root, active_version, notify=None):
+    """Remove ONLY old app-owned version folders after the new version is activated.
+
+    Never scan Documents/NovaBar, plugins, profiles, shortcuts or arbitrary legacy paths.
+    A busy executable (e.g. on Windows) is kept and reported for manual retry.
+    """
+    root = Path(root)
+    state = read_installed_state(root)
+    if not state or state.get("version") != active_version:
+        return []
+    active = version_tuple(active_version)
+    versions = root / "versions"
+    if active is None or not versions.is_dir() or versions.is_symlink():
+        return []
+    removed = []
+    for entry in versions.iterdir():
+        old = version_tuple(entry.name)
+        if old is None or old >= active or entry.is_symlink() or not entry.is_dir():
+            continue
+        if entry.resolve().parent != versions.resolve():
+            continue
+        try:
+            shutil.rmtree(entry)
+            removed.append(entry.name)
+        except OSError:
+            if notify:
+                notify(f"Ancienne version {entry.name} encore utilisée : suppression différée")
+    return removed
 
 
 def payload_executable(root):
@@ -102,7 +154,9 @@ def activate(executable, settings, identity, desktop, root=None, release_version
     root = Path(root) if root else install_root()
     root.mkdir(parents=True,exist_ok=True)
     state_path=root/"installation.json"
-    previous=json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else None
+    old_state=read_installed_state(root)
+    previous=({key:old_state.get(key) for key in ("version","executable","desktop_shortcut")}
+              if old_state else None)
     # Initialize the official plugin source only once; never overwrite user-added repositories.
     from .plugin_sources import SourceStore, DEFAULT_SOURCE
     sources = SourceStore()
@@ -143,6 +197,12 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
     workspace=ensure_workspace()
     report=workspace/"Reports/installation.log"
     root=install_root();root.mkdir(parents=True,exist_ok=True)
+    existing = read_installed_state(root)
+    old_version = existing.get("version") if existing else None
+    if old_version and version_tuple(old_version) and version_tuple(old_version) > version_tuple(__version__):
+        raise ValueError("Un runtime NovaBar plus récent est installé : rétrogradation refusée")
+    if old_version and old_version != __version__:
+        progress(5, f"Ancienne version NovaBar {old_version} détectée · données préservées")
     target=root/"versions"/__version__
     if target.exists():
         # Reconfiguration does not reinstall a healthy version.
@@ -152,6 +212,9 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
             self_test(executable,report)
             progress(85,"Enregistrement du profil et des raccourcis")
             state=activate(executable,settings,identity,desktop,root)
+            removed=cleanup_obsolete_runtimes(root,__version__,lambda m:progress(94,m))
+            if removed:
+                progress(96,"Ancien runtime supprimé : "+", ".join(removed))
             progress(100,"Installation vérifiée")
             return state
         raise OSError("Cette version existe mais est incomplète. Consultez le dossier runtime avant de réessayer.")
@@ -199,6 +262,10 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
         stage.rename(target)
         try:
             state=activate(target/relative,settings,identity,desktop,root)
+            # Delete the old runtime ONLY after staging, self-test and successful switch.
+            removed=cleanup_obsolete_runtimes(root,__version__,lambda m:progress(94,m))
+            if removed:
+                progress(96,"Ancien runtime supprimé : "+", ".join(removed))
         except Exception:
             # Keep the tested payload for diagnostics/reconfiguration, never delete user data.
             raise

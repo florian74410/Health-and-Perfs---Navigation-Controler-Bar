@@ -162,6 +162,10 @@ def prepare_update(release,progress):
     state=json.loads(current.read_text(encoding="utf-8")) if current.exists() else {}
     result=activate(target/relative,settings,profile.get("identity",{}),state.get("desktop_shortcut",False),root,
                     release_version=release["version"])
+    from .install_engine import cleanup_obsolete_runtimes
+    removed=cleanup_obsolete_runtimes(root,release["version"],lambda m:progress(95,m))
+    if removed:
+        progress(97,"Ancien runtime supprimé : "+", ".join(removed))
     progress(100,"Mise à jour testée · redémarrage prêt")
     return result
 

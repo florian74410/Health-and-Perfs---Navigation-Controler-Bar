@@ -189,6 +189,8 @@ class HudCanvas(QWidget):
         self.slot_order = self.ORIGINAL.copy()
         self._drag_origin = None
         self._drag_start = None
+        self._hover_slot = None
+        self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.visual_timer=QTimer(self)
         self.visual_timer.setInterval(50)
@@ -331,6 +333,19 @@ class HudCanvas(QWidget):
         bounds=self.module_rect(kind)
         return QRect(self.mapToGlobal(bounds.topLeft()),bounds.size())
 
+    def mouseMoveEvent(self, event):
+        hover = self.slot_order[self.module_at(event.position())]
+        if hover != self._hover_slot:
+            self._hover_slot = hover
+            self.update()
+        super().mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        if self._hover_slot is not None:
+            self._hover_slot = None
+            self.update()
+        super().leaveEvent(event)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_origin = self.module_at(event.position())
@@ -438,6 +453,26 @@ class HudCanvas(QWidget):
             x,y,width,height=bounds.x(),bounds.y(),bounds.width(),bounds.height()
             path=QPainterPath();path.addRoundedRect(QRectF(x+3,y+3,width-7,height-6),6,6)
             outline(p,path,module_background(self.module_opacity))
+            # Specular streak, subtle energy trace and a stronger border on hover.
+            # Paint stays inside the responsive module rectangle and never stretches text.
+            p.save()
+            p.setClipPath(path,Qt.ClipOperation.IntersectClip)
+            shine=QLinearGradient(x,y+3,x,y+min(30,height))
+            shine.setColorAt(0,QColor(170,238,255,50))
+            shine.setColorAt(1,QColor(170,238,255,0))
+            p.fillRect(QRectF(x+7,y+4,max(0,width-14),min(27,height/3)),shine)
+            phase=(time.monotonic()*.24+index*.13)%1
+            track_width=max(0,width-30)
+            tracer_x=x+15+track_width*phase
+            p.setPen(QPen(QColor(95,245,255,185),2))
+            p.drawLine(QPointF(tracer_x-10,y+4),QPointF(tracer_x+10,y+4))
+            if self._hover_slot==kind:
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                for stroke,alpha in ((7,46),(2,235)):
+                    edge=QColor(69,230,255,alpha)
+                    p.setPen(QPen(edge,stroke))
+                    p.drawPath(path)
+            p.restore()
             p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
             if height>=50:
                 icon(p,kind,x+11,y+7,17)

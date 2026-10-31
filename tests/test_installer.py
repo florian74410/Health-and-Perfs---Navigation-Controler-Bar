@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 from healthbar.config import Settings, data_dir
 from healthbar.installer import InstallerWizard
 from healthbar.profiles import workspace_dir, save_profile, current_profile
-from healthbar.install_engine import install, install_root
+from healthbar.install_engine import install, install_root, cleanup_obsolete_runtimes, read_installed_state
 from healthbar.updates import extract_runtime, version, asset_url, check_release
 from healthbar.contact import send_feedback, SMTPConfig
 from healthbar.platforms import validate_host
@@ -109,6 +109,68 @@ class InstallerTests(unittest.TestCase):
             result=install(Settings(),{'os':'ubuntu'},False,lambda *args:None,payload=self.root/'does-not-exist')
         self.assertEqual(result['version'],__version__);activation.assert_called_once()
         self.assertEqual((target/name).read_bytes(),b'original')
+
+    def test_upgrade_prunes_only_old_version_folders(self):
+        from healthbar import __version__
+        root=install_root();versions=root/'versions'
+        older=versions/'0.3.3';older.mkdir(parents=True)
+        (older/'app.bin').write_text('old')
+        future=versions/'99.0.0';future.mkdir()
+        custom=versions/'do-not-touch';custom.mkdir()
+        active=versions/__version__;active.mkdir()
+        user=data_dir()/'App/Plugins/installed';user.mkdir(parents=True)
+        (user/'manifest.json').write_text('plugin')
+        (root/'installation.json').write_text(json.dumps({'version':__version__}))
+        removed=cleanup_obsolete_runtimes(root,__version__)
+        self.assertEqual(removed,['0.3.3'])
+        self.assertFalse(older.exists())
+        self.assertTrue(active.exists())
+        self.assertTrue(future.exists())
+        self.assertTrue(custom.exists())
+        self.assertTrue((user/'manifest.json').is_file())
+
+    def test_upgrade_never_erases_old_runtime_before_new_is_verified(self):
+        from healthbar import __version__
+        old=install_root()/'versions'/'0.3.3';old.mkdir(parents=True)
+        (old/'keep.txt').write_text('restore point')
+        install_root().mkdir(parents=True,exist_ok=True)
+        (install_root()/'installation.json').write_text(json.dumps(
+            {'version':'0.3.3','executable':str(old/'HealthPerfsBar/HealthPerfsBar')}))
+        payload=self.root/'payload';(payload/'HealthPerfsBar').mkdir(parents=True)
+        name='HealthPerfsBar.exe' if os.name=='nt' else 'HealthPerfsBar'
+        (payload/'HealthPerfsBar'/name).write_bytes(b'fake-binary')
+        with patch('healthbar.install_engine.validate_host'), patch(
+                'healthbar.install_engine.self_test',side_effect=RuntimeError('binary incompatible')):
+            with self.assertRaises(RuntimeError):
+                install(Settings(),{'os':'ubuntu'},False,lambda *args:None,payload=payload)
+        self.assertTrue((old/'keep.txt').is_file())
+        self.assertEqual(read_installed_state(install_root())['version'],'0.3.3')
+
+    def test_successful_upgrade_activates_then_removes_old_runtime(self):
+        from healthbar import __version__
+        root=install_root();old=root/'versions'/'0.3.3';old.mkdir(parents=True)
+        (old/'old.bin').write_bytes(b'old')
+        root.mkdir(parents=True,exist_ok=True)
+        (root/'installation.json').write_text(json.dumps({'version':'0.3.3'}))
+        payload=self.root/'payload';(payload/'HealthPerfsBar').mkdir(parents=True)
+        name='HealthPerfsBar.exe' if os.name=='nt' else 'HealthPerfsBar'
+        (payload/'HealthPerfsBar'/name).write_bytes(b'new')
+        def activate_new(executable,*args,**kwargs):
+            (root/'installation.json').write_text(json.dumps({'version':__version__,'executable':str(executable)}))
+            return {'version':__version__,'executable':str(executable)}
+        with patch('healthbar.install_engine.validate_host'), patch(
+                'healthbar.install_engine.self_test'),patch(
+                'healthbar.install_engine.activate',side_effect=activate_new):
+            result=install(Settings(),{'os':'ubuntu'},False,lambda *args:None,payload=payload)
+        self.assertEqual(result['version'],__version__)
+        self.assertFalse(old.exists())
+        self.assertTrue((root/'versions'/__version__/'HealthPerfsBar'/name).is_file())
+
+    def test_invalid_state_forbids_cleanup(self):
+        root=install_root();root.mkdir(parents=True)
+        (root/'installation.json').write_text('not json')
+        with self.assertRaises(ValueError):
+            cleanup_obsolete_runtimes(root,'0.3.4')
 
     def test_release_checks_use_official_manifest_and_monotonic_versions(self):
         release={'tag_name':'v99.0.0','assets':[{'name':'novabar-update-manifest.json',

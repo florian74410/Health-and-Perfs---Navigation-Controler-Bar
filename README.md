@@ -19,6 +19,16 @@ Les paquets autonomes, **NovaBar incluse**, sont rangés dans [Executable/](Exec
 Linux Mint XFCE / Ubuntu, Windows 10/11, macOS Intel et Apple Silicon.
 Le `.run` Linux s’ouvre avec `sh CyberNexusHUD-Linux-x86_64.run`, sans Python ni compilation.
 
+## Version 0.3.4 — néons fidèles et remplacement de l'ancienne version
+
+Le rendu NovaBar slim conserve l'aperçu réel néon : reflets de verre,
+circulation d'énergie discrète et intensification cyan au survol, sans déformation
+du contenu. Le panneau CPU Holo reprend les mêmes reflets.
+L'installateur détecte le runtime déjà installé, vérifie le nouveau en espace isolé,
+active sa version, puis supprime uniquement les anciens runtimes versionnés.
+Les plugins, profils, thèmes et préférences sont préservés.
+Voir [migration et limites](docs/UPGRADE_V034.md) et [vue normal / Holo](docs/novabar-normal-holo-neon.svg).
+
 ## Version 0.3.3 — barre compacte et fermeture visible
 
 ![NovaBar — format compact 72 pixels et bouton Quitter](docs/novabar-slim-preview.png)
