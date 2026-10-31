@@ -128,6 +128,16 @@ class CpuHoloPanel(QWidget):
             return
         super().keyPressEvent(event)
 
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        if not self.pinned:
+            # Close when another app receives focus; a pinned window remains visible.
+            QTimer.singleShot(120, self._close_if_inactive)
+
+    def _close_if_inactive(self):
+        if self.isVisible() and not self.pinned and not self.isActiveWindow():
+            self.close_panel()
+
     def show_at(self, anchor, screen_rect, position="top"):
         """Place adjacent to clicked slot, keeping all edges on the active display."""
         width = min(max(380, self.width()), max(260, screen_rect.width() - 12))
