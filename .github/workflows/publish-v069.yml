@@ -58,7 +58,7 @@ jobs:
           cp Executable/Linux/NovaBar_0.6.9_amd64.deb Executable/Linux/NovaBar_0.6.9_x86_64.flatpak Executable/Linux/CyberNexusHUD-Linux-x86_64.run release/
           cp Executable/Windows/CyberNexusHUD-Setup-Windows.exe release/
           cp Executable/MacOS/CyberNexusHUD-macOS-arm64.dmg Executable/MacOS/CyberNexusHUD-macOS-x86_64.dmg release/
-          find native-artifacts -type f -name 'CyberNexusHUD-*.tar.xz' -exec cp {} release/ \\;
+          find native-artifacts -type f -name 'CyberNexusHUD-*.tar.xz' -exec cp -t release/ {} +
           find native-artifacts -type f -name 'NovaBar-runtime-*.zip' -exec cp {} release/ \;
           find native-artifacts -type f -name '*-v*.zip' -exec cp {} release/ \;
           find native-artifacts -type f -name 'NovaBarDownloader-*' -exec cp {} release/ \;
