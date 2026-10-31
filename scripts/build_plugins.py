@@ -6,7 +6,7 @@ import json
 PACKS = [
     ("cpu-manager-viewer", "CPU Manager/Viewer", "cpu",
      "GHz: green 0-2, amber 2-3, red >3; 0-3.5 GHz dial",
-     ["cpu_frequency_ghz", "cpu_percent", "cpu_temperature_c"]),
+     ["cpu_frequency_ghz", "cpu_percent", "cpu_temperature_c", "cpu_cores", "cpu_model", "cpu_power_w", "cpu_physical_cores", "cpu_logical_cores"]),
     ("gpu-manager-viewer", "GPU Manager/Viewer", "gpu",
      "GPU clock, load, temperature, VRAM and watts; alerts at 60%/85%",
      ["gpu_clock_mhz", "gpu_percent", "gpu_temperature_c", "gpu_power_w", "vram_used_gb", "vram_total_gb"]),
@@ -29,16 +29,20 @@ def build(dest=Path("dist/plugins")):
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     for ident, name, slot, description, sensors in PACKS:
+        is_cpu_holo = ident == "cpu-manager-viewer"
+        version = "2.0.0" if is_cpu_holo else "1.0.0"
         manifest = {
             "api_version": 2, "id": ident, "name": name,
-            "version": "1.0.0", "slot": slot, "kind": "builtin-sensor",
+            "version": version, "slot": slot, "kind": "builtin-sensor",
             "description": description, "sensor_keys": sensors,
-            "min_ram_mb": 32, "requires": ["healthbar>=0.2.0", "Python>=3.10",
+            "min_ram_mb": 32, "requires": ["healthbar>=0.3.2" if is_cpu_holo else "healthbar>=0.3.1", "Python>=3.10",
                                           "PySide6-Essentials>=6.8", "psutil>=5.9"],
             "permissions": ["read_sensors"], "optional_permissions": []
         }
+        if is_cpu_holo:
+            manifest["holo_view"] = "cpu-core-matrix"
         dependencies = (
-            "# DEPENDENCY.md\n\n- Python >= 3.10\n- NovaBar >= 0.2.0\n"
+            "# DEPENDENCY.md\n\n- Python >= 3.10\n- NovaBar >= 0.3.2 (CPU Holo) / 0.3.1 (autres)\n"
             "- PySide6-Essentials >= 6.8\n- psutil >= 5.9\n"
             "- Optional: nvidia-smi (NVIDIA GPU), lm-sensors/sysfs (Linux).\n"
             "- No administrative access or automatic dependency installation.\n"
@@ -53,7 +57,7 @@ def build(dest=Path("dist/plugins")):
             "README.md": f"# {name}\n\n{description}\n\n"
                          "Import via Extensions > Plugin Manager. Built-in read-only telemetry.\n",
             "DEPENDENCY.md": dependencies,
-            "VERSION.md": "# Version\n\n1.0.0\n",
+            "VERSION.md": "# Version\n\n" + version + "\n",
             "dependencies.json": json.dumps({"requires": manifest["requires"]}, indent=2),
             "module.json": json.dumps({"slot": slot, "sensors": sensors,
                                        "icon": "Assets/icon.svg"}, indent=2),
@@ -69,13 +73,26 @@ def build(dest=Path("dist/plugins")):
             "Scripts/CSS/README.md": "Reserved for optional web themes.\n",
             "Profils/Template/Settings.md": "# Plugin profile\n\nPer-user settings maintained by the host.\n",
             "Profils/Template/Overclocking.md": "# Overclock\n\nNo hardware control in this package.\n",
+            "Hologram/CPU_CORE_MATRIX.md": (
+                "# CPU CORE MATRIX\n\nNative, no executable code in ZIP.\n"
+                "Click on the CPU slot after activating the CPU plugin.\n"
+                "Columns: Core/thread, frequency GHz, temperature °C, power W.\n"
+                "Final row: PACKAGE TOTAL (average clock, package temperature, measured package watts).\n"
+                "No synthetic TDP or core power values. Missing sensors shown as em dash.\n"
+            ) if is_cpu_holo else "# Hologram not yet implemented.\n",
+            "Hologram/holo.json": json.dumps({
+                "view": "cpu-core-matrix" if is_cpu_holo else None,
+                "open": "click", "pin": True, "close": ["escape", "button", "outside"],
+                "placement": "auto", "accent": "#35d9ff",
+                "columns": ["core", "frequency_ghz", "temperature_c", "power_w"]
+            }, indent=2),
             "install.sh": (
                 "#!/bin/sh\nset -eu\n"
                 "test -f manifest.json && test -f DEPENDENCY.md && test -d Assets\n"
                 "echo 'VALIDÉ: prêt à importer via NovaBar > Extensions'\n"
             ),
         }
-        with ZipFile(dest / f"{ident}-v1.0.0.zip", "w", ZIP_DEFLATED) as archive:
+        with ZipFile(dest / f"{ident}-v{version}.zip", "w", ZIP_DEFLATED) as archive:
             for filename, contents in files.items():
                 archive.writestr(filename, contents)
     return len(PACKS)
