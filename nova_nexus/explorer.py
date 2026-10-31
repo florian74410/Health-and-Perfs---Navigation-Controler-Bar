@@ -83,16 +83,17 @@ def run(start=None):
             outer = W.QVBoxLayout(root)
             outer.setContentsMargins(22, 18, 22, 18)
             outer.setSpacing(9)
-            header = W.QHBoxLayout()
+            self.title_surface = W.QWidget()
+            self.title_surface.setFixedHeight(34)
+            self.title_surface.setStyleSheet("background:rgba(44,64,78,175);")
+            header = W.QHBoxLayout(self.title_surface)
+            header.setContentsMargins(8,2,5,2)
             mark = W.QLabel("◈  NOVA Explorer")
+            self.drag_handle = mark
             mark.setStyleSheet("color:#00DFFF;font:bold 19px Arial;")
             header.addWidget(mark)
             header.addStretch()
             self.header_caption = W.QLabel("NOVA NEXUS HD  /  FILE SYSTEM")
-            self.header_caption.mousePressEvent = self.drag_press
-            self.header_caption.mouseMoveEvent = self.drag_move
-            self.header_caption.mouseReleaseEvent = self.drag_release
-            self.header_caption.mouseDoubleClickEvent = self.toggle_maximize
             header.addWidget(self.header_caption)
             mini = W.QPushButton("−")
             close = W.QPushButton("×")
@@ -103,11 +104,9 @@ def run(start=None):
             close.clicked.connect(self.close)
             header.addWidget(mini)
             header.addWidget(close)
-            mark.mouseDoubleClickEvent = self.toggle_maximize
-            mark.mousePressEvent = self.drag_press
-            mark.mouseMoveEvent = self.drag_move
-            mark.mouseReleaseEvent = self.drag_release
-            outer.addLayout(header)
+            for item in (self.title_surface,mark,self.header_caption):
+                item.installEventFilter(self)
+            outer.addWidget(self.title_surface)
 
             navigation = W.QHBoxLayout()
             for text, handler, name in (("❮",self.back,"navBack"),("❯",self.forward,"navForward"),("↑",self.up,"navUp"),("⌂",lambda:self.navigate(Path.home()),"navHome")):
@@ -206,22 +205,25 @@ def run(start=None):
             self.fade.setDuration(190)
             self.navigate(Path(start).expanduser() if start else Path.home())
 
-        def toggle_maximize(self,event):
-            if event.button()==C.Qt.LeftButton:
-                self.showNormal() if self.isMaximized() else self.showMaximized()
-                self.drag_start=None
-                event.accept()
-        def drag_press(self,event):
-            if event.button()==C.Qt.LeftButton:
-                self.drag_start=event.globalPosition().toPoint()-self.frameGeometry().topLeft()
-                event.accept()
-        def drag_move(self,event):
-            if self.drag_start is not None and not self.isMaximized() and event.buttons() & C.Qt.LeftButton:
-                self.move(event.globalPosition().toPoint()-self.drag_start)
-                event.accept()
-        def drag_release(self,event):
-            self.drag_start=None
-            event.accept()
+        def eventFilter(self,obj,event):
+            if obj in (self.title_surface,self.drag_handle,self.header_caption):
+                typ=event.type()
+                if typ==C.QEvent.MouseButtonDblClick and event.button()==C.Qt.LeftButton:
+                    self.showNormal() if self.isMaximized() else self.showMaximized()
+                    self.drag_start=None
+                    return True
+                if typ==C.QEvent.MouseButtonPress and event.button()==C.Qt.LeftButton:
+                    self.drag_start=event.globalPosition().toPoint()-self.frameGeometry().topLeft()
+                    return True
+                if typ==C.QEvent.MouseMove and self.drag_start is not None and event.buttons() & C.Qt.LeftButton:
+                    if not self.isMaximized():
+                        self.move(event.globalPosition().toPoint()-self.drag_start)
+                    return True
+                if typ==C.QEvent.MouseButtonRelease:
+                    self.drag_start=None
+                    return True
+            return super().eventFilter(obj,event)
+
         def paintEvent(self,event):
             p=G.QPainter(self)
             p.setRenderHint(G.QPainter.Antialiasing)
