@@ -29,9 +29,9 @@ jobs:
       - name: Real isolated XFCE bottom dock integration
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y xvfb xfwm4 xfce4-panel dbus-x11 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1
+          sudo apt-get install -y xvfb xfwm4 xfce4-panel dbus-x11 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0
           python -c 'import PySide6,pathlib,subprocess; subprocess.run(["ldd",str(pathlib.Path(PySide6.__file__).parent/"Qt/plugins/platforms/libqxcb.so")],check=True)'
-          QT_DEBUG_PLUGINS=1 xvfb-run -a -s "-screen 0 1280x720x24" dbus-run-session -- python scripts/test_xfce_session.py
+          xvfb-run -a -s "-screen 0 1280x720x24" dbus-run-session -- python scripts/test_xfce_session.py
       - run: python scripts/build.py
       - name: Smoke test packaged downloader (no network or install)
         shell: bash

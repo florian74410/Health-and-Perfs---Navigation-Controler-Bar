@@ -21,4 +21,4 @@ La liste de fenêtres et le remplacement du panneau sont destinés à **XFCE/X11
 
 ## Validation
 
-Suite automatisée Qt, déclencheurs 10 px, restauration du panneau, raccourcis et progression automatique Upgrade. La CI Linux exécute aussi une session isolée réelle Xvfb + XFWM4 + xfce4-panel : détection, masquage/restauration et activation/réduction d’une fenêtre. Les installateurs des quatre plateformes sont construits et soumis à leurs autotests avant publication. L’aperçu Assets provient des widgets Qt livrés avec des données de démonstration.
+Suite automatisée Qt, déclencheurs 10 px, restauration du panneau, raccourcis et progression automatique Upgrade. La CI Linux exécute aussi une session isolée réelle Xvfb + XFWM4 + xfce4-panel : détection, masquage/restauration après fermeture et arrêt brutal, et activation/réduction d’une fenêtre. Les installateurs des quatre plateformes sont construits et soumis à leurs autotests avant publication. L’aperçu Assets provient des widgets Qt livrés avec des données de démonstration.

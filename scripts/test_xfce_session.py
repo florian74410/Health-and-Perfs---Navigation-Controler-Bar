@@ -64,8 +64,16 @@ def main():
             dock.close()
             wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsViewable for r in panels),app)
             assert not dock.native.path.exists()
+            # Kill a separate NovaBar surface without closeEvent: its watchdog must recover XFCE.
+            crash_code="from PySide6.QtWidgets import QApplication; from PySide6.QtCore import QTimer; from healthbar.bottom_dock import BottomDock; from healthbar.config import Settings; import os; a=QApplication([]); d=BottomDock(Settings(configured=True,dock_app_paths=[])); QTimer.singleShot(1800,lambda:os._exit(9)); a.exec()"
+            crashed=subprocess.Popen([sys.executable,'-c',crash_code],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            processes.append(crashed)
+            wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsUnmapped for r in panels),app)
+            assert crashed.wait(timeout=8)==9
+            wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsViewable for r in panels),app)
+            assert not dock.native.path.exists()
             con.close()
-            print('PASS: real XFCE hidden/restored; task activation/minimize; autonomous dock')
+            print('PASS: real XFCE hidden/restored after close AND crash; task activation/minimize; autonomous dock')
         finally:
             if dock:dock.close()
             for process in reversed(processes):
