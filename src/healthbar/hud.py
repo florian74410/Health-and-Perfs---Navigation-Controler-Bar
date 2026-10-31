@@ -1,5 +1,6 @@
 """Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
+import time
 from PySide6.QtCore import Qt, QPointF, QRectF, Signal
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage
 from PySide6.QtWidgets import QWidget
@@ -290,6 +291,8 @@ class HudCanvas(QWidget):
         text(p, 151, 119, "°C", 20)
         cpu_load = self.readings.get("cpu_percent") if self.readings else None
         cpu_color = "#ff4455" if cpu_load is not None and cpu_load >= 85 else CYAN
+        if cpu_load is not None and cpu_load >= 95:
+            cpu_color = "#ff4455" if int(time.monotonic()*2) % 2 else "#f4faff"
         text(p, 113, 162, self.value("cpu_percent", 18) + "%", 26, cpu_color)
         gauge(p, 279, 105, 79, self.value("cpu_frequency_ghz", 2.4, 1), "GHz", True)
         text(p, 466, 121, self.value("gpu_temperature_c", 48), 37)
