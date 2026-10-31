@@ -1,5 +1,19 @@
 # Installation et exploitation
 
+## NovaBar 0.6.9 — paquet Linux Mint XFCE recommandé
+
+Le paquet autonome [`NovaBar_0.6.9_amd64.deb`](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.9/NovaBar_0.6.9_amd64.deb) remplace 0.6.0 sans désinstaller les plugins ou réinitialiser les préférences :
+
+```sh
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.6.9_amd64.deb
+novabar
+```
+
+Pour voir le HUD sur tous les espaces de travail, utiliser une session XFCE **X11** ; l'option « sticky » est demandée au gestionnaire de fenêtres et corrigée périodiquement si nécessaire. Le panneau XFCE du bas n'est **pas remplacé par un autre gestionnaire de tâches** : NovaBar habille son fond et ses bordures en conservant les icônes et notifications. Son habillage est facultatif, et l'application sauvegarde la taille et le mode de masquage d'origine.
+
+En cas d'absence de la barre du bas : menu de notification NovaBar → **Barre système XFCE → Diagnostiquer le panneau inférieur**. Pour afficher le style PCB, activer « Habillage CYBER NEXUS » dans ce menu ou les préférences. Voir [les détails du correctif](UPDATE_V069.md).
+
 ## Sources — lancement simple
 
 Télécharger puis extraire le dépôt, lancer Install-Linux.sh / Install-Windows.cmd /
