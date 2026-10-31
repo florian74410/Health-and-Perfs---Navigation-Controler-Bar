@@ -3,6 +3,7 @@ import math
 import subprocess
 import time
 from pathlib import Path
+from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
 try:
     import psutil
 except ImportError:
@@ -69,12 +70,14 @@ class Telemetry:
         self.last_at = time.monotonic()
         self.last_net = None
         self.last_disk = None
+        self.package_power = PackagePower()
+        self.cpu_model = cpu_identity()
         if psutil:
             psutil.cpu_percent(interval=None)
 
     def sample(self):
         keys = ("cpu_percent", "cpu_frequency_ghz", "cpu_frequency_max_ghz",
-            "cpu_temperature_c", "gpu_temperature_c", "gpu_percent", "gpu_clock_mhz",
+            "cpu_temperature_c", "cpu_power_w", "cpu_model", "cpu_physical_cores", "cpu_logical_cores", "gpu_temperature_c", "gpu_percent", "gpu_clock_mhz",
             "gpu_power_w", "vram_used_gb", "vram_total_gb",
             "ram_percent", "ram_used_gb", "ram_available_gb", "ram_total_gb",
             "disk_percent", "disk_used_gb", "disk_free_gb", "disk_total_gb",
@@ -82,10 +85,16 @@ class Telemetry:
             "net_down_mbs", "net_up_mbs")
         data = dict.fromkeys(keys)
         data["fans"] = []
+        data["cpu_cores"] = []
         if psutil is None:
             return data
         try:
             data["cpu_percent"] = _number(psutil.cpu_percent(interval=None))
+            data["cpu_model"] = self.cpu_model
+            data["cpu_physical_cores"] = psutil.cpu_count(logical=False)
+            data["cpu_logical_cores"] = psutil.cpu_count(logical=True)
+            data["cpu_cores"] = sample_cpu_cores(psutil)
+            data["cpu_power_w"] = self.package_power.sample()
             freq = psutil.cpu_freq() if hasattr(psutil, 'cpu_freq') else None
             if freq:
                 data["cpu_frequency_ghz"] = round(freq.current/1000, 2)
