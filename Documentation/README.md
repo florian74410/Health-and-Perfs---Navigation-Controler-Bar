@@ -1,6 +1,6 @@
 # Documentation NOVA NEXUS HD / NovaBar
 
-- [Pack complet 0.7.1 — installation, activation, restauration et Terminal Manager](../docs/UPDATE_V070.md)
+- [Pack complet 0.7.2 — installation, activation, restauration et Terminal Manager](../docs/UPDATE_V072.md)
 - [Feuille de route NOVA NEXUS HD](../docs/NOVA_NEXUS_HD_MASTER_PLAN.md)
 
 - [⚡ Mise à jour 0.6.9 — HUD multi-workspaces, docks PCB et panneau XFCE](../docs/UPDATE_V069.md)

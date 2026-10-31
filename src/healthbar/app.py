@@ -134,6 +134,8 @@ class Bar(QWidget):
             QMenu::item:disabled { color: #6986a3; }
         """)
         self.root = QHBoxLayout(self)
+        from PySide6.QtWidgets import QLayout
+        self.root.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
         self.canvas = HudCanvas(self.registry)
@@ -182,6 +184,9 @@ class Bar(QWidget):
         self.animation.setDuration(260)
         self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.animation.finished.connect(self._finish_transition)
+        self.workarea_timer=QTimer(self)
+        self.workarea_timer.setSingleShot(True)
+        self.workarea_timer.timeout.connect(self.update_workarea)
         self.hide_timer = QTimer(self)
         self.hide_timer.setSingleShot(True)
         self.hide_timer.timeout.connect(self.retract)
@@ -719,6 +724,7 @@ class Bar(QWidget):
         self.root.invalidate()
         self.root.activate()
         self.setGeometry(self.full_rect)
+        self.schedule_workarea()
         self.update()
         if hasattr(self, "sidebars"):
             self.sync_sidebars()
@@ -728,8 +734,30 @@ class Bar(QWidget):
             self.build_tray_menu()
         self.arm_hide()
 
+    def update_workarea(self):
+        from .workarea import reserve_top
+        reserve_top(self,self.isVisible() and self.settings.hud_enabled and self.settings.position=="top")
+
+    def schedule_workarea(self):
+        if hasattr(self,"workarea_timer"):self.workarea_timer.start(0)
+
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        self.schedule_workarea()
+
+    def moveEvent(self,event):
+        super().moveEvent(event)
+        self.schedule_workarea()
+
+    def hideEvent(self,event):
+        if hasattr(self,"workarea_timer"):self.workarea_timer.stop()
+        from .workarea import reserve_top
+        reserve_top(self,False)
+        super().hideEvent(event)
+
     def showEvent(self, event):
         super().showEvent(event)
+        self.schedule_workarea()
         if self.settings.always_on_top:
             from .overlay import mark_desktop_panel
             mark_desktop_panel(self)
@@ -778,7 +806,7 @@ class Bar(QWidget):
             return
         rect = QRect(self.full_rect)
         if self.settings.position in ("top", "bottom"):
-            edge = min(32, max(26, round(rect.height() * .40)))
+            edge = 10
             if self.settings.position == "bottom":
                 rect.setTop(rect.bottom()-edge+1)
             else:
@@ -807,6 +835,7 @@ class Bar(QWidget):
         self.animation.start()
 
     def _finish_transition(self):
+        self.schedule_workarea()
         if not self.retracted:
             self.root.setSpacing(8)
             self.actions.show()

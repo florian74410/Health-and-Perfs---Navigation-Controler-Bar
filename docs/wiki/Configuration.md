@@ -1,5 +1,8 @@
 # ⚙️ Préférences, thèmes et profils
 
+
+**0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.
+
 > Chaque compte dispose de ses propres choix, même après les mises à jour.
 
 [🏠 Accueil](Home.md) · [🚀 Démarrage](Premiers-pas.md) · [📦 Installation](Installation.md) · [🎛️ Interface](Interface.md) · [🔌 Plugins](Plugins.md) · [🛠️ Dépannage](Depannage.md)
