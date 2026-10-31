@@ -27,6 +27,12 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
       - run: python scripts/build.py
+      - name: Smoke test packaged downloader (no network or install)
+        shell: bash
+        run: |
+          DOWNLOADER=$(find dist -maxdepth 1 -type f -name 'NovaBarDownloader-*' | head -n 1)
+          test -n "$DOWNLOADER"
+          QT_QPA_PLATFORM=offscreen "$DOWNLOADER" --self-test
       - run: python scripts/package_runtime.py
       - run: python scripts/test_runtime_package.py
       - run: python scripts/test_installer_package.py
@@ -93,8 +99,9 @@ jobs:
             dist/linux/*.deb
             dist/linux/*.flatpak
             dist/plugins/*.zip
+            dist/NovaBarDownloader-*
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'feature/novabar-next-v0.5' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -107,16 +114,35 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+      - name: Validate explicitly requested release
+        env:
+          RELEASE_EVENT: ${{ github.event_name }}
+        run: |
+          python - <<'PY_RELEASE'
+          import json, os, tomllib
+          from pathlib import Path
+          tag = "v" + tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          if os.environ["RELEASE_EVENT"] == "pull_request":
+              request = json.loads(Path(".release/0.5.0.json").read_text())
+              assert request == {"tag": tag, "publish": True}, "Release not explicitly requested"
+          else:
+              assert os.environ["GITHUB_REF_NAME"] == tag, "Tag/version mismatch"
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write("NOVABAR_RELEASE_TAG=" + tag + "\n")
+          PY_RELEASE
       - name: Gather versioned installers and runtimes
         run: |
           mkdir release
           find artifacts -type f \( -name '*.dmg' -o -name '*.deb' -o -name '*.flatpak' -o -name '*-Setup-*.exe' -o -name 'CyberNexusHUD-*.tar.xz' -o -name 'NovaBar-runtime-*.zip' \) -exec cp {} release/ \;
-          python scripts/release_manifest.py "$GITHUB_REF_NAME"
-          python -c 'import os,tomllib; assert os.environ["GITHUB_REF_NAME"] == "v" + tomllib.load(open("pyproject.toml","rb"))["project"]["version"]'
+          find artifacts -type f -name '*-v*.zip' -exec cp {} release/ \;
+          python scripts/package_executables.py artifacts
+          cp Executable/Linux/*.run release/
+          find artifacts -type f -name 'NovaBarDownloader-*' -exec cp {} release/ \;
+          python scripts/release_manifest.py "$NOVABAR_RELEASE_TAG"
       - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --title "CYBER NEXUS HUD / NovaBar $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.event.pull_request.head.sha || github.sha }}" --title "CYBER NEXUS HUD / NovaBar $NOVABAR_RELEASE_TAG" --generate-notes
   executable-folder:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cyber-nexus-installer-v03'
     needs: build

@@ -45,3 +45,6 @@
 ---
 
 <sub>NovaBar • CYBER NEXUS HUD • Documentation maintenue dans le dépôt. Les illustrations utilisent des valeurs d'exemple ; les sondes réelles dépendent du système et du matériel.</sub>
+
+- [CPU Mode et priorité OS](CPU-Mode.md)
+- [Downloader](Downloader.md)

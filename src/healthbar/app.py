@@ -22,6 +22,8 @@ from .telemetry import Telemetry
 from .help_links import WIKI_URL
 
 
+from .ui_kit import QColor
+
 def button_icon(kind):
     pix = QPixmap(40, 40)
     pix.fill(Qt.GlobalColor.transparent)
@@ -59,10 +61,9 @@ def button_icon(kind):
         p.drawLine(11,11,29,29)
         p.drawLine(29,11,11,29)
     elif kind == "expand":
-        p.drawRect(8, 7, 24, 25)
-        p.drawLine(20, 12, 20, 26)
-        p.drawLine(13, 20, 20, 27)
-        p.drawLine(20, 27, 27, 20)
+        p.drawLine(20, 12, 20, 29)
+        p.drawLine(12, 20, 20, 12)
+        p.drawLine(20, 12, 28, 20)
     else:
         p.drawEllipse(9, 6, 23, 23)
         p.drawLine(10, 28, 5, 35)
@@ -106,7 +107,8 @@ class NeonButton(QPushButton):
         if self.text():
             p.setPen(QColor("#e7f3ff"))
             p.setFont(self.font())
-            p.drawText(QRect(43, 0, max(0, self.width()-45), self.height()),
+            left = 43 if not icon.isNull() else 4
+            p.drawText(QRect(left, 0, max(0, self.width()-left-2), self.height()),
                        Qt.AlignmentFlag.AlignVCenter, self.text())
         p.end()
 
@@ -114,8 +116,14 @@ class NeonButton(QPushButton):
 class Bar(QWidget):
     def __init__(self, settings):
         super().__init__()
+        from .ui_kit import set_theme
+        set_theme(settings.theme)
         self.settings = settings
+        from .bundled_plugins import seed_bundled_plugins
+        if getattr(sys,"frozen",False): seed_bundled_plugins(settings)
         self.registry = PluginRegistry()
+        from .cpu_mode_controller import CpuModeController
+        self.cpu_controller = CpuModeController()
         self.retracted = False
         self.expanded = False
         self.busy = False
@@ -135,6 +143,7 @@ class Bar(QWidget):
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
         self.canvas = HudCanvas(self.registry)
+        self.canvas.set_telemetry({})  # No illustrative values before the first real sample.
         self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
         self.canvas.layout_changed.connect(self.save_layout)
         self.canvas.module_activated.connect(self.open_module_holo)
@@ -147,8 +156,9 @@ class Bar(QWidget):
         self.button_layout = QHBoxLayout(self.buttons)
         self.button_layout.setContentsMargins(0, 0, 0, 0)
         self.button_layout.setSpacing(5)
-        self.turbo = self.make_button("turbo", "Turbo • prévu dans une prochaine version", self.turbo_menu)
-        self.turbo.setText("TURBO⌄")
+        self.turbo = self.make_button("turbo", "CPU Mode · contrôle matériel selon OS et permissions", self.turbo_menu)
+        self.turbo.setText("CPU Mode")
+        self.turbo.setIcon(QIcon())
         self.turbo.setFixedWidth(125)
         self.make_button("terminal", "Console • emplacement réservé", self.console_info)
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
@@ -161,15 +171,17 @@ class Bar(QWidget):
         self.expand_button.setObjectName("nav")
         self.expand_button.setIcon(button_icon("expand"))
         self.expand_button.setFixedSize(34, 29)
-        self.expand_button.setToolTip("Agrandir / réduire la hauteur")
-        self.expand_button.clicked.connect(self.toggle_expand)
+        self.expand_button.setToolTip("Minimiser manuellement la barre")
+        self.expand_button.clicked.connect(lambda: self.retract(manual=True))
         self.button_layout.addWidget(self.expand_button)
         self.quit_button = self.make_button("quit", "Quitter NovaBar (Ctrl+Q)", self.quit_app)
         self.quit_button.setAccessibleName("Quitter NovaBar")
         from PySide6.QtGui import QShortcut, QKeySequence
         self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"),self)
         self.quit_shortcut.activated.connect(self.quit_app)
-        self.action_layout.addStretch()
+        from .ui_kit import ChipLogo
+        self.chip_logo = ChipLogo()
+        self.action_layout.addWidget(self.chip_logo, 1)
         self.root.addWidget(self.actions)
         self.animation = QPropertyAnimation(self, b"geometry", self)
         self.animation.setDuration(260)
@@ -201,10 +213,15 @@ class Bar(QWidget):
             screen.geometryChanged.connect(lambda rect: self.apply_settings())
         self.apply_settings()
         self.holo = CpuHoloPanel(self)
+        from .holo import SensorHoloPanel
+        self.module_holos = {slot: SensorHoloPanel(slot, self) for slot in SensorHoloPanel.FIELDS}
+        for panel in [self.holo,*self.module_holos.values()]:
+            panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,settings.always_on_top)
         self.sensors = Telemetry()
         self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
         self.sensor_future = None
         self.last_sensor_request = 0.0
+        self.last_cpu_error = None
         self.sensor_timer = QTimer(self)
         self.sensor_timer.setInterval(250)
         self.sensor_timer.timeout.connect(self.poll_sensors)
@@ -213,20 +230,33 @@ class Bar(QWidget):
         self.hotkeys = HotkeyController(self)
         self.hotkeys.configure(self.settings.shortcuts)
 
+    def sample_sensors(self):
+        readings = self.sensors.sample()
+        return readings, self.cpu_controller.sample(readings.get("cpu_temperature_c"))
+
     def poll_sensors(self):
         if self.sensor_future is not None and self.sensor_future.done():
             try:
-                readings = self.sensor_future.result()
+                readings, cpu_state = self.sensor_future.result()
+                self.turbo.setToolTip(cpu_state["message"])
+                if cpu_state["error"] and self.cpu_controller.mode is not None and cpu_state["error"] != self.last_cpu_error:
+                    self.last_cpu_error = cpu_state["error"]
+                    QMessageBox.warning(self,"CPU Mode indisponible",cpu_state["error"])
+                elif not cpu_state["error"]: self.last_cpu_error = None
+                if self.cpu_controller.mode is not None:
+                    self.turbo.setText("CPU !" if cpu_state["error"] else ("AUTO" if cpu_state["mode"]=="auto" else ("ON" if cpu_state["enabled"] else "OFF")))
                 self.canvas.set_telemetry(readings)
+                for panel in self.module_holos.values():
+                    if panel.isVisible(): panel.set_telemetry(readings)
                 if self.holo.isVisible():
                     self.holo.set_telemetry(readings)
             except (OSError, RuntimeError, ValueError):
                 pass
             self.sensor_future = None
         now = time.monotonic()
-        if self.sensor_future is None and now - self.last_sensor_request >= self.settings.refresh_seconds:
+        if self.sensor_future is None and now - self.last_sensor_request >= (min(1,self.settings.refresh_seconds) if self.cpu_controller.mode=="auto" else self.settings.refresh_seconds):
             self.last_sensor_request = now
-            self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
+            self.sensor_future = self.sensor_worker.submit(self.sample_sensors)
 
     def quit_app(self):
         self.close()
@@ -235,6 +265,7 @@ class Bar(QWidget):
     def closeEvent(self, event):
         self.tray.hide()
         self.holo.close_panel()
+        for panel in self.module_holos.values(): panel.close_panel()
         self.sensor_timer.stop()
         self.hotkeys.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
@@ -242,9 +273,18 @@ class Bar(QWidget):
 
     def open_module_holo(self, slot):
         # The host supplies the CPU hologram; ZIP modules only declare capabilities.
+        if not self.settings.holo_enabled: return
+        for kind, other in self.module_holos.items():
+            if kind != slot: other.close_panel()
+        if slot != "cpu": self.holo.close_panel()
         if slot != "cpu":
-            if self.holo.isVisible() and not self.holo.pinned:
-                self.holo.close_panel()
+            panel = self.module_holos.get(slot)
+            if panel and any(item["enabled"] and item["slot"] == slot for item in self.registry.installed()):
+                if panel.isVisible(): panel.close_panel()
+                else:
+                    screen = QApplication.screens()[min(self.settings.screen, len(QApplication.screens())-1)]
+                    panel.set_telemetry(self.canvas.readings or {})
+                    panel.show_at(self.canvas.module_global_rect(slot), screen.availableGeometry(), self.settings.position)
             return
         enabled = any(item["enabled"] and item["id"] == "cpu-manager-viewer" and
                       item.get("holo_view") == "cpu-core-matrix"
@@ -276,6 +316,7 @@ class Bar(QWidget):
     def make_button(self, kind, tooltip, callback):
         button = NeonButton()
         button.setObjectName("nav")
+        button.setProperty("icon_kind", kind)
         button.setIcon(button_icon(kind))
         from PySide6.QtCore import QSize
         button.setIconSize(QSize(34, 34))
@@ -287,6 +328,11 @@ class Bar(QWidget):
         return button
 
     def apply_settings(self):
+        from .ui_kit import set_theme
+        set_theme(self.settings.theme)
+        from .ui_kit import stylesheet
+        self.setStyleSheet(stylesheet(STYLE))
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, self.settings.always_on_top)
         self.animation.stop()
         self.retracted = False
         screens = QApplication.screens()
@@ -302,8 +348,12 @@ class Bar(QWidget):
         self.canvas.module_opacity = self.settings.opacity
         self.canvas.update()
         for child in self.buttons.findChildren(NeonButton):
+            kind = child.property("icon_kind")
+            if kind and child is not self.turbo: child.setIcon(button_icon(kind))
             child.panel_opacity = self.settings.opacity
             child.update()
+        self.expand_button.setIcon(button_icon("expand"))
+        self.chip_logo.update()
         self.expand_button.panel_opacity = self.settings.opacity
         self.expand_button.update()
         alpha = round(255*self.settings.opacity/100)
@@ -339,7 +389,7 @@ class Bar(QWidget):
             count = self.button_layout.count() - 3  # turbo, expand, quit
             size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
-            self.turbo.setText("TURBO")
+            self.turbo.setText("CPU Mode")
             for index in range(1, 1+count):
                 self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
             self.expand_button.setFixedSize(utility_width,button_height)
@@ -357,16 +407,25 @@ class Bar(QWidget):
         self.update()
         self.arm_hide()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        from .overlay import apply_priority
+        self.overlay_status = apply_priority(self, self.settings.always_on_top)
+        self.expand_button.setToolTip("Minimiser manuellement · " + self.overlay_status)
+
     def paintEvent(self, event):
         p = QPainter(self)
         # Clear every pixel outside the modules; no shared panel or outer rectangle.
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
         p.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        from .ui_kit import pcb
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+        pcb(p, self.rect())
         p.end()
 
     def arm_hide(self):
         self.hide_timer.stop()
-        if self.settings.auto_hide and not self.busy and not self.retracted:
+        if (self.settings.retract_mode or ("auto" if self.settings.auto_hide else "manual")) == "auto" and not self.busy and not self.retracted:
             self.hide_timer.start(self.settings.hide_seconds*1000)
 
     def enterEvent(self, event):
@@ -378,11 +437,11 @@ class Bar(QWidget):
         self.arm_hide()
         super().leaveEvent(event)
 
-    def retract(self):
-        if self.busy or self.geometry().contains(QCursor.pos()) or QApplication.activePopupWidget():
+    def retract(self, manual=False):
+        if self.busy or (not manual and self.geometry().contains(QCursor.pos())) or QApplication.activePopupWidget():
             self.arm_hide()
             return
-        if not self.settings.auto_hide:
+        if not manual and (self.settings.retract_mode or ("auto" if self.settings.auto_hide else "manual")) != "auto":
             return
         rect = QRect(self.full_rect)
         if self.settings.position == "top":
@@ -433,6 +492,12 @@ class Bar(QWidget):
             self.holo.close_panel()
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(), parent=self)) == QDialog.DialogCode.Accepted:
             self.apply_settings()
+            self.show()
+            from .ui_kit import stylesheet
+            for panel in [self.holo, *self.module_holos.values()]:
+                panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,self.settings.always_on_top)
+                panel.setStyleSheet(stylesheet(panel.base_style))
+                panel.update()
             self.hotkeys.configure(self.settings.shortcuts)
 
     def plugins(self):
@@ -510,17 +575,25 @@ class Bar(QWidget):
         self.busy = True
         self.hide_timer.stop()
         menu = QMenu(self)
-        for name in ("Activer", "Désactiver", "Mode Auto", "Paramètres…"):
+        menu.setTitle("CPU Mode")
+        for key, name in self.cpu_controller.MODES.items():
             action = menu.addAction(name)
-            action.setEnabled(False)
+            action.setCheckable(True)
+            action.setChecked(self.cpu_controller.mode == key)
+            action.triggered.connect(lambda checked=False, key=key: self.select_cpu_mode(key))
         menu.addSeparator()
-        label = menu.addAction("Prototype • plugin Turbo à venir")
+        label = menu.addAction(self.cpu_controller.status)
         label.setEnabled(False)
         try:
             menu.exec(self.turbo.mapToGlobal(self.turbo.rect().bottomLeft()))
         finally:
             self.busy = False
             self.arm_hide()
+
+    def select_cpu_mode(self, mode):
+        self.cpu_controller.select(mode)
+        self.last_sensor_request = 0
+        self.turbo.setToolTip("Demande en cours de vérification par le noyau")
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
@@ -582,7 +655,7 @@ def main():
             QMessageBox.information(None, "Health & Perfs", "Une instance est déjà ouverte dans cette session.")
             return 0
         settings = Settings.load()
-        packaged = os.getenv("NOVABAR_PACKAGED") in ("deb", "flatpak")
+        packaged = os.getenv("NOVABAR_PACKAGED") in ("deb", "flatpak") or (getattr(sys,"frozen",False) and Path(sys.executable).with_name("native-install.json").is_file())
         if (args.setup or not settings.configured) and packaged:
             # A .deb/.flatpak already contains NovaBar: configure without
             # launching the separate runtime installer or duplicating binaries.

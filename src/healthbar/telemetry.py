@@ -21,10 +21,10 @@ def cpu_temperature():
         return None
     try:
         groups = psutil.sensors_temperatures(fahrenheit=False)
-        for key in ("coretemp", "k10temp", "zenpower", "cpu_thermal", "acpitz"):
-            for item in groups.get(key, []):
-                if not item.label or "package" in item.label.lower() or key != "coretemp":
-                    return _number(item.current)
+        for key in ("coretemp", "k10temp", "zenpower", "cpu_thermal"):
+            values=[_number(item.current) for item in groups.get(key, [])]
+            values=[value for value in values if value is not None and -20 <= value <= 150]
+            if values:return max(values)
     except (OSError, RuntimeError, ValueError):
         pass
     return None

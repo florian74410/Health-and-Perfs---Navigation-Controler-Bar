@@ -26,6 +26,9 @@ class Settings:
     layout_revision: int = 1
     opacity: int = 88
     auto_hide: bool = True
+    retract_mode: str = ""
+    always_on_top: bool = True
+    holo_enabled: bool = True
     hide_seconds: int = 15
     autostart: bool = False
     configured: bool = False
@@ -52,7 +55,14 @@ class Settings:
                 raise ValueError(f"Préférence invalide : {name}")
         if not isinstance(self.shell_dir, str) or len(self.shell_dir) > 1024 or "\x00" in self.shell_dir:
             raise ValueError("Dossier des scripts invalide")
-        if self.theme != "cyber-futuriste":
+        if not self.retract_mode:
+            self.retract_mode = "auto" if self.auto_hide else "manual"
+        if self.retract_mode not in ("always", "auto", "manual"):
+            raise ValueError("Mode de rétractation invalide")
+        self.auto_hide = self.retract_mode == "auto"
+        if type(self.always_on_top) is not bool or type(self.holo_enabled) is not bool:
+            raise ValueError("Option affichage invalide")
+        if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
         if self.slot_order is None:

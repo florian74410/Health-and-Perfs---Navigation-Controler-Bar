@@ -30,7 +30,8 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.settings = settings
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
-        self.setStyleSheet(STYLE)
+        from .ui_kit import stylesheet
+        self.setStyleSheet(stylesheet(STYLE))
         self.setMinimumWidth(630)
         self.resize(710, 630)
         box = QVBoxLayout(self)
@@ -69,7 +70,14 @@ class SettingsDialog(QDialog):
         form.addRow("Opacité des modules", row)
         self.auto_hide = QCheckBox("Rétracter après 15 s sans survol")
         self.auto_hide.setChecked(settings.auto_hide)
-        form.addRow("Rétractation", self.auto_hide)
+        self.retract_mode = QComboBox()
+        for label, key in (("Always visible", "always"), ("Auto retract", "auto"), ("Manual retract only", "manual")):
+            self.retract_mode.addItem(label, key)
+        self.retract_mode.setCurrentIndex(max(0, self.retract_mode.findData(settings.retract_mode or ("auto" if settings.auto_hide else "manual"))))
+        form.addRow("Rétractation", self.retract_mode)
+        self.always_on_top = QCheckBox("Always-on-top (selon le compositeur)")
+        self.always_on_top.setChecked(settings.always_on_top)
+        form.addRow("Priorité", self.always_on_top)
         self.autostart = QCheckBox("Lancer à l’ouverture de ma session")
         self.autostart.setChecked(settings.autostart)
         if __import__("os").environ.get("NOVABAR_PACKAGED") == "flatpak":
@@ -107,7 +115,14 @@ class SettingsDialog(QDialog):
         browse.clicked.connect(self.choose_script_folder)
         folder_row.addWidget(browse)
         general_form.addRow("Dossier Shell", folder_row)
-        general_form.addRow("Thème actif", QLabel("CYBER-FUTURISTE • Electric Blue"))
+        from .ui_kit import THEMES
+        self.theme = QComboBox()
+        for key, label in THEMES.items(): self.theme.addItem(label, key)
+        self.theme.setCurrentIndex(max(0, self.theme.findData(settings.theme)))
+        general_form.addRow("Thème actif", self.theme)
+        self.holo_enabled=QCheckBox("Ouvrir les panneaux par clic sur le logo du plugin")
+        self.holo_enabled.setChecked(settings.holo_enabled)
+        general_form.addRow("Holo",self.holo_enabled)
         update_button = QPushButton("Mises à jour…")
         update_button.clicked.connect(self.open_updates)
         general_form.addRow("CYBER NEXUS HUD", update_button)
@@ -145,15 +160,26 @@ class SettingsDialog(QDialog):
         ext_layout.addStretch()
         help_tab = QWidget()
         help_layout = QVBoxLayout(help_tab)
-        howto = QLabel("Bord de l'écran : révéler la barre\nCarré flèche : agrandir / réduire\nTurbo : disponible uniquement avec contrôleur certifié\nZIP : code jamais exécuté automatiquement")
+        howto = QLabel("Bord de l'écran : révéler la barre\nFlèche haute : minimiser\nLogo en haut à droite : ouvrir/fermer le Holo\nCPU Mode : selon noyau et permissions\nZIP : code jamais exécuté automatiquement")
         howto.setWordWrap(True)
         help_layout.addWidget(howto)
         help_layout.addStretch()
+        wiki = QWidget()
+        wiki_layout = QVBoxLayout(wiki)
+        description = QLabel("Documentation NovaBar : installation, configuration, capteurs et extensions. Ces liens s’ouvrent dans le navigateur ; cette base accueillera un viewer intégré.")
+        description.setWordWrap(True); wiki_layout.addWidget(description)
+        from .help_links import DOC_LINKS
+        for label, url in DOC_LINKS.items():
+            button = QPushButton(label)
+            button.clicked.connect(lambda checked=False, url=url: QDesktopServices.openUrl(QUrl(url)))
+            wiki_layout.addWidget(button)
+        wiki_layout.addStretch()
+        tabs.addTab(wiki, "Wiki")
         for name, widget in (("Générale", general), ("Affichage", display),
                               ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
             tabs.addTab(widget, name)
         box.addWidget(tabs, 1)
-        note = QLabel("Les mesures affichées sont une maquette statique.\nAucun plugin matériel ni contrôle Turbo n’est activé dans cette version.")
+        note = QLabel("Mesures locales : — indique un capteur indisponible.\nPriorité d’affichage limitée par le système et son compositeur.")
         note.setWordWrap(True)
         box.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -191,7 +217,8 @@ class SettingsDialog(QDialog):
                 try:
                     changed = replace(self.settings, position=wizard.position.currentData(),
                         thickness=wizard.thickness.value(), length_percent=wizard.length.value(),
-                        opacity=wizard.opacity.value(), auto_hide=wizard.auto_hide.isChecked(),
+                        opacity=wizard.opacity.value(), auto_hide=wizard.retract_mode.currentData()=="auto", retract_mode=wizard.retract_mode.currentData(),
+                        theme=wizard.theme.currentData(),always_on_top=wizard.always_on_top.isChecked(),holo_enabled=wizard.holo_enabled.isChecked(),
                         autostart=wizard.autostart.isChecked(), shortcuts=wizard.bindings()).validate()
                     set_enabled(changed.autostart)
                     changed.save()
@@ -223,7 +250,8 @@ class SettingsDialog(QDialog):
         from dataclasses import replace
         updated = replace(self.settings, position=("top", "bottom", "right", "left")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
-            auto_hide=self.auto_hide.isChecked(), hide_seconds=self.hide_seconds.value(),
+            auto_hide=self.retract_mode.currentData() == "auto", retract_mode=self.retract_mode.currentData(),
+            always_on_top=self.always_on_top.isChecked(), theme=self.theme.currentData(), holo_enabled=self.holo_enabled.isChecked(), hide_seconds=self.hide_seconds.value(),
             autostart=self.autostart.isChecked(), configured=True,
             length_percent=self.length_percent.value(),
             alignment=("left", "center", "right")[self.alignment.currentIndex()],

@@ -6,6 +6,8 @@ from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
+from .ui_kit import QColor
+
 BLUE = "#1860ff"
 WHITE = "#e7f3ff"
 
@@ -265,6 +267,10 @@ class HudCanvas(QWidget):
                 self.paint_horizontal(p)
             else:
                 self.paint_reordered(p)
+        p.resetTransform()
+        for kind in self.slot_order:
+            bounds = self.module_icon_rect(kind)
+            icon(p,kind,bounds.x(),bounds.y(),bounds.width())
         p.end()
 
     def paint_reordered(self, painter):
@@ -329,6 +335,12 @@ class HudCanvas(QWidget):
         offset=sum(self.WIDTHS[slot] for slot in self.slot_order[:index])
         return QRect(round(left+offset*scale),0,round(self.WIDTHS[kind]*scale),round(200*scale))
 
+    def module_icon_rect(self, kind):
+        """Top-right plugin logo: the sole Holo trigger in every layout."""
+        bounds = self.module_rect(kind)
+        size = max(10, min(22, bounds.height()-10, bounds.width()//4))
+        return QRect(bounds.right()-size-8, bounds.top()+6, size, size)
+
     def module_global_rect(self, kind):
         bounds=self.module_rect(kind)
         return QRect(self.mapToGlobal(bounds.topLeft()),bounds.size())
@@ -361,7 +373,9 @@ class HudCanvas(QWidget):
                 self.slot_order.insert(index, slot)
                 self.layout_changed.emit(self.slot_order.copy())
                 self.update()
-            elif not moved and index == self._drag_origin:
+            elif (not moved and index == self._drag_origin and
+                  self.module_icon_rect(self.slot_order[index]).contains(event.position().toPoint()) and
+                  self.module_icon_rect(self.slot_order[index]).contains(self._drag_start)):
                 self.module_activated.emit(self.slot_order[index])
         self._drag_origin = None
         self._drag_start = None
@@ -475,14 +489,13 @@ class HudCanvas(QWidget):
             p.restore()
             p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
             if height>=50:
-                icon(p,kind,x+11,y+7,17)
-                fitted_text(p,x+35,y+20,self.labels.get(kind,label),width-47,10)
+                fitted_text(p,x+12,y+20,self.labels.get(kind,label),width-48,10)
                 baseline=y+max(34,min(height*.6,80))
                 fitted_text(p,x+12,baseline,value,width-24,18 if height<90 else 25)
                 if height>=62:
                     fitted_text(p,x+12,y+height-12,detail,width-24,10,"#abdaed",False)
             else:
-                fitted_text(p,x+10,y+12,label,width*.31,8)
+                fitted_text(p,x+10,y+12,label,max(0,width*.31-14),8)
                 fitted_text(p,x+width*.36,y+height-8,value,width*.64-10,12)
             p.restore()
             if key:
@@ -516,7 +529,6 @@ class HudCanvas(QWidget):
                 y=index*cell
                 path=QPainterPath();path.addRoundedRect(QRectF(3,y+3,self.width()-6,cell-6),6,6)
                 outline(p,path,module_background(self.module_opacity))
-                icon(p,kind,(self.width()-23)/2,y+9,23)
                 text(p,8,y+min(cell-10,49),{"storage":"SSD","network":"NET"}.get(kind,kind.upper()),10)
             return
         scale = self.width()/240
@@ -539,7 +551,6 @@ class HudCanvas(QWidget):
             path.closeSubpath()
             outline(p, path, module_background(self.module_opacity))
             icon_size = 25 if cell < 95 else 34
-            icon(p, kind, 20, y+13, icon_size)
             text(p, 62, y+33, self.labels.get(kind, title)[:13], 18)
             text(p, 20, y+cell-29, value, 17)
             meter(p, 20, y+cell-22, 195, .44)

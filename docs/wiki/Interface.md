@@ -39,3 +39,14 @@ Un menu contextuel et l'icône système proposent les actions importantes. Les m
 ---
 
 <sub>NovaBar • CYBER NEXUS HUD • Documentation maintenue dans le dépôt. Les illustrations utilisent des valeurs d'exemple ; les sondes réelles dépendent du système et du matériel.</sub>
+
+## NovaBar 0.4 · Holo et thèmes
+
+Trois thèmes partagent le même kit UI : Blue Neon, Green Matrix, Red Blood.
+Les traces PCB parcourent toute la fenêtre et la puce NovaBar occupe l’espace des actions.
+Chaque **logo en haut à droite du plugin** est le seul déclencheur du Holo.
+Un clic ouvre les détails du plugin activé, un second clic ferme. Aucun survol ni clic sur les valeurs ne l’ouvre.
+CPU, GPU, RAM, SSD, FANS et NETWORK ont un panneau ; les données manquantes restent « — ».
+La flèche vers le haut minimise manuellement. Le bord de l’écran et la zone de notification révèlent la barre.
+Paramètres propose Always visible, Auto retract et Manual retract only, ainsi qu’un onglet Wiki.
+Always visible désactive le repli temporisé ; la flèche reste une commande manuelle explicite.

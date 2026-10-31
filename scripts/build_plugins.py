@@ -30,19 +30,19 @@ def build(dest=Path("dist/plugins")):
     dest.mkdir(parents=True, exist_ok=True)
     for ident, name, slot, description, sensors in PACKS:
         is_cpu_holo = ident == "cpu-manager-viewer"
-        version = "2.0.0" if is_cpu_holo else "1.0.0"
+        version = "2.1.0" if is_cpu_holo else "1.1.0"
         manifest = {
             "api_version": 2, "id": ident, "name": name,
             "version": version, "slot": slot, "kind": "builtin-sensor",
             "description": description, "sensor_keys": sensors,
-            "min_ram_mb": 32, "requires": ["healthbar>=0.3.2" if is_cpu_holo else "healthbar>=0.3.1", "Python>=3.10",
+            "min_ram_mb": 32, "requires": ["healthbar>=0.5.0", "Python>=3.10",
                                           "PySide6-Essentials>=6.8", "psutil>=5.9"],
             "permissions": ["read_sensors"], "optional_permissions": []
         }
         if is_cpu_holo:
             manifest["holo_view"] = "cpu-core-matrix"
         dependencies = (
-            "# DEPENDENCY.md\n\n- Python >= 3.10\n- NovaBar >= 0.3.2 (CPU Holo) / 0.3.1 (autres)\n"
+            "# DEPENDENCY.md\n\n- Python >= 3.10\n- NovaBar >= 0.5.0\n"
             "- PySide6-Essentials >= 6.8\n- psutil >= 5.9\n"
             "- Optional: nvidia-smi (NVIDIA GPU), lm-sensors/sysfs (Linux).\n"
             "- No administrative access or automatic dependency installation.\n"
@@ -60,7 +60,7 @@ def build(dest=Path("dist/plugins")):
             "VERSION.md": "# Version\n\n" + version + "\n",
             "dependencies.json": json.dumps({"requires": manifest["requires"]}, indent=2),
             "module.json": json.dumps({"slot": slot, "sensors": sensors,
-                                       "icon": "Assets/icon.svg"}, indent=2),
+                                       "icon": "Assets/icon.svg", "ui_kit": "novabar-holo-v1", "holo_trigger": "top-right-icon-click"}, indent=2),
             "Assets/icon.svg": icon_svg,
             "Source Code/adapter.py": (
                 '"""Data-only built-in telemetry declaration (not executed)."""\n'
@@ -79,11 +79,11 @@ def build(dest=Path("dist/plugins")):
                 "Columns: Core/thread, frequency GHz, temperature °C, power W.\n"
                 "Final row: PACKAGE TOTAL (average clock, package temperature, measured package watts).\n"
                 "No synthetic TDP or core power values. Missing sensors shown as em dash.\n"
-            ) if is_cpu_holo else "# Hologram not yet implemented.\n",
+            ) if is_cpu_holo else "# Sensor Holo\n\nNative host panel. Click the top-right plugin logo; no hover activation.\n",
             "Hologram/holo.json": json.dumps({
-                "view": "cpu-core-matrix" if is_cpu_holo else None,
+                "view": "cpu-core-matrix" if is_cpu_holo else "sensor-details",
                 "open": "click", "pin": True, "close": ["escape", "button", "outside"],
-                "placement": "auto", "accent": "#35d9ff",
+                "placement": "auto", "accent": "inherit-theme",
                 "columns": ["core", "frequency_ghz", "temperature_c", "power_w"]
             }, indent=2),
             "install.sh": (

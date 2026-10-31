@@ -6,6 +6,8 @@ from PySide6.QtGui import QColor, QPainter, QPen, QLinearGradient, QPainterPath,
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
                                QGridLayout, QPushButton, QGraphicsOpacityEffect, QSizePolicy)
 
+from .ui_kit import QColor
+
 BLUE = "#007CFF"
 CYAN = "#5EEBFF"
 INK = "#030B1D"
@@ -42,7 +44,8 @@ class CpuHoloPanel(QWidget):
         self._opacity_anim = QPropertyAnimation(self._fade, b"opacity", self)
         self._opacity_anim.setDuration(210)
         self._opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.setStyleSheet("""
+        from .ui_kit import stylesheet
+        self.base_style = """
             QLabel {color: #DBEEFF; background: transparent; border: 0;}
             QLabel#holoTitle { color: #91EEFF; font-size: 19px; font-weight: 900; letter-spacing: 2px; }
             QLabel#holoSubtitle {color:#6CBFD9; font-size: 11px;}
@@ -55,7 +58,8 @@ class CpuHoloPanel(QWidget):
             QScrollArea {background: transparent; border: 0;}
             QScrollBar:vertical {width:6px;background:#031229;}
             QScrollBar::handle:vertical {background:#129BD8;border-radius:3px;}
-        """)
+        """
+        self.setStyleSheet(stylesheet(self.base_style))
         root = QVBoxLayout(self)
         root.setContentsMargins(27, 24, 27, 24)
         root.setSpacing(11)
@@ -250,3 +254,33 @@ class CpuHoloPanel(QWidget):
         painter.setPen(QPen(QColor(170,255,255,225),2))
         painter.drawLine(QPoint(int(pos-16),int(track.top())),QPoint(int(pos+16),int(track.top())))
         painter.end()
+
+
+class SensorHoloPanel(CpuHoloPanel):
+    """Host-rendered detail view for sensor plugins; no plugin code execution."""
+    FIELDS = {
+        "gpu": (("gpu_percent", "%"), ("gpu_temperature_c", "°C"), ("gpu_clock_mhz", "MHz"), ("vram_used_gb", "GB"), ("gpu_power_w", "W")),
+        "ram": (("ram_percent", "%"), ("ram_used_gb", "GB"), ("ram_available_gb", "GB")),
+        "storage": (("disk_used_gb", "GB"), ("disk_free_gb", "GB"), ("disk_read_mbs", "MB/s"), ("disk_write_mbs", "MB/s")),
+        "network": (("net_down_mbs", "MB/s"), ("net_up_mbs", "MB/s")),
+        "fans": (),
+    }
+    def __init__(self, slot, parent=None):
+        self.slot = slot; super().__init__(parent)
+        self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
+        self.cpu_name.setText("Capteurs locaux · " + slot.upper())
+        self.topology.hide(); self.scroll.hide()
+        self.note.setText("— = capteur indisponible · données système locales")
+        self.setWindowTitle("NovaBar · " + slot.upper())
+    def set_telemetry(self, data):
+        labels = {"gpu_percent":"Charge GPU", "gpu_temperature_c":"Température GPU",
+                  "gpu_clock_mhz":"Fréquence GPU", "vram_used_gb":"VRAM utilisée", "gpu_power_w":"Puissance GPU",
+                  "ram_percent":"Charge mémoire", "ram_used_gb":"RAM utilisée", "ram_available_gb":"RAM disponible",
+                  "disk_used_gb":"Stockage utilisé", "disk_free_gb":"Stockage libre", "disk_read_mbs":"Lecture disque",
+                  "disk_write_mbs":"Écriture disque", "net_down_mbs":"Réception réseau", "net_up_mbs":"Envoi réseau"}
+        rows = [labels[key] + " : " + readout(data.get(key), unit)
+                for key, unit in self.FIELDS[self.slot]]
+        if self.slot == "fans":
+            rows = [str(f.get("name", "Fan")) + " : " + readout(f.get("rpm"), "RPM", 0)
+                    for f in data.get("fans", [])] or ["Ventilateurs : — (capteur indisponible)"]
+        self.summary.setText("\n\n".join(rows))

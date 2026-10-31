@@ -5,8 +5,15 @@ import sys
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
+from build_plugins import build as build_plugins
+build_plugins(root/"src/healthbar/assets/plugins")
 common=[sys.executable,"-m","PyInstaller","--noconfirm","--clean","--windowed",
         "--paths",str(root/"src"),"--add-data",str(root/"src/healthbar/assets")+os.pathsep+"healthbar/assets"]
+# Some managed Python distributions load a companion CA policy file from ssl.py.
+# Preserve that trust policy when freezing; normal CPython needs no extra file.
+import ssl
+ssl_policy=Path(ssl.__file__).with_name("codex-rejected-cas.pem")
+if ssl_policy.is_file():common += ["--add-data",str(ssl_policy)+os.pathsep+"."]
 subprocess.run(common+["--name","HealthPerfsBar","--osx-bundle-identifier","com.healthperfs.bar",
     str(root/"scripts/entrypoint.py")],cwd=root,check=True)
 subprocess.run([sys.executable,str(root/"scripts/package_runtime.py")],cwd=root,check=True)
@@ -17,3 +24,8 @@ payload=root/("NovaBar-runtime-"+platform_key()+".zip")
 subprocess.run(common+["--name","CyberNexusInstaller","--osx-bundle-identifier","com.cybernexushud.installer",
     "--add-data",str(payload)+os.pathsep+"payload",
     str(root/"scripts/installer_entrypoint.py")],cwd=root,check=True)
+
+# The downloader is a separate small bootstrap entry point; offline installers
+# remain independent so they cannot recursively download themselves.
+name="NovaBarDownloader-"+platform_key()
+subprocess.run(common+["--onefile","--name",name,str(root/"scripts/bootstrap_entrypoint.py")],cwd=root,check=True)

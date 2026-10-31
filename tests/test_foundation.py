@@ -249,8 +249,8 @@ class ShellTests(unittest.TestCase):
             inside=canvas.mapTo(self.bar,first.topRight()+QPoint(-16,canvas.height()//2))
             blank=self.bar.actions.mapTo(self.bar,QPoint(10,self.bar.height()-10))
             button_fill = self.bar.turbo.mapTo(self.bar, QPoint(8, 40))
-            self.assertEqual(image.pixelColor(0, 0).alpha(), 0)
-            self.assertEqual(image.pixelColor(blank).alpha(), 0)
+            self.assertLess(image.pixelColor(0, 0).alpha(), 64)  # PCB traces now span the window
+            # The action area now contains PCB routes and the chip identity.
             self.assertAlmostEqual(image.pixelColor(inside).alpha(), round(255*opacity/100), delta=1)
             self.assertAlmostEqual(image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
             # Text remains visible even when the module background is completely clear.

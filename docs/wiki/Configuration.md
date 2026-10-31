@@ -53,3 +53,7 @@ L'identité et les préférences sont stockées localement. Le catalogue de plug
 ---
 
 <sub>⚡ NovaBar • CYBER NEXUS HUD · Les illustrations sont documentaires, les fonctions non livrées sont signalées.</sub>
+
+## Préférences Next
+
+`retract_mode` : always / auto / manual ; `always_on_top` et `holo_enabled` : booléens. `theme` : blue-neon / green-matrix / red-blood ; cyber-futuriste reste accepté. Les autres préférences et profils sont conservés.
