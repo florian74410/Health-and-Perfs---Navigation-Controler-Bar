@@ -316,6 +316,7 @@ class SensorHoloPanel(CpuHoloPanel):
         "storage": (("disk_used_gb", "GB"), ("disk_free_gb", "GB"), ("disk_read_mbs", "MB/s"), ("disk_write_mbs", "MB/s")),
         "network": (("net_down_mbs", "MB/s"), ("net_up_mbs", "MB/s")),
         "fans": (),
+        "power": (),
     }
     def __init__(self, slot, parent=None):
         self.slot = slot; super().__init__(parent)
@@ -367,6 +368,42 @@ class SensorHoloPanel(CpuHoloPanel):
         if self.slot == "fans":
             rows = [(str(f.get("name", "Fan")), readout(f.get("rpm"), "RPM", 0))
                     for f in data.get("fans", [])] or [("Ventilateurs", "—")]
+        if self.slot == "power":
+            rows = [
+                ("⚡  VUE D'ENSEMBLE", ""),
+                ("Puissance PC à la prise", readout(data.get("power_total_w"), "W")),
+                ("Tension secteur", readout(data.get("power_mains_voltage_v"), "V")),
+                ("Batterie (décharge)", readout(data.get("battery_discharge_w"), "W")),
+                ("◈  CPU", ""),
+                ("Puissance package", readout(data.get("cpu_power_w"), "W")),
+                ("Tension rail CPU", readout(data.get("cpu_package_voltage_v"), "V")),
+            ]
+            cores = data.get("cpu_cores", [])
+            if cores:
+                for i, core in enumerate(cores[:64]):
+                    rows.extend([
+                        (f"  Cœur {core.get('core', i)} · W", readout(core.get("power_w"), "W")),
+                        (f"  Cœur {core.get('core', i)} · V", readout(core.get("voltage_v"), "V")),
+                    ])
+            else:
+                rows += [("  Watts / cœur", "—"), ("  Volts / cœur", "—")]
+            rows.extend([
+                ("◈  GPU / VRAM", ""),
+                ("Puissance GPU (carte)", readout(data.get("gpu_power_w"), "W")),
+                ("Puissance cœur GPU", readout(data.get("gpu_core_power_w"), "W")),
+                ("Tension cœur GPU", readout(data.get("gpu_core_voltage_v"), "V")),
+                ("Puissance VRAM", readout(data.get("gpu_vram_power_w"), "W")),
+                ("Tension VRAM", readout(data.get("gpu_vram_voltage_v"), "V")),
+                ("◈  RAM / RAILS", ""),
+            ])
+            rails = data.get("ram_voltage_rails") or []
+            rows += [(str(rail.get("name", "Rail RAM")), readout(rail.get("voltage_v"), "V", 3))
+                     for rail in rails[:16]] or [("Tension mémoire", "—")]
+            self.cpu_name.setText("POWER • SONDES PHYSIQUES UNIQUEMENT")
+            self.summary.setText("PUISSANCE + TENSIONS • W / V")
+            self.note.setText("— = non mesurable sans sonde ou wattmètre externe · "
+                              "W secteur ≠ puissance package/batterie")
+            self.resize(450, 390)
         while self.grid.count():
             widget = self.grid.takeAt(0).widget()
             if widget:
@@ -374,7 +411,9 @@ class SensorHoloPanel(CpuHoloPanel):
         for index, (label, value) in enumerate(rows):
             self._add_cell(label, index, 0, True)
             self._add_cell(value, index, 1)
-        self.summary.setText("MESURES EN DIRECT · " + self.slot.upper())
-        self.note.setText("— = capteur indisponible · données système locales" +
+        if self.slot != "power":
+            self.summary.setText("MESURES EN DIRECT · " + self.slot.upper())
+        if self.slot != "power":
+            self.note.setText("— = capteur indisponible · données système locales" +
                           (" · Ping ICMP toutes les 10 s ; absence de réponse ≠ coupure Internet" if self.slot == "network" else
                            " · I/O : tous disques ; capacité : volume système" if self.slot == "storage" else ""))
