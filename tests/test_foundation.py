@@ -273,8 +273,15 @@ class ShellTests(unittest.TestCase):
                 self.assertTrue(self.bar.retracted)
                 self.bar.animation.setCurrentTime(260)
                 hidden = self.bar.geometry()
-                self.assertEqual(hidden.width(), full.width())
-                self.assertEqual(hidden.height(), full.height())
+                if position in ("top", "bottom"):
+                    self.assertEqual(hidden.width(), full.width())
+                    self.assertLess(hidden.height(), full.height())
+                    self.assertEqual(hidden.top() if position == "top" else hidden.bottom(),
+                                     full.top() if position == "top" else full.bottom())
+                else:
+                    self.assertEqual(hidden.height(), full.height())
+                    self.assertLess(hidden.width(), full.width())
+                    self.assertEqual(hidden.right(), full.right())
                 self.bar.reveal()
                 self.bar.animation.setCurrentTime(260)
                 self.assertEqual(self.bar.geometry(), full)
