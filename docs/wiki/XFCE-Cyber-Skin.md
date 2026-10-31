@@ -42,3 +42,7 @@ Désactiver « Habillage CYBER NEXUS » depuis la zone de notification ou les pr
 - Test des trois couleurs, de l'épaisseur 100–200 %, et du réglage d'intensité sur Linux Mint XFCE X11.
 - Test d'une session avec deux panneaux pour vérifier que le sélecteur GTK global reste acceptable.
 - Après désactivation, vérifier les styles GTK préexistants et le retour de l'ancien comportement du panneau.
+
+## Correctif 0.6.9
+
+La nouvelle version examine l'état réel des fenêtres de NovaBar sur les bureaux virtuels XFCE : si XFWM4 retire le statut « tous les bureaux », un rappel EWMH le rétablit. Le module de style du panneau inférieur propose désormais une activation explicite et un diagnostic accessible via l'icône NovaBar dans la zone de notification. L'apparition des décors PCB nécessite une session XFCE X11 et l'activation de cette option. Voir [Update 0.6.9](../UPDATE_V069.md).
