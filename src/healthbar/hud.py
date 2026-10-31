@@ -1,7 +1,7 @@
 """Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
 import time
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer
+from PySide6.QtCore import Qt, QPointF, QRectF, QRect, Signal, QTimer
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush
 from PySide6.QtWidgets import QWidget
 
@@ -163,6 +163,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
 
 class HudCanvas(QWidget):
     layout_changed = Signal(list)
+    module_activated = Signal(str)
     ORIGINAL = ["cpu", "gpu", "ram", "storage", "fans", "network"]
     WIDTHS = {"cpu":380, "gpu":350, "ram":210, "storage":235, "fans":240, "network":165}
     def __init__(self, registry, vertical=False, parent=None):
@@ -174,6 +175,8 @@ class HudCanvas(QWidget):
         self.readings = None
         self.slot_order = self.ORIGINAL.copy()
         self._drag_origin = None
+        self._drag_start = None
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.visual_timer=QTimer(self)
         self.visual_timer.setInterval(50)
         self.visual_timer.timeout.connect(self.animate_neon)
@@ -281,20 +284,43 @@ class HudCanvas(QWidget):
                 return i
         return 5
 
+    def module_global_rect(self, kind):
+        """Actual interactive region in screen coordinates, even after reordering."""
+        index = self.slot_order.index(kind)
+        if self.vertical:
+            bounds = QRect(0, round(index*self.height()/6), self.width(),
+                           round(self.height()/6))
+        elif self.width() < 950:
+            columns = 2 if self.width() < 520 else 3
+            rows = (6+columns-1)//columns
+            cw, ch = self.width()/columns, self.height()/rows
+            bounds = QRect(round((index%columns)*cw), round((index//columns)*ch),
+                           round(cw), round(ch))
+        else:
+            offset = sum(self.WIDTHS[part] for part in self.slot_order[:index])
+            bounds = QRect(round(offset*self.width()/1580), 0,
+                           round(self.WIDTHS[kind]*self.width()/1580), self.height())
+        return QRect(self.mapToGlobal(bounds.topLeft()), bounds.size())
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_origin = self.module_at(event.position())
+            self._drag_start = event.position().toPoint()
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self._drag_origin is not None:
+        if self._drag_origin is not None and self._drag_start is not None:
             index = self.module_at(event.position())
-            if index != self._drag_origin:
+            moved = (event.position().toPoint() - self._drag_start).manhattanLength() > 10
+            if moved and index != self._drag_origin:
                 slot = self.slot_order.pop(self._drag_origin)
                 self.slot_order.insert(index, slot)
                 self.layout_changed.emit(self.slot_order.copy())
                 self.update()
+            elif not moved and index == self._drag_origin:
+                self.module_activated.emit(self.slot_order[index])
         self._drag_origin = None
+        self._drag_start = None
         super().mouseReleaseEvent(event)
 
     def paint_horizontal(self, p):
