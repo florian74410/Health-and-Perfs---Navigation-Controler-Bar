@@ -23,10 +23,23 @@ def run(start=None):
         def __init__(self):
             super().__init__()
             self.setWindowTitle("NOVA Explorer")
+            self.setWindowFlags(C.Qt.Window | C.Qt.FramelessWindowHint)
+            self.setAttribute(C.Qt.WA_TranslucentBackground, True)
+            self.drag_start = None
+            from PySide6.QtSvg import QSvgRenderer
+            self.pcb = G.QPixmap(640, 360)
+            self.pcb.fill(C.Qt.transparent)
+            asset = Path(__file__).resolve().parent.parent / "Assets/Overlays/nova_pcb_overlay.svg"
+            if asset.is_file():
+                svg = QSvgRenderer(str(asset))
+                if svg.isValid():
+                    painter = G.QPainter(self.pcb)
+                    svg.render(painter)
+                    painter.end()
             self.resize(1180, 740)
             self.setMinimumSize(810, 510)
             self.setStyleSheet("""
-                QMainWindow, QWidget#root {background:#071723;color:#F2F8FF;}
+                QMainWindow, QWidget#root {background:transparent;color:#F2F8FF;}
                 QLabel {color:#E5F8FF;background:transparent;}
                 QFrame#sidebar {background:#091D2B;border:1px solid #17637A;}
                 QFrame#toolbar {background:#0C2533;border:1px solid #1A6377;}
@@ -57,7 +70,7 @@ def run(start=None):
 
             root = W.QWidget(objectName="root")
             outer = W.QVBoxLayout(root)
-            outer.setContentsMargins(12, 10, 12, 5)
+            outer.setContentsMargins(22, 18, 22, 18)
             outer.setSpacing(9)
             header = W.QHBoxLayout()
             mark = W.QLabel("◈  NOVA Explorer")
@@ -65,6 +78,18 @@ def run(start=None):
             header.addWidget(mark)
             header.addStretch()
             header.addWidget(W.QLabel("NOVA NEXUS HD  /  FILE SYSTEM"))
+            mini = W.QPushButton("−")
+            close = W.QPushButton("×")
+            for btn in (mini, close):
+                btn.setFixedSize(26, 24)
+                btn.setStyleSheet("QPushButton{background:#253641;color:#FF526A;border:1px solid #00CBEF;padding:0;font:bold 18px Arial;} QPushButton:hover{background:#A92E43;color:white;}")
+            mini.clicked.connect(self.showMinimized)
+            close.clicked.connect(self.close)
+            header.addWidget(mini)
+            header.addWidget(close)
+            mark.mousePressEvent = self.drag_press
+            mark.mouseMoveEvent = self.drag_move
+            mark.mouseReleaseEvent = self.drag_release
             outer.addLayout(header)
 
             navigation = W.QHBoxLayout()
@@ -136,6 +161,7 @@ def run(start=None):
             self.tiles.setResizeMode(W.QListView.Adjust)
             self.tiles.setMovement(W.QListView.Static)
             self.tiles.setIconSize(C.QSize(68,68))
+            self.tiles.setStyleSheet("QListView{background:rgba(5,25,38,229);border:1px solid #1A687F;} QListView::item:hover{background:rgba(0,190,230,55);} QListView::item:selected{background:rgba(0,160,210,95);border:1px solid #00E4FF;}")
             self.tiles.setGridSize(C.QSize(120,112))
             self.tiles.setWordWrap(True)
             self.tiles.setSpacing(8)
@@ -161,6 +187,43 @@ def run(start=None):
             self.fade = C.QPropertyAnimation(self.effect,b"opacity",self)
             self.fade.setDuration(190)
             self.navigate(Path(start).expanduser() if start else Path.home())
+
+        def drag_press(self,event):
+            if event.button()==C.Qt.LeftButton:
+                self.drag_start=event.globalPosition().toPoint()-self.frameGeometry().topLeft()
+                event.accept()
+        def drag_move(self,event):
+            if self.drag_start is not None and event.buttons() & C.Qt.LeftButton:
+                self.move(event.globalPosition().toPoint()-self.drag_start)
+                event.accept()
+        def drag_release(self,event):
+            self.drag_start=None
+            event.accept()
+        def paintEvent(self,event):
+            p=G.QPainter(self)
+            p.setRenderHint(G.QPainter.Antialiasing)
+            w,h=self.width(),self.height()
+            pts=[(26,6),(w-26,6),(w-6,26),(w-6,h-26),(w-26,h-6),(26,h-6),(6,h-26),(6,26)]
+            outline=G.QPainterPath()
+            outline.addPolygon(G.QPolygonF([C.QPointF(*a) for a in pts]))
+            outline.closeSubpath()
+            p.setClipPath(outline)
+            bg=G.QLinearGradient(0,0,w,h)
+            bg.setColorAt(0,G.QColor(14,42,57,240))
+            bg.setColorAt(.5,G.QColor(5,21,34,244))
+            bg.setColorAt(1,G.QColor(10,37,52,240))
+            p.fillPath(outline,bg)
+            p.setOpacity(.17)
+            p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
+            p.setOpacity(1)
+            p.setClipping(False)
+            for width,alpha in ((14,20),(7,60),(2.5,215)):
+                glow=G.QColor("#00CBF3")
+                glow.setAlpha(alpha)
+                p.setPen(G.QPen(glow,width))
+                p.setBrush(C.Qt.NoBrush)
+                p.drawPath(outline)
+            p.end()
 
         def navigate(self, path, record=True):
             p = Path(path).expanduser()
