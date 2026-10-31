@@ -17,35 +17,39 @@ def _qt():
 
 
 def make_dialog(title: str, message: str, theme=None, *, dangerous=False):
-    """Return a modal NOVA QDialog. Caller executes it and checks Accepted."""
+    """Modal dialog using exactly the same glass/PCB surface as notifications."""
     QtCore, QtGui, QtWidgets = _qt()
     t = validate_theme(theme if theme is not None else get_default_theme())
-    dialog = QtWidgets.QDialog()
-    dialog.setWindowTitle(title)
-    dialog.setMinimumSize(430, 210)
-    dialog.setObjectName("novaDialog")
-    dialog.setStyleSheet(qt_stylesheet(t))
-    layout = QtWidgets.QVBoxLayout(dialog)
-    layout.setContentsMargins(26, 20, 26, 20)
-    layout.setSpacing(14)
-    head = QtWidgets.QLabel("NOVA / " + ("SECURE ACTION" if dangerous else "SYSTEM PROMPT"))
-    head.setStyleSheet("font-weight: 700; color: " + t["colors"]["primary"] + ";")
-    text = QtWidgets.QLabel(message)
-    text.setWordWrap(True)
-    text.setTextFormat(QtCore.Qt.PlainText)
-    buttons = QtWidgets.QDialogButtonBox(
-        QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-    )
-    if dangerous:
-        ok = buttons.button(QtWidgets.QDialogButtonBox.Ok)
-        ok.setText("CONFIRMER")
-        ok.setStyleSheet("border: 1px solid " + t["colors"]["danger"] + ";")
-    buttons.accepted.connect(dialog.accept)
-    buttons.rejected.connect(dialog.reject)
-    layout.addWidget(head)
-    layout.addWidget(text, 1)
-    layout.addWidget(buttons)
-    return dialog
+
+    class NovaGlassDialog(QtWidgets.QDialog):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle(title)
+            self.setWindowFlags(QtCore.Qt.Dialog | QtCore.Qt.FramelessWindowHint)
+            self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+            self.setMinimumWidth(500)
+            self.setModal(True)
+            layout = QtWidgets.QVBoxLayout(self)
+            layout.setContentsMargins(0, 0, 0, 0)
+            actions = [
+                ("ANNULER", self.reject),
+                ("CONFIRMER" if dangerous else "VALIDER", self.accept),
+            ]
+            self.panel = make_notification(
+                "NOVA / " + ("SECURE ACTION" if dangerous else "SYSTEM PROMPT"),
+                message, t, actions=actions,
+            )
+            self.panel.setMinimumHeight(205)
+            self.panel.setFixedWidth(500)
+            layout.addWidget(self.panel)
+
+        def keyPressEvent(self, event):
+            if event.key() == QtCore.Qt.Key_Escape:
+                self.reject()
+            else:
+                super().keyPressEvent(event)
+
+    return NovaGlassDialog()
 
 
 def make_notification(title: str, message: str, theme=None, *, actions=None):
@@ -69,6 +73,7 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             self.setMinimumSize(400, 170 if actions else 143)
             self.setFixedWidth(460)
             self._phase = 0
+            self._pulse_speed = max(1, round(190 / max(60, t["motion"]["duration_ms"])))
             self._motion = bool(t["motion"]["enabled"] and not t["motion"]["reduce_motion"])
             self._timer = QtCore.QTimer(self)
             self._timer.setInterval(40)
@@ -112,7 +117,7 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
                 self._timer.start()
 
         def _animate(self):
-            self._phase = (self._phase + 1) % 150
+            self._phase = (self._phase + self._pulse_speed) % 150
             self.update()
 
         def hideEvent(self, event):
@@ -149,14 +154,14 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             painter.fillPath(path, bg)
             reflection = QtGui.QLinearGradient(w * .44, 0, w * .75, h)
             reflection.setColorAt(0, QtGui.QColor(237, 252, 255, 0))
-            reflection.setColorAt(.44, QtGui.QColor(237, 252, 255, 35))
-            reflection.setColorAt(.63, QtGui.QColor(237, 252, 255, 5))
+            reflection.setColorAt(.44, QtGui.QColor(237, 252, 255, 76))
+            reflection.setColorAt(.63, QtGui.QColor(237, 252, 255, 12))
             reflection.setColorAt(1, QtGui.QColor(237, 252, 255, 0))
             painter.fillPath(path, reflection)
             painter.setClipping(False)
             # Layered rim illumination: simulated neon bloom with several soft strokes.
             glow_power = float(t["effects"]["glow"])
-            for width, alpha in ((12, 12), (8, 23), (5, 42), (2.3, 142)):
+            for width, alpha in ((16, 19), (11, 34), (7, 63), (3.0, 190)):
                 halo = QtGui.QColor(c["primary"])
                 halo.setAlpha(min(255, int(alpha * glow_power)))
                 painter.setPen(QtGui.QPen(halo, width, QtCore.Qt.SolidLine,
@@ -180,10 +185,33 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
                 painter.setPen(QtGui.QPen(QtGui.QColor(0, 203, 243, alpha), 1))
                 painter.drawLine(offset + cut, offset, w - offset - cut, offset)
                 painter.drawLine(offset + cut, h - offset, w - offset - cut, h - offset)
-            # Rectilinear PCB zig-zag traces stay near the frame.
-            stroke([(27, 56), (49, 56), (64, 41), (125, 41), (136, 30)], dim, 1.4)
-            stroke([(w-27, h-57), (w-51, h-57),
-                    (w-65, h-43), (w-132, h-43), (w-145, h-30)], dim, 1.4)
+            # Four layered PCB tracks with animated energy nodes riding the routing.
+            routes = [
+                [(27, 56), (49, 56), (64, 41), (125, 41), (136, 30)],
+                [(27, 70), (53, 70), (83, 49), (170, 49), (183, 35)],
+                [(w-27, h-57), (w-51, h-57), (w-65, h-43), (w-132, h-43), (w-145, h-30)],
+                [(w-27, h-70), (w-58, h-70), (w-85, h-51), (w-171, h-51), (w-185, h-37)],
+                [(55, h-29), (128, h-29), (146, h-17), (w*.40, h-17)],
+                [(w-55, 29), (w-128, 29), (w-146, 17), (w*.60, 17)],
+            ]
+            for n, points in enumerate(routes):
+                trace = QtGui.QPainterPath(QtCore.QPointF(*points[0]))
+                for point in points[1:]:
+                    trace.lineTo(QtCore.QPointF(*point))
+                base = QtGui.QColor(accent)
+                base.setAlpha(int(90 + 110 * t["effects"]["pcb_visibility"]))
+                painter.setPen(QtGui.QPen(base, 1.7))
+                painter.drawPath(trace)
+                if self._motion:
+                    p = (self._phase / 150 + n * .19) % 1.
+                    for width, alpha in ((10, 20), (6, 58), (3, 145)):
+                        color = QtGui.QColor(accent)
+                        color.setAlpha(int(alpha * glow_power))
+                        painter.setBrush(color)
+                        painter.setPen(QtCore.Qt.NoPen)
+                        painter.drawEllipse(trace.pointAtPercent(p), width/2, width/2)
+                    painter.setBrush(QtGui.QColor(180, 255, 255))
+                    painter.drawEllipse(trace.pointAtPercent(p), 1.7, 1.7)
             painter.setPen(QtCore.Qt.NoPen)
             painter.setBrush(accent)
             for x, y in ((27, 56), (w-27, h-57)):
@@ -204,7 +232,7 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
                 painter.setClipPath(path)
                 sweep = QtGui.QLinearGradient(x - 75, 0, x + 75, 0)
                 sweep.setColorAt(0, QtGui.QColor(255, 255, 255, 0))
-                sweep.setColorAt(.5, QtGui.QColor(180, 244, 255, 22))
+                sweep.setColorAt(.5, QtGui.QColor(180, 244, 255, 52))
                 sweep.setColorAt(1, QtGui.QColor(255, 255, 255, 0))
                 painter.fillRect(QtCore.QRectF(x-75, 0, 150, h), sweep)
                 painter.setClipping(False)
