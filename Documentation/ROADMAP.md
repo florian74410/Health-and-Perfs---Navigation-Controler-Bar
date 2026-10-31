@@ -78,3 +78,17 @@ OS cibles : Mint XFCE / Ubuntu Linux x64, Windows 10/11, macOS 12+ Intel/Apple S
 
 ## Historique
 - 2026-10-31 : spécification CPU Holographic Details, effets néon et évolution du plugin API, d'après la maquette de référence.
+
+
+## Plugin Manager 2-en-1 — NovaBar v0.3.3
+
+La mise à jour d'un plugin compatible est indépendante du lanceur installé. Le gestionnaire compact comporte deux onglets :
+
+- **Plugins** : liste scrollable, version installée et dernière version disponible dans des colonnes adjacentes ; bouton d'installation ou de mise à jour sur sélection, activer/désactiver, import ZIP local et restauration.
+- **Sources** : dépôts GitHub HTTPS configurables (URL, branche, dossier `Plugins`, actif/inactif) ; ajouter, modifier, supprimer, resynchroniser.
+
+Le catalogue compare les noms des ZIP versionnés `<id>-vX.Y.Z.zip`, puis l'installation télécharge le paquet, vérifie le SHA du blob GitHub et le manifeste, présente dépendances/permissions et demande confirmation. Aucun script tiers `install.sh` n'est lancé automatiquement.
+
+Les sources sont stockées hors du répertoire de l'exécutable dans `Documents/NovaBar/App/Settings/plugin_sources.json` et les extensions dans `Documents/NovaBar/Plugins/`. L'installateur initialise la source officielle lors de la première installation, **sans écraser les autres sources utilisateur**. Une mise à jour du moteur reste nécessaire uniquement lorsque le plugin exige une API non prise en charge. Le support de GitLab / dépôts Git privés est prévu ultérieurement.
+
+**État** : sources et interface implémentées sur la branche `feature/cyber-nexus-installer-v03` ; compilation et tests de la v0.3.3 à valider avant distribution. Les installateurs v0.3.1 déjà présents dans `main/Executable/` ne fournissent pas ces fonctions.
