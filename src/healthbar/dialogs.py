@@ -232,18 +232,35 @@ class SettingsDialog(QDialog):
         xfce_layout = QVBoxLayout(xfce_tab)
         info = QLabel("XFCE CYBER SKIN • Habillage du panneau natif")
         xfce_layout.addWidget(info)
-        explanation = QLabel("Conserve tous les raccourcis, applications et icônes de notification déjà présents. "
-                             "N'augmente pas l'épaisseur de votre panneau. "
-                             "Applique des bordures néon, un motif PCB animé sans intercepter les clics et "
-                             "un repli automatique après 10 secondes hors survol.")
+        explanation = QLabel("Conserve les icônes et les fenêtres du panneau XFCE original. "
+                             "Ajoute un habillage PCB avec impulsions animées, modifie au choix son épaisseur "
+                             "(sans jamais dépasser 2 fois l'originale) et le masque automatiquement "
+                             "après le délai choisi. Le bord natif de 1 px assure le rappel au survol.")
         explanation.setWordWrap(True)
         xfce_layout.addWidget(explanation)
         self.xfce_skin_enabled = QCheckBox("Activer l'habillage CYBER NEXUS du panneau XFCE inférieur")
         self.xfce_skin_enabled.setChecked(settings.xfce_skin_enabled)
         xfce_layout.addWidget(self.xfce_skin_enabled)
-        delay_info = QLabel("Repli natif XFCE après 10 secondes (compatible avec les versions GTK3/X11 prises en charge).")
+        delay_info = QLabel("La temporisation commence après avoir quitté le panneau. "
+                            "Les paramètres de rétraction et d'épaisseur d'origine sont sauvegardés.")
         delay_info.setWordWrap(True)
         xfce_layout.addWidget(delay_info)
+        self.xfce_skin_delay_seconds = QSpinBox()
+        self.xfce_skin_delay_seconds.setRange(1, 120)
+        self.xfce_skin_delay_seconds.setSuffix(" secondes")
+        self.xfce_skin_delay_seconds.setValue(settings.xfce_skin_delay_seconds)
+        xfce_layout.addWidget(QLabel("Délai avant rétractation complète"))
+        xfce_layout.addWidget(self.xfce_skin_delay_seconds)
+        self.xfce_skin_scale_percent = QSlider(Qt.Orientation.Horizontal)
+        self.xfce_skin_scale_percent.setRange(100, 200)
+        self.xfce_skin_scale_percent.setValue(settings.xfce_skin_scale_percent)
+        self.xfce_skin_scale_label = QLabel(
+            f"Épaisseur : {settings.xfce_skin_scale_percent} % de l'originale (max. 200 %)")
+        self.xfce_skin_scale_percent.valueChanged.connect(
+            lambda number: self.xfce_skin_scale_label.setText(
+                f"Épaisseur : {number} % de l'originale (max. 200 %)"))
+        xfce_layout.addWidget(self.xfce_skin_scale_label)
+        xfce_layout.addWidget(self.xfce_skin_scale_percent)
         self.xfce_skin_fx_intensity = QSlider(Qt.Orientation.Horizontal)
         self.xfce_skin_fx_intensity.setRange(0, 100)
         self.xfce_skin_fx_intensity.setValue(settings.xfce_skin_fx_intensity)
@@ -348,7 +365,8 @@ class SettingsDialog(QDialog):
             hidden_modules=[slot for slot, checkbox in self.module_checks.items()
                             if not checkbox.isChecked()],
             xfce_skin_enabled=self.xfce_skin_enabled.isChecked(),
-            xfce_skin_delay_seconds=10,
+            xfce_skin_delay_seconds=self.xfce_skin_delay_seconds.value(),
+            xfce_skin_scale_percent=self.xfce_skin_scale_percent.value(),
             xfce_skin_fx_intensity=self.xfce_skin_fx_intensity.value())
         try:
             set_enabled(updated.autostart)
