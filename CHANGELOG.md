@@ -1,3 +1,39 @@
+# NovaBar 0.6.10 — barre inférieure autonome et Upgrade
+
+- Barre inférieure Linux/X11 indépendante de `xfconf-query` : applications avec recherche, lanceurs XFCE, fenêtres actives, activation/réduction, clic droit fermer, horloge et accès réseau/volume/Bluetooth/session selon les outils installés.
+- Panneau XFCE inférieur masqué après sauvegarde de ses fenêtres ; restauration à la fermeture, au redémarrage après mise à jour et via un processus de secours en cas d’arrêt brutal. La configuration XFCE n’est pas supprimée. Les icônes de notification tierces restent sur le panneau XFCE, accessible 30 s depuis le menu Système.
+- Docks latéraux repliés cachés, sans trait coloré ni fenêtre interceptant les clics. Détection du pointeur à 10 px ; fermeture après 3 s hors du module.
+- Paramètres → Upgrade : vérification de la release officielle, téléchargement du runtime correspondant à la plateforme, contrôle SHA-256, autotest isolé, activation et redémarrage automatique. Préférences, thèmes et plugins conservés.
+- Migration des raccourcis Linux : le raccourci utilisateur utilise le même identifiant que le paquet DEB pour ouvrir la version mise à jour.
+- Environnement des commandes XFCE/GIO isolé des bibliothèques embarquées PyInstaller.
+
+
+# NovaBar 0.6.9 — correctif XFCE (développement, non publié)
+
+- HUD CPU/GPU/RAM/SSD : demande EWMH `_NET_WM_DESKTOP=0xFFFFFFFF` et fenêtre « sticky » après mise en carte par XFWM4 ; vérification toutes les 2,5 secondes et réparation uniquement si nécessaire, y compris après un changement d'espace de travail.
+- Docks Dossiers/Applications : panneaux PCB à angles coupés, circuit néon animé en bordure, couleurs de l'HUD synchronisées, style du déclencheur rétracté assorti au thème. Conservation des dossiers, lanceurs et fonction glisser-déposer.
+- Panneau système inférieur natif : détection X11 améliorée y compris fenêtres reparentées ; dialogue d'activation proposé une seule fois aux profils où l'habillage XFCE était désactivé, sans masquer définitivement le panneau original.
+- Depuis l'icône de notification NovaBar : diagnostic en lecture seule du panneau inférieur (identifiant XFCE, taille, masquage, détection visuelle).
+- Garde l'habillage réversible, la barre d'origine et ses icônes, le réglage de délai 1–120 secondes, l'épaisseur 100–200 % et la palette CYBER NEXUS.
+- Tests automatisés ajoutés ; validation visuelle sur vrai Linux Mint XFCE/X11 encore nécessaire.
+
+# NovaBar 0.6.0 — développement (non publié)
+
+- Quatrième surface facultative XFCE Cyber Skin : panneau système natif conservé (icônes, Wi-Fi, fenêtres, horloge) avec habillage GTK3, microcircuits PCB et impulsions animées transparentes aux clics. Rétractation native avec bord de rappel 1 px, temporisation réglable de 1 à 120 s (10 s par défaut), épaisseur de 100 à 200 % de l'originale (175 % par défaut), et couleurs synchronisées aux thèmes. Sauvegarde et restauration du panneau d'origine, y compris lors d'un arrêt normal.
+- Docks Dossiers et Applications, mode multi-espaces de travail X11, activation indépendante des trois fenêtres NovaBar.
+- Logo/miniature CYBER NEXUS partagé entre icône de notification, Linux DEB et Windows EXE.
+- Module Power read-only avec détails CPU/GPU/RAM et capteurs absents explicitement notés « — » ; modules visibles configurables par profil.
+- Tests de non-régression multi-plateformes, packaging à confirmer avant toute release.
+
+# NovaBar 0.5.4 — développement (non publiée)
+
+- Barre réduite en véritable bandeau de télémétrie visible en haut, bas, gauche ou droite (au lieu de ne laisser que 4 px à l'écran).
+- Suppression des compte-tours et déclencheurs Holo dans ce mode, mesures essentielles toujours affichées.
+- CPU/GPU/FANS : compte-tours à segments lumineux, sans aiguille, valeurs et unités recentrées dans le cercle.
+- RAM/SSD : jauges de remplissage façon batterie, à sept segments et couleurs d'alerte.
+- Contrôle de survol évitant la réouverture immédiate après une minimisation manuelle.
+- Tests multi-OS de géométrie, de visibilité, de télémétrie et de rendu.
+
 # NovaBar 0.5.3
 
 - Fond Holo uni sombre à 85 % d’opacité, teinté selon le thème, commun aux tableaux et graphiques.

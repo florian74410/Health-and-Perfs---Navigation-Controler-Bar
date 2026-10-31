@@ -1,3 +1,5 @@
+> **0.6.10 :** [barre inférieure autonome et bords invisibles](Docks.md) · [Upgrade intégré](Mises-a-jour.md).
+
 <p align="center"><img src="assets/banner.svg" alt="NovaBar — Wiki CYBER NEXUS HUD" width="100%"></p>
 <h1 align="center">⚡ NovaBar — Documentation officielle</h1>
 <p align="center"><strong>Votre PC. Votre cockpit.</strong> · Une barre néon compacte et modulaire sous Linux, Windows et macOS.</p>

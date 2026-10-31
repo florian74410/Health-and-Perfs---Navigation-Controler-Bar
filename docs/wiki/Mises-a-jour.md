@@ -6,6 +6,14 @@
 
 ---
 
+## Upgrade depuis NovaBar
+
+Dans la 0.6.10, cliquer **Paramètres → Upgrade • mise à jour automatique** lance la vérification, le téléchargement du runtime officiel adapté à la machine, la vérification SHA-256, son autotest isolé et l’activation. NovaBar redémarre automatiquement. Une erreur reste affichée et l’ancienne version n’est pas désinstallée.
+
+**Depuis la 0.6.9 déjà installée :** utiliser **Mises à jour… → Vérifier → Installer → Redémarrer** une première fois. Le téléchargement se fait dans NovaBar. Le nouveau bouton Upgrade apparaît après ce passage à la 0.6.10.
+
+Les profils, thèmes, raccourcis et plugins sont conservés. L’installation est par utilisateur, sans `sudo`. Les raccourcis Linux sont actualisés pour lancer le nouveau runtime. La version du paquet enregistrée par `dpkg` reste inchangée ; un ancien `/usr/bin/novabar` du DEB 0.6.9 garde sa version. Pour remplacer aussi cette copie système, installer le nouveau DEB. Pour une installation Flatpak gérée, privilégier le gestionnaire Flatpak.
+
 ## 📦 Selon votre installateur
 
 | Mode | Mise à jour | Nettoyage |

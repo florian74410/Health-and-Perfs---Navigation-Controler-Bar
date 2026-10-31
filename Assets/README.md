@@ -1,3 +1,13 @@
+# Aperçus NovaBar
+
+## 0.6.10
+
+![Upgrade — aperçu Qt de démonstration](Previews/novabar-v0610-upgrade.png)
+
+![Barre inférieure et docks — Qt réel, données de démonstration](Previews/novabar-v0610-bottom.png)
+
+L’aperçu est rendu avec les widgets Qt livrés. Les fenêtres et mesures sont des données de démonstration, sans capture de données personnelles. Les colonnes sont entièrement invisibles quand elles sont repliées ; ce visuel montre la barre inférieure déployée.
+
 # Visuels NovaBar / CYBER NEXUS HUD
 
 Les captures de la version 0.5.1 sont dans [`Previews/`](Previews/).
@@ -25,5 +35,3 @@ Courbes UP verte et DOWN rouge ; histogramme de ping bleu. Les mesures des captu
 - `Previews/novabar-v053-holo-glass-themes.png` : comparaison des trois thèmes sur fond clair ; textes neutres et accents colorés.
 
 Les captures Qt utilisent des données de démonstration et un fond de présentation.
-
-- `Previews/novabar-v053-overview.png` : vue d’ensemble de la barre et des Holo CPU / Réseau, avec données de démonstration.
