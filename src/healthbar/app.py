@@ -125,6 +125,7 @@ class Bar(QWidget):
         from .cpu_mode_controller import CpuModeController
         self.cpu_controller = CpuModeController()
         self.retracted = False
+        self._edge_armed = False
         self.expanded = False
         self.busy = False
         self.setWindowTitle("NovaBar • Hardware Health Controller")
@@ -186,6 +187,7 @@ class Bar(QWidget):
         self.animation = QPropertyAnimation(self, b"geometry", self)
         self.animation.setDuration(260)
         self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.animation.finished.connect(self._finish_transition)
         self.hide_timer = QTimer(self)
         self.hide_timer.setSingleShot(True)
         self.hide_timer.timeout.connect(self.retract)
@@ -338,6 +340,9 @@ class Bar(QWidget):
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, self.settings.always_on_top)
         self.animation.stop()
         self.retracted = False
+        self._edge_armed = False
+        self.actions.show()
+        self.root.setSpacing(8)
         screens = QApplication.screens()
         screen = screens[min(self.settings.screen, len(screens)-1)]
         g = screen.geometry()
@@ -433,11 +438,18 @@ class Bar(QWidget):
 
     def enterEvent(self, event):
         self.hide_timer.stop()
-        self.reveal()
+        # A collapse click inside the remaining edge must not immediately undo itself.
+        if not self.retracted or self._edge_armed:
+            self.reveal()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self.arm_hide()
+        if self.retracted:
+            # Rearm only once the pointer really leaves the collapsed window.
+            if not self.geometry().contains(QCursor.pos()):
+                self._edge_armed = True
+        else:
+            self.arm_hide()
         super().leaveEvent(event)
 
     def retract(self, manual=False):
@@ -447,17 +459,27 @@ class Bar(QWidget):
         if not manual and (self.settings.retract_mode or ("auto" if self.settings.auto_hide else "manual")) != "auto":
             return
         rect = QRect(self.full_rect)
-        if self.settings.position == "top":
-            rect.translate(0, -rect.height()+4)
-        elif self.settings.position == "bottom":
-            rect.translate(0, rect.height()-4)
-        elif self.settings.position == "left":
-            rect.translate(-rect.width()+4, 0)
+        if self.settings.position in ("top", "bottom"):
+            edge = min(32, max(26, round(rect.height() * .40)))
+            if self.settings.position == "bottom":
+                rect.setTop(rect.bottom()-edge+1)
+            else:
+                rect.setHeight(edge)
         else:
-            rect.translate(rect.width()-4, 0)
-        if self.holo.isVisible() and not self.holo.pinned:
-            self.holo.close_panel()
+            # Narrow vertical stripe; never grow past the configured full width.
+            edge = max(22, min(76, rect.width()-6))
+            if self.settings.position == "right":
+                rect.setLeft(rect.right()-edge+1)
+            else:
+                rect.setWidth(edge)
+        for panel in (self.holo, *self.module_holos.values()):
+            if panel.isVisible() and not panel.pinned:
+                panel.close_panel()
         self.retracted = True
+        self._edge_armed = False
+        self.actions.hide()
+        self.root.setSpacing(0)
+        self.canvas.update()
         self.animate(rect)
 
     def animate(self, rect):
@@ -466,16 +488,26 @@ class Bar(QWidget):
         self.animation.setEndValue(rect)
         self.animation.start()
 
+    def _finish_transition(self):
+        if not self.retracted:
+            self.root.setSpacing(8)
+            self.actions.show()
+            self.canvas.update()
+
     def reveal(self):
         if self.retracted:
             self.retracted = False
+            self.canvas.update()
             self.animate(self.full_rect)
         self.show()
         self.arm_hide()
 
     def check_edge(self):
-        if self.retracted and self.geometry().contains(QCursor.pos()):
-            self.reveal()
+        if self.retracted:
+            if not self.geometry().contains(QCursor.pos()):
+                self._edge_armed = True
+            elif self._edge_armed:
+                self.reveal()
 
     def toggle_expand(self):
         self.expanded = not self.expanded

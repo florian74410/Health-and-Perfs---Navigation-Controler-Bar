@@ -39,7 +39,7 @@ Les informations proviennent des capteurs du système : une valeur **—** signi
 ## ✨ L'expérience NovaBar
 
 - **🎨 Mode néon** — halos cyan, reflet de verre, opacité modulable, barre responsive et rétractable.
-- **📟 Compte-tours 0.5.1** — CPU/GPU en GHz, RAM/SSD en pourcentage ; proportions conservées de 50 à 150 px.
+- **📟 Instruments 0.5.4 (en préparation)** — CPU/GPU et ventilateur en cadrans segmentés sans aiguilles ; GHz/RPM centrés. RAM/SSD en jauges de batterie segmentées, sans compte-tour. En rétractation : données lisibles au bord de l'écran, aucun cadran ni logo Holo.
 - **🧠 Holo compacts et transparents** — CPU 460 × 330 px, autres capteurs 380 × 280 px ; détails au clic sur le logo en haut à droite, tableaux défilants sans fond gris ou blanc.
 - **🌐 Réseau détaillé** — état, vitesse de lien et débits individuels des interfaces.
 - **🧩 Plugin Control Center 2-en-1** — onglets **Plugins / Sources**, ZIP versionnés, sources GitHub configurables et restauration.

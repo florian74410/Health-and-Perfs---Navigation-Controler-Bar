@@ -179,36 +179,71 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
 
 
 def tachometer(p, bounds, value, maximum, unit):
-    """Circular dial in device pixels: no nonuniform scaling, no invented sample."""
+    """Segment-only circular dial with the reading and unit centered inside the arc."""
     p.save()
-    radius = min(bounds.width(), bounds.height()) / 2 - 3
+    radius = max(5, min(bounds.width(), bounds.height()) / 2 - 3)
     center = bounds.center()
     valid = isinstance(value, (int, float)) and math.isfinite(value)
-    fraction = min(1, max(0, value / maximum)) if valid and maximum > 0 else None
+    fraction = min(1.0, max(0.0, value / maximum)) if valid and maximum > 0 else None
     p.setBrush(Qt.BrushStyle.NoBrush)
+    p.setPen(QPen(QColor("#17518a"), 1))
+    p.drawEllipse(center, radius + 1, radius + 1)
     for i in range(29):
         angle = math.radians(140 + i * 260 / 28)
-        color = "#ff4c56" if i > 24 else "#ffca62" if i > 19 else CYAN
+        color = "#ff6476" if i > 24 else "#ffc15e" if i > 19 else CYAN
         if fraction is None or i / 28 > fraction:
-            color = "#164b97"
-        p.setPen(QPen(QColor(color), 1.8))
+            color = "#17456d"
+        p.setPen(QPen(QColor(color), max(1.5, min(2.6, radius * .095))))
         p.drawLine(center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 4),
                    center + QPointF(math.cos(angle), math.sin(angle)) * radius)
-    if fraction is not None:
-        angle = math.radians(140 + fraction * 260)
-        p.setPen(QPen(QColor("#a6faff"), 1.4))
-        p.drawLine(center, center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 7))
-    p.setPen(QPen(QColor(CYAN), 1))
-    p.drawEllipse(center, radius + 1, radius + 1)
-    size = max(8, min(12, int(radius * .48)))
-    font = QFont("DejaVu Sans"); font.setPixelSize(size); font.setBold(True)
-    p.setFont(font); p.setPen(QColor(WHITE))
-    number = (f"{value:.0f}" if unit == "%" else f"{value:.1f}") if valid else "—"
-    p.drawText(QRectF(bounds.left(), center.y()+2, bounds.width(), radius*.65),
+    # No needle: the illuminated segments alone indicate the measured value.
+    number = (f"{value:.1f}" if unit == "GHz" else f"{value:.0f}") if valid else "—"
+    size = max(8, min(14, round(radius * .58)))
+    font = QFont("DejaVu Sans")
+    font.setPixelSize(size)
+    font.setBold(True)
+    p.setFont(font)
+    p.setPen(QColor(WHITE))
+    p.drawText(QRectF(bounds.left()+2, center.y()-size*.85, bounds.width()-4, size*1.25),
                Qt.AlignmentFlag.AlignCenter, number)
-    font.setPixelSize(8); p.setFont(font); p.setPen(QColor("#abdaed"))
-    p.drawText(QRectF(bounds.left(), bounds.bottom()-10, bounds.width(), 10),
+    font.setPixelSize(max(7, min(9, round(radius * .34))))
+    font.setBold(False)
+    p.setFont(font)
+    p.setPen(QColor("#b9d6e8"))
+    p.drawText(QRectF(bounds.left()+2, center.y()+size*.28, bounds.width()-4, max(9, size*.80)),
                Qt.AlignmentFlag.AlignCenter, unit)
+    p.restore()
+
+
+def battery_meter(p, bounds, percent, kind):
+    """Segmented battery-shaped utilization bar for RAM and SSD (no circular dial)."""
+    p.save()
+    x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
+    body = QRectF(x+1, y+1, max(6, w-8), max(8, h-2))
+    frame = QPainterPath()
+    frame.addRoundedRect(body, 3, 3)
+    p.fillPath(frame, QColor("#071727"))
+    p.setPen(QPen(QColor("#528dab"), 1))
+    p.drawPath(frame)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor("#6394a8"))
+    p.drawRoundedRect(QRectF(x+w-7, y+h*.32, 5, h*.36), 1, 1)
+    valid = isinstance(percent, (float, int)) and math.isfinite(percent)
+    fraction = max(0, min(1, percent / 100)) if valid else 0
+    cells = 7
+    gap = 2.0
+    available = max(7.0, body.width()-6)
+    cell_width = max(1, (available-gap*(cells-1))/cells)
+    for i in range(cells):
+        filled = valid and (i+1)/cells <= fraction + .001
+        active = "#00dfac" if kind == "ram" else "#3ebcff"
+        if fraction >= .90:
+            active = "#ff6579"
+        elif fraction >= .75:
+            active = "#ffbc62"
+        p.setBrush(QColor(active if filled else "#16384b"))
+        p.drawRoundedRect(QRectF(body.left()+3+i*(cell_width+gap), body.top()+3,
+                                 cell_width, max(2, body.height()-6)), 1, 1)
     p.restore()
 
 
@@ -289,7 +324,10 @@ class HudCanvas(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setClipRect(self.rect().adjusted(1,1,-1,-1))
-        if self.vertical:
+        retracted = bool(getattr(self.window(), "retracted", False))
+        if retracted:
+            self.paint_retracted(p)
+        elif self.vertical:
             self.paint_vertical(p)
         elif self.height() <= 150:
             self.paint_slim(p)
@@ -304,9 +342,10 @@ class HudCanvas(QWidget):
             else:
                 self.paint_reordered(p)
         p.resetTransform()
-        for kind in self.slot_order:
-            bounds = self.module_icon_rect(kind)
-            icon(p,kind,bounds.x(),bounds.y(),bounds.width())
+        if not retracted:
+            for kind in self.slot_order:
+                bounds = self.module_icon_rect(kind)
+                icon(p,kind,bounds.x(),bounds.y(),bounds.width())
         p.end()
 
     def paint_reordered(self, painter):
@@ -329,6 +368,9 @@ class HudCanvas(QWidget):
             offset += width
 
     def module_at(self, pos):
+        if getattr(self.window(), "retracted", False):
+            dimension = pos.y() / max(1, self.height()) if self.vertical else pos.x() / max(1, self.width())
+            return min(5, max(0, int(dimension * 6)))
         if self.vertical:
             return min(5, max(0, int(pos.y() * 6/max(1, self.height()))))
         if self.height() <= 150:
@@ -356,6 +398,11 @@ class HudCanvas(QWidget):
     def module_rect(self,kind):
         """Single geometry contract for drawing, clicks, dragging and plugin popovers."""
         index=self.slot_order.index(kind)
+        if getattr(self.window(), "retracted", False):
+            length = self.height() if self.vertical else self.width()
+            start = round(index * length / 6)
+            end = round((index+1) * length / 6)
+            return QRect(0, start, self.width(), end-start) if self.vertical else QRect(start, 0, end-start, self.height())
         if self.vertical:
             top=round(index*self.height()/6);bottom=round((index+1)*self.height()/6)
             return QRect(0,top,self.width(),bottom-top)
@@ -373,6 +420,8 @@ class HudCanvas(QWidget):
 
     def module_icon_rect(self, kind):
         """Top-right plugin logo: the sole Holo trigger in every layout."""
+        if getattr(self.window(), "retracted", False):
+            return QRect()
         bounds = self.module_rect(kind)
         size = max(10, min(22, bounds.height()-10, bounds.width()//4))
         return QRect(bounds.right()-size-8, bounds.top()+6, size, size)
@@ -525,21 +574,34 @@ class HudCanvas(QWidget):
             p.restore()
             p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
             if height>=50:
-                dial_size = min(height-14, width*.36, 92)
-                has_dial = kind in ("cpu", "gpu", "ram", "storage") and width >= 120
+                dial_size = min(height-14, width*.34, 86)
                 left = x+12
-                if has_dial:
-                    readings = self.readings or {}
-                    dial_key = "cpu_frequency_ghz" if kind == "cpu" else "gpu_clock_mhz" if kind == "gpu" else key
-                    dial_value = readings.get(dial_key)
-                    if kind == "gpu" and dial_value is not None:
-                        dial_value /= 1000
-                    maximum = max(3.5, readings.get("cpu_frequency_max_ghz") or 0,
-                                  dial_value or 0) if kind == "cpu" else max(3.5, dial_value or 0) if kind == "gpu" else 100
-                    tachometer(p, QRectF(x+8,y+(height-dial_size)/2,dial_size,dial_size),
-                               dial_value, maximum, "GHz" if kind in ("cpu","gpu") else "%")
+                readings = self.readings or {}
+                if kind in ("cpu", "gpu", "fans") and width >= 115:
+                    if kind == "cpu":
+                        dial_value = readings.get("cpu_frequency_ghz")
+                        maximum = max(3.5, readings.get("cpu_frequency_max_ghz") or 0, dial_value or 0)
+                        unit = "GHz"
+                    elif kind == "gpu":
+                        mhz = readings.get("gpu_clock_mhz")
+                        dial_value = mhz / 1000 if isinstance(mhz, (int, float)) else None
+                        maximum = max(3.5, dial_value or 0)
+                        unit = "GHz"
+                    else:
+                        fan_list = self.fans()
+                        dial_value = fan_list[0].get("rpm") if fan_list else None
+                        maximum = max(3000, dial_value or 0)
+                        unit = "RPM"
+                    tachometer(p, QRectF(x+8, y+(height-dial_size)/2, dial_size, dial_size),
+                               dial_value, maximum, unit)
                     left = x+12+dial_size
-                available = x+width-left-10
+                elif kind in ("ram", "storage") and width >= 115:
+                    battery_width = min(68, max(43, width*.33))
+                    raw_percent = readings.get(key)
+                    battery_meter(p, QRectF(x+8, y+height*.38, battery_width,
+                                            max(16, min(27, height*.30))), raw_percent, kind)
+                    left = x+13+battery_width
+                available = max(1, x+width-left-10)
                 fitted_text(p,left,y+20,self.labels.get(kind,label),max(1,available-28),10)
                 baseline=y+max(34,min(height*.6,80))
                 fitted_text(p,left,baseline,value,available,18 if height<90 else 25)
@@ -552,6 +614,55 @@ class HudCanvas(QWidget):
             if key:
                 fraction=self.fraction(key,.44)
                 line(p,[(x+11,y+height-6),(x+11+max(0,width-24)*fraction,y+height-6)],CYAN,1.3)
+
+    def paint_retracted(self, p):
+        """Always-visible edge telemetry strip: no cut-off dials, no icons, no needles."""
+        readings = self.readings or {}
+        fan_list = self.fans()
+        fan_rpm = fan_list[0].get("rpm") if fan_list else None
+        entries = {
+            "cpu": ("CPU", self.value("cpu_temperature_c", 52) + "°C  " +
+                    self.value("cpu_frequency_ghz", 2.4, 1) + "GHz"),
+            "gpu": ("GPU", self.value("gpu_temperature_c", 48) + "°C  " + self.gpu_ghz() + "GHz"),
+            "ram": ("RAM", self.value("ram_percent", 44) + "%"),
+            "storage": ("SSD", self.value("disk_percent", 62) + "%"),
+            "fans": ("FANS", (str(round(fan_rpm)) if isinstance(fan_rpm, (int, float)) else "—") + " RPM"),
+            "network": ("RÉSEAU", "↓" + format_rate(readings.get("net_down_mbs")) +
+                        "  ↑" + format_rate(readings.get("net_up_mbs"))),
+        }
+        for kind in self.slot_order:
+            bounds = self.module_rect(kind)
+            x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
+            if w < 8 or h < 8:
+                continue
+            path = QPainterPath()
+            if self.vertical:
+                corners = [QPointF(x+2,y+3),QPointF(x+w-8,y+3),
+                           QPointF(x+w-2,y+9),QPointF(x+w-2,y+h-3),
+                           QPointF(x+2,y+h-3)]
+            else:
+                corners = [QPointF(x+2,y+2),QPointF(x+w-8,y+2),
+                           QPointF(x+w-2,y+8),QPointF(x+w-2,y+h-2),
+                           QPointF(x+2,y+h-2)]
+            path.addPolygon(QPolygonF(corners))
+            path.closeSubpath()
+            fill = module_background(max(75,self.module_opacity))
+            p.fillPath(path,fill)
+            p.setPen(QPen(QColor(CYAN), .8))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawPath(path)
+            label, datum = entries[kind]
+            p.save()
+            p.setClipPath(path, Qt.ClipOperation.IntersectClip)
+            if self.vertical:
+                fitted_text(p,x+7,y+min(17,h*.34),label,max(1,w-14),9,"#a8bdd0",False)
+                fitted_text(p,x+7,y+min(h-6,max(29,h*.67)),datum,max(1,w-14),10,WHITE,True)
+            else:
+                label_w = min(49,max(23,w*.29))
+                baseline = y+h/2+4
+                fitted_text(p,x+7,baseline,label,max(1,label_w),9,"#a8bdd0",True)
+                fitted_text(p,x+10+label_w,baseline,datum,max(1,w-label_w-19),11,WHITE,True)
+            p.restore()
 
     def paint_compact(self, p):
         columns = 2 if self.width() < 520 else 3
