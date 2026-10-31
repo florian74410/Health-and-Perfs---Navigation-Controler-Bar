@@ -89,6 +89,27 @@ class NativePanelSkinTests(unittest.TestCase):
                 self.assertFalse(apply_skin("blue-neon")[0])
                 self.assertEqual(css.read_text(), "/* Custom */")
 
+    def test_electronic_overlay_draws_without_capturing_input(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QImage
+        from healthbar.xfce_panel_effects import XFCEPanelCircuitEffects
+        settings = Settings(configured=True, xfce_skin_enabled=True,
+                            xfce_skin_fx_intensity=72)
+        with patch("healthbar.xfce_panel_effects.panel_x11_bounds", return_value=None):
+            effect = XFCEPanelCircuitEffects(settings)
+        try:
+            effect.poller.stop()
+            effect.timer.stop()
+            effect.resize(512, 36)
+            effect._phase = .42
+            frame = QImage(512, 36, QImage.Format.Format_ARGB32_Premultiplied)
+            frame.fill(Qt.GlobalColor.transparent)
+            effect.render(frame)
+            self.assertTrue(effect.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents))
+            self.assertGreater(frame.pixelColor(100, 2).alpha(), 0)
+        finally:
+            effect.close()
+
     def test_settings_dialog_has_optional_skin(self):
         settings = Settings(configured=True, xfce_skin_enabled=True)
         settings.validate()
