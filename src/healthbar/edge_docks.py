@@ -304,7 +304,7 @@ class EdgeDock(QWidget):
 
     def default_items(self):
         saved = self.settings.dock_folder_paths if self.kind == "folders" else self.settings.dock_app_paths
-        return list(saved) if saved else default_folders() if self.kind == "folders" else desktop_apps()
+        return list(saved) if saved is not None else (default_folders() if self.kind == "folders" else desktop_apps())
 
     def set_items(self, values):
         paths = []
