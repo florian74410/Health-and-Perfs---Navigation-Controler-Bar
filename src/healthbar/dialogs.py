@@ -228,6 +228,37 @@ class SettingsDialog(QDialog):
             modules_layout.addWidget(control)
         modules_layout.addStretch()
         tabs.addTab(modules_tab, "Modules")
+        xfce_tab = QWidget()
+        xfce_layout = QVBoxLayout(xfce_tab)
+        info = QLabel("XFCE CYBER SKIN • Habillage du panneau natif")
+        xfce_layout.addWidget(info)
+        explanation = QLabel("Conserve tous les raccourcis, applications et icônes de notification déjà présents. "
+                             "N'augmente pas l'épaisseur de votre panneau. "
+                             "Applique des bordures néon, un motif PCB animé sans intercepter les clics et "
+                             "un repli automatique après 10 secondes hors survol.")
+        explanation.setWordWrap(True)
+        xfce_layout.addWidget(explanation)
+        self.xfce_skin_enabled = QCheckBox("Activer l'habillage CYBER NEXUS du panneau XFCE inférieur")
+        self.xfce_skin_enabled.setChecked(settings.xfce_skin_enabled)
+        xfce_layout.addWidget(self.xfce_skin_enabled)
+        delay_info = QLabel("Repli natif XFCE après 10 secondes (compatible avec les versions GTK3/X11 prises en charge).")
+        delay_info.setWordWrap(True)
+        xfce_layout.addWidget(delay_info)
+        self.xfce_skin_fx_intensity = QSlider(Qt.Orientation.Horizontal)
+        self.xfce_skin_fx_intensity.setRange(0, 100)
+        self.xfce_skin_fx_intensity.setValue(settings.xfce_skin_fx_intensity)
+        self.xfce_skin_fx_label = QLabel(f"Effets lumineux : {settings.xfce_skin_fx_intensity} %")
+        self.xfce_skin_fx_intensity.valueChanged.connect(
+            lambda amount: self.xfce_skin_fx_label.setText(f"Effets lumineux : {amount} %"))
+        xfce_layout.addWidget(self.xfce_skin_fx_label)
+        xfce_layout.addWidget(self.xfce_skin_fx_intensity)
+        xfce_note = QLabel("L'ajout d'icônes reste géré par le panneau XFCE : clic droit sur le panneau "
+                           "→ Panneau → Ajouter de nouveaux éléments. Désactiver l'habillage restaure "
+                           "l'apparence et le comportement de repli précédents.")
+        xfce_note.setWordWrap(True)
+        xfce_layout.addWidget(xfce_note)
+        xfce_layout.addStretch()
+        tabs.addTab(xfce_tab, "XFCE Cyber")
         for name, widget in (("Générale", general), ("Affichage", display),
                               ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
             tabs.addTab(widget, name)
@@ -315,7 +346,10 @@ class SettingsDialog(QDialog):
             dock_left_kind=self.dock_left_kind.currentData(),
             dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders",
             hidden_modules=[slot for slot, checkbox in self.module_checks.items()
-                            if not checkbox.isChecked()])
+                            if not checkbox.isChecked()],
+            xfce_skin_enabled=self.xfce_skin_enabled.isChecked(),
+            xfce_skin_delay_seconds=10,
+            xfce_skin_fx_intensity=self.xfce_skin_fx_intensity.value())
         try:
             set_enabled(updated.autostart)
             updated.save()
