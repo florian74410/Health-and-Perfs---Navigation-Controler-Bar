@@ -59,7 +59,7 @@ def run(start=None):
                 QScrollBar::handle:vertical {background:#16718B;min-height:25px;}
                 QMenu {background:#0B2231;color:#EFFBFF;border:1px solid #00BBDD;}
                 QMenu::item:selected {background:#12536B;}
-                QStatusBar {background:rgba(11,40,55,220);color:#A8F3FF;border-top:1px solid #A13A4E;}
+                QStatusBar {background:transparent;color:#A8F3FF;border-top:1px solid #A13A4E;margin:0;padding:0;}
                 QPushButton#navBack, QPushButton#navForward {
                     background:rgba(18,49,67,215);color:#FF526A;border:1px solid #2D8CA3;
                     font-weight:bold;
@@ -198,6 +198,9 @@ def run(start=None):
             body.addLayout(right,1)
             outer.addLayout(body,1)
             self.setCentralWidget(root)
+            self.statusBar().setSizeGripEnabled(False)
+            self.statusBar().setFixedHeight(22)
+            self.statusBar().setContentsMargins(24,0,24,5)
             self.statusBar().showMessage("NOVA Explorer prêt")
             self.effect = W.QGraphicsOpacityEffect(self.views)
             self.views.setGraphicsEffect(self.effect)
@@ -238,6 +241,21 @@ def run(start=None):
             bg.setColorAt(.5,G.QColor(7,24,38,226))
             bg.setColorAt(1,G.QColor(15,46,64,220))
             p.fillPath(outline,bg)
+            footer=G.QPainterPath()
+            footer.moveTo(6,h-39)
+            footer.lineTo(w-6,h-39)
+            footer.lineTo(w-6,h-26)
+            footer.lineTo(w-26,h-6)
+            footer.lineTo(26,h-6)
+            footer.lineTo(6,h-26)
+            footer.closeSubpath()
+            foot=G.QLinearGradient(0,h-39,0,h-6)
+            foot.setColorAt(0,G.QColor(19,55,70,218))
+            foot.setColorAt(1,G.QColor(9,38,53,235))
+            p.fillPath(footer,foot)
+            p.setPen(G.QPen(G.QColor(18,163,190,135),1))
+            p.drawLine(C.QPointF(7,h-39),C.QPointF(w-7,h-39))
+            p.setPen(C.Qt.NoPen)
             p.setOpacity(.13)
             p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
             p.setOpacity(1)
