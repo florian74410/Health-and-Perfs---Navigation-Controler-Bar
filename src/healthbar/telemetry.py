@@ -86,7 +86,7 @@ class Telemetry:
             return data
         try:
             data["cpu_percent"] = _number(psutil.cpu_percent(interval=None))
-            freq = psutil.cpu_freq()
+            freq = psutil.cpu_freq() if hasattr(psutil, 'cpu_freq') else None
             if freq:
                 data["cpu_frequency_ghz"] = round(freq.current/1000, 2)
                 data["cpu_frequency_max_ghz"] = round(freq.max/1000, 2) if freq.max else None
