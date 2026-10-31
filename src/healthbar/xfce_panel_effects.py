@@ -85,8 +85,10 @@ class XFCEPanelCircuitEffects(QWidget):
         self.locate_native_panel()
 
     def locate_native_panel(self):
-        if not getattr(self.settings, "xfce_skin_enabled", False):
+        if (not getattr(self.settings, "xfce_skin_enabled", False)
+                or self.settings.xfce_skin_fx_intensity == 0):
             self.hide()
+            self.timer.stop()
             return
         screens = QApplication.screens()
         if not screens:
@@ -160,6 +162,52 @@ class XFCEPanelCircuitEffects(QWidget):
         for x in (9, width-10):
             p.setPen(QPen(accent, 1))
             p.drawEllipse(QPointF(x, height-4), 2.4, 2.4)
+
+        # Cyber chassis — layered angular endcaps, PCB vias and transistor banks.
+        # Content remains click-through: all art stays at the panel's edges.
+        p.save()
+        edge = QColor(theme[0]);edge.setAlpha(round(190*strength))
+        for mirrored in (False, True):
+            p.save()
+            if mirrored:
+                p.translate(width, 0)
+                p.scale(-1, 1)
+            p.setPen(QPen(edge, 1.3))
+            upper = QPainterPath(QPointF(0, 11))
+            for x,y in ((5,6),(17,6),(25,1.5),(35,1.5)):
+                upper.lineTo(x,y)
+            p.drawPath(upper)
+            lower = QPainterPath(QPointF(0, height-11))
+            for x,y in ((5,height-6),(17,height-6),(25,height-1.5),(35,height-1.5)):
+                lower.lineTo(x,y)
+            p.drawPath(lower)
+            for px in (7,13,19):
+                p.setPen(QPen(soft,.8))
+                p.drawLine(QPointF(px,1), QPointF(px+4,3))
+                p.drawLine(QPointF(px,height-1), QPointF(px+4,height-3))
+            p.restore()
+        for k in range(0, max(0,width-80), 104):
+            p.setPen(QPen(soft,.8))
+            upper=QPainterPath(QPointF(k+39,3))
+            upper.lineTo(k+50,3);upper.lineTo(k+54,6);upper.lineTo(k+72,6)
+            p.drawPath(upper)
+            lower=QPainterPath(QPointF(k+39,height-3))
+            lower.lineTo(k+50,height-3)
+            lower.lineTo(k+54,height-6);lower.lineTo(k+72,height-6)
+            p.drawPath(lower)
+            via=QColor(theme[0]);via.setAlpha(round(150*strength))
+            p.setPen(QPen(via,1))
+            p.drawEllipse(QPointF(k+72,6),1.4,1.4)
+            p.drawEllipse(QPointF(k+72,height-6),1.4,1.4)
+        for k in range(130,width-30,238):
+            p.setPen(QPen(soft,.8))
+            p.drawRoundedRect(QRectF(k,height-9,27,7),1.2,1.2)
+            for j in range(5):
+                on=(self._phase*7+j*.37+k*.01)%1<.38
+                led=QColor(theme[0]);led.setAlpha(round((210 if on else 44)*strength))
+                p.setPen(QPen(led,1.4))
+                p.drawLine(QPointF(k+3+j*5,height-7),QPointF(k+3+j*5,height-5))
+        p.restore()
 
         # Electron pulses travel in opposite directions around the PCB rails.
         for fraction, y, direction in ((self._phase, 2.5, 1),
