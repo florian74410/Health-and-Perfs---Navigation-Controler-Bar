@@ -41,7 +41,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             self.bar=W.QWidget()
             self.bar.setFixedHeight(28)
             self.bar.setObjectName('novaTitleBar')
-            self.bar.setStyleSheet('QWidget#novaTitleBar{background:rgba(3,12,27,220);}')
+            self.bar.setStyleSheet('QWidget#novaTitleBar{background:transparent;border:none;}')
             top=W.QHBoxLayout(self.bar)
             top.setContentsMargins(10,1,3,1)
             top.setSpacing(4)
@@ -142,6 +142,18 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 pp.drawPixmap(0,0,pcb)
                 pp.end()
                 p.drawPixmap(0,0,pulse)
+            # Full-width graphite title strip, clipped to the panel's beveled corners.
+            # The titlebar widget itself stays transparent for drag and buttons.
+            band=G.QLinearGradient(0,6,0,45)
+            band.setColorAt(0,G.QColor(65,76,88,240))
+            band.setColorAt(.65,G.QColor(45,57,70,235))
+            band.setColorAt(1,G.QColor(35,48,61,224))
+            p.fillRect(C.QRectF(6,6,w-12,39),band)
+            separator=G.QColor(accent)
+            separator.setAlpha(75)
+            p.setPen(G.QPen(separator,1))
+            p.drawLine(C.QPointF(7,45),C.QPointF(w-7,45))
+            p.setPen(C.Qt.NoPen)
             x=w*self.phase
             shine=G.QLinearGradient(x-100,0,x+110,h)
             shine.setColorAt(0,G.QColor(240,250,255,0))
