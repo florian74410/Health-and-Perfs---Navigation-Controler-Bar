@@ -203,6 +203,7 @@ class Bar(QWidget):
         self.workspace_timer.setInterval(2500)
         self.workspace_timer.timeout.connect(self.keep_visible_everywhere)
         self.workspace_timer.start()
+        self.xfce_skin_status = "Habillage non activé"
         self.tray = QSystemTrayIcon(novabar_icon(settings.theme), self)
         self.tray.setToolTip("NovaBar • CYBER NEXUS HUD")
         self.tray_menu = QMenu(self)
