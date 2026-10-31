@@ -50,6 +50,7 @@ class Settings:
     slot_order: list = None
     hidden_modules: list = field(default_factory=lambda: ["power"])
     xfce_skin_enabled: bool = False
+    xfce_skin_offer_done: bool = False  # single opt-in offer for upgraded XFCE setups
     xfce_skin_delay_seconds: int = 10
     xfce_skin_scale_percent: int = 175
     xfce_skin_fx_intensity: int = 72
@@ -76,7 +77,8 @@ class Settings:
         self.auto_hide = self.retract_mode == "auto"
         if type(self.always_on_top) is not bool or type(self.holo_enabled) is not bool:
             raise ValueError("Option affichage invalide")
-        for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled", "xfce_skin_enabled"):
+        for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled",
+                     "xfce_skin_enabled", "xfce_skin_offer_done"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Activation de barre invalide : {name}")
         if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled or self.xfce_skin_enabled):
