@@ -25,7 +25,7 @@ class CPUHoloTests(unittest.TestCase):
     def test_cpu_zip_has_declared_holo_and_imports(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
-            self.assertEqual(build(path / "archives"), 7)
+            self.assertEqual(build(path / "archives"), 8)
             archive = path / "archives" / "cpu-manager-viewer-v2.1.0.zip"
             self.assertTrue(archive.exists())
             registry = PluginRegistry(path / "installed")
