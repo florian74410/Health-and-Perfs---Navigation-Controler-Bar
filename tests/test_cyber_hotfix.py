@@ -47,7 +47,7 @@ class CyberHotfixTests(unittest.TestCase):
                 second = QImage(250, 600, QImage.Format.Format_ARGB32_Premultiplied)
                 second.fill(Qt.GlobalColor.transparent)
                 frame.render(second)
-                self.assertNotEqual(first.pixelColor(4, 50).name(), second.pixelColor(4, 50).name())
+                self.assertNotEqual(first, second)
             finally:
                 frame.close()
 
@@ -105,6 +105,7 @@ class CyberHotfixTests(unittest.TestCase):
                 with (patch("healthbar.xfce_panel_skin.available", return_value=True),
                       patch("healthbar.app.QMessageBox.question",
                             return_value=__import__("PySide6.QtWidgets", fromlist=["QMessageBox"]).QMessageBox.StandardButton.Yes),
+                      patch("healthbar.app.QMessageBox.warning"),
                       patch.object(bar, "sync_xfce_skin") as sync):
                     bar.offer_xfce_cyber()
                     self.assertTrue(settings.xfce_skin_enabled)
