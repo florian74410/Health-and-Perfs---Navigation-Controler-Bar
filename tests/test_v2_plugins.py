@@ -14,7 +14,7 @@ class PluginV2Tests(unittest.TestCase):
             root = Path(tmp)
             with patch.dict(os.environ, HEALTHBAR_DATA_DIR=str(root)):
                 count = build(root / "zip")
-                self.assertEqual(count, 7)
+                self.assertEqual(count, 8)
                 registry = PluginRegistry(root / "App" / "Plugins")
                 for archive in sorted((root/"zip").glob("*.zip")):
                     manifest, digest = registry.inspect(archive)
