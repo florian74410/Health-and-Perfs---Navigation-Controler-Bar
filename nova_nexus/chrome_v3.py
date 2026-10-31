@@ -2,15 +2,25 @@
 from .theme_engine import validate_theme, get_default_theme
 
 def routes(w,h):
-    """Disjoint parallel tracks at 45 degrees, consistent width; vias at ends."""
-    return [[(30,58),(54,58),(72,40),(125,40)],
-            [(30,78),(56,78),(82,52),(135,52)],
-            [(w-30,58),(w-54,58),(w-72,40),(w-125,40)],
-            [(w-30,78),(w-56,78),(w-82,52),(w-135,52)],
-            [(30,h-58),(54,h-58),(72,h-40),(125,h-40)],
-            [(30,h-78),(56,h-78),(82,h-52),(135,h-52)],
-            [(w-30,h-58),(w-54,h-58),(w-72,h-40),(w-125,h-40)],
-            [(w-30,h-78),(w-56,h-78),(w-82,h-52),(w-135,h-52)]]
+    """Twelve disjoint PCB traces, 45-degree bends and regular 12px spacing.
+
+    Three parallel, unfilled traces live in each corner. The repeated step
+    geometry resembles PCB meander routing; no intersections or triangles.
+    """
+    tracks=[]
+    for offset in (0,12,24):
+        y=52+offset
+        left=[(30,y),(48,y),(57,y-9),(78,y-9),
+              (87,y),(105,y),(114,y-9),(135,y-9),
+              (144,y),(172,y)]
+        tracks.extend([
+            left,
+            [(w-x,yy) for x,yy in left],
+            [(x,h-yy) for x,yy in left],
+            [(w-x,h-yy) for x,yy in left],
+        ])
+    return tracks
+
 
 def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=False):
     from PySide6 import QtCore as C, QtGui as G, QtWidgets as W
@@ -147,7 +157,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                     p.drawEllipse(center,1.4,1.4)
                 if motion:
                     pos=trace.pointAtPercent((self.phase+n*.127)%1)
-                    for radius,alpha in ((9,20),(5,90),(2,230)):
+                    for radius,alpha in ((5,16),(3,70),(1.5,230)):
                         color=G.QColor(accent)
                         color.setAlpha(int(alpha*intensity))
                         p.setPen(C.Qt.NoPen)
