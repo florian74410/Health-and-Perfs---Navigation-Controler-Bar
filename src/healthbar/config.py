@@ -35,8 +35,9 @@ class Settings:
     dock_right_enabled: bool = True
     dock_left_kind: str = "folders"
     dock_right_kind: str = "apps"
-    dock_folder_paths: list = field(default_factory=list)
-    dock_app_paths: list = field(default_factory=list)
+    # None = auto-discover defaults, [] = intentionally empty dock.
+    dock_folder_paths: list | None = None
+    dock_app_paths: list | None = None
     hide_seconds: int = 15
     autostart: bool = False
     configured: bool = False
@@ -73,10 +74,14 @@ class Settings:
         for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Activation de barre invalide : {name}")
+        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled):
+            raise ValueError("Activer au moins une des trois barres NovaBar")
         if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
             raise ValueError("Un dock Dossiers et un dock Applications sont requis")
         for key in ("dock_folder_paths", "dock_app_paths"):
             values = getattr(self, key)
+            if values is None:
+                continue
             if not isinstance(values, list) or len(values) > 128 or any(
                     not isinstance(p, str) or len(p) > 2048 or "\\x00" in p for p in values):
                 raise ValueError(f"Favoris de dock invalides : {key}")
