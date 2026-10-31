@@ -22,7 +22,8 @@ def data_dir():
 @dataclass
 class Settings:
     position: str = "top"
-    thickness: int = 200
+    thickness: int = 72
+    layout_revision: int = 1
     opacity: int = 88
     auto_hide: bool = True
     hide_seconds: int = 15
@@ -40,7 +41,7 @@ class Settings:
     def validate(self):
         if self.position not in ("top", "bottom", "right", "left") or self.alignment not in ("left", "center", "right"):
             raise ValueError("Position invalide")
-        for name, lo, hi in (("thickness", 120, 360), ("opacity", 0, 100),
+        for name, lo, hi in (("thickness", 50, 150), ("opacity", 0, 100), ("layout_revision", 1, 1),
                              ("hide_seconds", 3, 120), ("screen", 0, 64),
                              ("length_percent", 25, 100), ("refresh_seconds", 1, 30)):
             value = getattr(self, name)
@@ -76,6 +77,10 @@ class Settings:
     def load(cls):
         try:
             raw = json.loads((data_dir() / "settings.json").read_text(encoding="utf-8"))
+            if "layout_revision" not in raw and raw.get("thickness", 200) == 200:
+                raw["thickness"] = 72
+            if type(raw.get("thickness")) is int:
+                raw["thickness"] = max(50,min(150,raw["thickness"]))
             return cls(**{k: v for k, v in raw.items() if k in cls.__dataclass_fields__}).validate()
         except (OSError, ValueError, TypeError, AttributeError):
             return cls()

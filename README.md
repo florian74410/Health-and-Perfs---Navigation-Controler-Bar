@@ -19,7 +19,16 @@ Les paquets autonomes, **NovaBar incluse**, sont rangés dans [Executable/](Exec
 Linux Mint XFCE / Ubuntu, Windows 10/11, macOS Intel et Apple Silicon.
 Le `.run` Linux s’ouvre avec `sh CyberNexusHUD-Linux-x86_64.run`, sans Python ni compilation.
 
-## Version 0.3.1 — affichage néon et installateurs autonomes
+## Version 0.3.3 — barre compacte et fermeture visible
+
+![NovaBar — format compact 72 pixels et bouton Quitter](docs/novabar-slim-preview.png)
+
+Hauteur par défaut **72 px** (réglable entre 50 et 150 px), navigation et croix **Quitter** sur une seule ligne.
+L’ancien réglage par défaut de 200 px est migré automatiquement ; les autres tailles personnalisées
+restent conservées. Les textes sont dessinés à leur taille réelle et les cadrans détaillés gardent
+leurs proportions : aucune déformation verticale.
+
+## Effets néon et installateurs autonomes
 
 ![NovaBar — néons et reflets renforcés](docs/novabar-neon-preview.png)
 

@@ -67,3 +67,17 @@ compilation PyInstaller sur l’hôte Linux, self-test du binaire produit et act
 - Fichier Linux .run : contrôle SHA-256 embarqué et refus d’un téléchargement corrompu.
 - Aucun nouveau plugin développé. Les effets sont des simulations vectorielles 2D et ne requièrent pas RTX.
 - Les tests offscreen ne remplacent pas un contrôle du placement sous XFCE/Wayland sur machine réelle.
+
+## NovaBar 0.3.3 — compacité et fermeture
+
+- Hauteur par défaut réduite de 200 à 72 px, limite stricte 50–150 px ; migration du seul ancien défaut 200 px,
+  conservation des tailles personnalisées et des profils déjà versionnés.
+- Bouton Quitter visible à droite et raccourci Ctrl+Q ; commandes sur une seule ligne.
+- Mise en page compacte avec typographie non étirée ; mise à l’échelle uniforme des cadrans détaillés.
+- Vérification des hauteurs 50/72/96/150 px et de la visibilité de Quitter, activation du bouton testée.
+- Les invariants de transparence, d’ancrage au bord et de largeur restent contrôlés.
+
+Les tailles antérieures hors plage sont bornées à 50–150 px ; l’ancien défaut 200 px devient 72 px.
+34 tests locaux passent, y compris les régressions CPU Holo déjà présentes sur le dépôt.
+Les zones de clic, drag et ancrage des hologrammes utilisent le même calcul de rectangles que
+la disposition responsive des modules, vérifié sur plusieurs largeurs et après réorganisation.

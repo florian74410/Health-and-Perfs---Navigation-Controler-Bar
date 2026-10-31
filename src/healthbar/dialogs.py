@@ -54,7 +54,7 @@ class SettingsDialog(QDialog):
         self.screen.setCurrentIndex(min(settings.screen, len(screens)-1))
         form.addRow("Écran", self.screen)
         self.thickness = QSpinBox()
-        self.thickness.setRange(120, 360)
+        self.thickness.setRange(50, 150)
         self.thickness.setValue(settings.thickness)
         self.thickness.setSuffix(" px")
         form.addRow("Épaisseur", self.thickness)
@@ -202,7 +202,7 @@ class SettingsDialog(QDialog):
 
     def reset_display(self):
         self.length_percent.setValue(100)
-        self.thickness.setValue(200)
+        self.thickness.setValue(72)
         self.opacity.setValue(88)
         self.hide_seconds.setValue(15)
 

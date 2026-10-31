@@ -49,6 +49,10 @@ def button_icon(kind):
             p.rotate(i*45)
             p.drawRect(QRectF(-2, -15, 4, 6))
             p.restore()
+    elif kind == "quit":
+        p.setPen(QPen(QColor("#ff8197"),3))
+        p.drawLine(11,11,29,29)
+        p.drawLine(29,11,11,29)
     elif kind == "expand":
         p.drawRect(8, 7, 24, 25)
         p.drawLine(20, 12, 20, 26)
@@ -132,12 +136,12 @@ class Bar(QWidget):
         self.root.addWidget(self.canvas, 1)
         self.actions = QWidget()
         self.action_layout = QVBoxLayout(self.actions)
-        self.action_layout.setContentsMargins(8, 16, 4, 8)
-        self.action_layout.setSpacing(10)
+        self.action_layout.setContentsMargins(6, 4, 4, 4)
+        self.action_layout.setSpacing(0)
         self.buttons = QWidget()
         self.button_layout = QHBoxLayout(self.buttons)
         self.button_layout.setContentsMargins(0, 0, 0, 0)
-        self.button_layout.setSpacing(10)
+        self.button_layout.setSpacing(5)
         self.turbo = self.make_button("turbo", "Turbo • prévu dans une prochaine version", self.turbo_menu)
         self.turbo.setText("TURBO⌄")
         self.turbo.setFixedWidth(125)
@@ -152,7 +156,12 @@ class Bar(QWidget):
         self.expand_button.setFixedSize(34, 29)
         self.expand_button.setToolTip("Agrandir / réduire la hauteur")
         self.expand_button.clicked.connect(self.toggle_expand)
-        self.action_layout.addWidget(self.expand_button, 0, Qt.AlignmentFlag.AlignRight)
+        self.button_layout.addWidget(self.expand_button)
+        self.quit_button = self.make_button("quit", "Quitter NovaBar (Ctrl+Q)", self.quit_app)
+        self.quit_button.setAccessibleName("Quitter NovaBar")
+        from PySide6.QtGui import QShortcut, QKeySequence
+        self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"),self)
+        self.quit_shortcut.activated.connect(self.quit_app)
         self.action_layout.addStretch()
         self.root.addWidget(self.actions)
         self.animation = QPropertyAnimation(self, b"geometry", self)
@@ -211,7 +220,12 @@ class Bar(QWidget):
             self.last_sensor_request = now
             self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
 
+    def quit_app(self):
+        self.close()
+        QApplication.instance().quit()
+
     def closeEvent(self, event):
+        self.tray.hide()
         self.holo.close_panel()
         self.sensor_timer.stop()
         self.hotkeys.stop()
@@ -271,7 +285,9 @@ class Bar(QWidget):
         screen = screens[min(self.settings.screen, len(screens)-1)]
         g = screen.geometry()
         vertical = self.settings.position in ("right", "left")
-        thickness = min(self.settings.thickness * (1.5 if self.expanded else 1),
+        self.setMaximumWidth(150 if vertical else 16777215)
+        self.setMaximumHeight(16777215 if vertical else 150)
+        thickness = min(150, self.settings.thickness * (2 if self.expanded else 1),
                         g.width() if vertical else g.height())
         thickness = int(thickness)
         self.canvas.vertical = vertical
@@ -291,29 +307,43 @@ class Bar(QWidget):
         self.actions.setFixedWidth(thickness-12 if vertical else min(400, max(290, g.width()//5)))
         if vertical:
             self.button_layout.setDirection(QHBoxLayout.Direction.TopToBottom)
-            self.actions.setFixedHeight(410)
-            self.buttons.setFixedHeight(320)
-            self.turbo.setFixedSize(min(125, thickness-30), 48)
-            length = max(200, round(g.height()*self.settings.length_percent/100))
+            length = max(360, round(g.height()*self.settings.length_percent/100))
+            button_height = min(40,max(28,(length-120)//10))
+            total = self.button_layout.count()*button_height + (self.button_layout.count()-1)*5
+            self.actions.setFixedHeight(total+8)
+            self.buttons.setFixedHeight(total)
+            for index in range(self.button_layout.count()):
+                button=self.button_layout.itemAt(index).widget()
+                button.setFixedSize(max(28,min(56,thickness-22)),button_height)
+            self.turbo.setText("")
             shift = {"left": 0, "center": (g.height()-length)//2,
                      "right": g.height()-length}[self.settings.alignment]
             self.full_rect = QRect(g.left() if self.settings.position == "left" else g.right()-thickness+1, g.top()+shift, thickness, length)
         else:
             self.button_layout.setDirection(QHBoxLayout.Direction.LeftToRight)
-            self.buttons.setFixedHeight(58)
             self.actions.setMinimumHeight(0)
             self.actions.setMaximumHeight(16777215)
+            button_height = max(28,min(48,thickness-12))
+            self.buttons.setFixedHeight(button_height)
             width = self.actions.width()
-            turbo_width = 105 if width < 360 else 125
-            size = max(28, min(56, (width-52-turbo_width)//4))
-            for i in range(1, self.button_layout.count()):
-                self.button_layout.itemAt(i).widget().setFixedSize(size, 58)
-            self.turbo.setFixedSize(turbo_width, 58)
+            turbo_width = 96 if width >= 350 else 76
+            utility_width = 28
+            size = max(22,min(55,(width-10-30-turbo_width-2*utility_width)//4))
+            self.turbo.setFixedSize(turbo_width,button_height)
+            self.turbo.setText("TURBO")
+            for index in range(1,5):
+                self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
+            self.expand_button.setFixedSize(utility_width,button_height)
+            self.quit_button.setFixedSize(utility_width,button_height)
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
-            length = max(250, round(g.width()*self.settings.length_percent/100))
+            length = max(290, round(g.width()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.width()-length)//2,
                      "right": g.width()-length}[self.settings.alignment]
             self.full_rect = QRect(g.left()+shift, y, length, thickness)
+        self.action_layout.invalidate()
+        self.action_layout.activate()
+        self.root.invalidate()
+        self.root.activate()
         self.setGeometry(self.full_rect)
         self.update()
         self.arm_hide()
@@ -548,11 +578,11 @@ def main():
     bar = Bar(settings)
     bar.show()
     if args.preview:
-        bar.setGeometry(0, 0, 2048, 205)
+        bar.setGeometry(0, 0, 2048, 72)
         bar.actions.setFixedWidth(400)
-        bar.turbo.setFixedSize(125,58)
-        for index in range(1,bar.button_layout.count()):
-            bar.button_layout.itemAt(index).widget().setFixedSize(55,58)
+        bar.turbo.setFixedSize(96,48)
+        for index in range(1,5):
+            bar.button_layout.itemAt(index).widget().setFixedSize(49,48)
         app.processEvents()
         if not bar.grab().save(args.preview):
             raise OSError("Impossible d’enregistrer l’aperçu")

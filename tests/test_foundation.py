@@ -91,6 +91,17 @@ class FoundationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Settings(opacity=101).save()
 
+    def test_legacy_default_height_migrates_but_custom_height_is_preserved(self):
+        data_dir().mkdir(parents=True,exist_ok=True)
+        path=data_dir()/'settings.json'
+        path.write_text('{"thickness":200,"configured":true}')
+        self.assertEqual(Settings.load().thickness,72)
+        path.write_text('{"thickness":160,"configured":true}')
+        self.assertEqual(Settings.load().thickness,150)
+        current=Settings(thickness=120)
+        current.save()
+        self.assertEqual(Settings.load().thickness,120)
+
     def test_linux_autostart_quoting_and_remove(self):
         from healthbar import autostart
         with patch.dict(os.environ, XDG_CONFIG_HOME=str(self.root)), patch.object(autostart.sys, "platform", "linux"), patch.object(autostart, "launch_command", return_value=['/tmp/path with spaces/$x%`/python', '-m', 'healthbar']):
@@ -165,6 +176,43 @@ class ShellTests(unittest.TestCase):
                 self.assertEqual(self.bar.geometry().center().x(),bounds.center().x())
         self.assertEqual(self.bar.root.getContentsMargins(),(0,0,0,0))
 
+    def test_slim_default_and_visible_quit_button_fit_small_screens(self):
+        self.assertEqual(Settings().thickness,72)
+        for height in (50,72,96,150):
+            self.settings.thickness=height
+            self.bar.apply_settings()
+            self.app.processEvents()
+            self.assertEqual(self.bar.height(),height)
+            self.assertLessEqual(self.bar.maximumHeight(),150)
+            self.assertTrue(self.bar.quit_button.isVisible())
+            self.assertTrue(self.bar.rect().contains(QRect(self.bar.quit_button.mapTo(self.bar,self.bar.quit_button.rect().topLeft()),self.bar.quit_button.size())))
+        with patch.object(self.bar,'quit_app') as stop:
+            self.bar.quit_button.clicked.disconnect()
+            self.bar.quit_button.clicked.connect(stop)
+            self.bar.quit_button.click()
+            stop.assert_called_once()
+
+    def test_modules_keep_responsive_click_and_hologram_bounds(self):
+        from PySide6.QtCore import QPointF
+        from healthbar.hud import HudCanvas
+        canvas=HudCanvas(self.bar.registry)
+        for width in (480,900,1600):
+            for height in (50,72,150):
+                canvas.resize(width,height)
+                for order in (canvas.ORIGINAL,list(reversed(canvas.ORIGINAL))):
+                    canvas.slot_order=order.copy()
+                    for index,kind in enumerate(order):
+                        bounds=canvas.module_rect(kind)
+                        self.assertTrue(canvas.rect().contains(bounds))
+                        self.assertEqual(canvas.module_at(QPointF(bounds.center())),index)
+                        global_rect=canvas.module_global_rect(kind)
+                        self.assertEqual(global_rect.size(),bounds.size())
+        canvas.visual_timer.stop();canvas.close()
+        self.settings.thickness=150
+        self.bar.expanded=True
+        self.bar.apply_settings()
+        self.assertEqual(self.bar.height(),150)
+
     def test_compact_and_large_render(self):
         for width in (800, 1024, 1366, 2048):
             self.bar.resize(width, 200)
@@ -180,17 +228,17 @@ class ShellTests(unittest.TestCase):
             self.app.processEvents()
             image = self.bar.grab().toImage()
             canvas = self.bar.canvas
-            inside = canvas.mapTo(self.bar, QPoint(int(80*canvas.width()/1580),
-                                                   int(90*canvas.height()/200)))
-            blank = self.bar.actions.mapTo(self.bar, QPoint(10, 150))
+            first=canvas.module_rect(canvas.slot_order[0])
+            inside=canvas.mapTo(self.bar,first.topRight()+QPoint(-16,canvas.height()//2))
+            blank=self.bar.actions.mapTo(self.bar,QPoint(10,self.bar.height()-10))
             button_fill = self.bar.turbo.mapTo(self.bar, QPoint(8, 40))
             self.assertEqual(image.pixelColor(0, 0).alpha(), 0)
             self.assertEqual(image.pixelColor(blank).alpha(), 0)
             self.assertAlmostEqual(image.pixelColor(inside).alpha(), round(255*opacity/100), delta=1)
             self.assertAlmostEqual(image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
             # Text remains visible even when the module background is completely clear.
-            text_rect = QRect(int(100*canvas.width()/1580), int(98*canvas.height()/200),
-                              int(48*canvas.width()/1580), int(26*canvas.height()/200))
+            baseline=max(34,min(canvas.height()*.6,80))
+            text_rect=QRect(12,int(baseline)-26,100,30)
             opaque_text = sum(image.pixelColor(canvas.mapTo(self.bar, QPoint(x, y))).alpha() == 255
                               for x in range(text_rect.left(), text_rect.right())
                               for y in range(text_rect.top(), text_rect.bottom()))

@@ -204,7 +204,7 @@ class InstallerWizard(QDialog):
             self.position.addItem(label,key)
         self.position.setCurrentIndex(max(0,self.position.findData(self.settings.position)))
         form.addRow("Positionnement",self.position)
-        self.thickness=QSpinBox();self.thickness.setRange(120,360);self.thickness.setValue(self.settings.thickness);self.thickness.setSuffix(" px")
+        self.thickness=QSpinBox();self.thickness.setRange(50,150);self.thickness.setValue(self.settings.thickness);self.thickness.setSuffix(" px")
         self.length=QSpinBox();self.length.setRange(25,100);self.length.setValue(self.settings.length_percent);self.length.setSuffix(" %")
         form.addRow("Épaisseur",self.thickness);form.addRow("Longueur",self.length)
         self.auto_hide=QCheckBox("Rétracter après 15 secondes sans survol");self.auto_hide.setChecked(self.settings.auto_hide)

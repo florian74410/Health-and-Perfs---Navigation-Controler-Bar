@@ -2,7 +2,7 @@
 import math
 import time
 from PySide6.QtCore import Qt, QPointF, QRectF, QRect, Signal, QTimer
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush, QFontMetricsF
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
@@ -29,6 +29,19 @@ def text(p, x, y, value, size=18, color=WHITE, bold=True):
     p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(glow,2.3));p.drawPath(glyphs)
     p.setPen(QColor(color))
     p.drawText(QPointF(x, y), str(value))
+
+
+def fitted_text(p,x,y,value,width,size=18,color=WHITE,bold=True):
+    font=QFont("DejaVu Sans");font.setBold(bold)
+    size=max(8,size)
+    while size>8:
+        font.setPixelSize(size)
+        if QFontMetricsF(font).horizontalAdvance(str(value))<=width:
+            break
+        size-=1
+    font.setPixelSize(size)
+    visible=QFontMetricsF(font).elidedText(str(value),Qt.TextElideMode.ElideRight,max(1,int(width)))
+    text(p,x,y,visible,size,color,bold)
 
 
 def outline(p, path, fill=None):
@@ -238,10 +251,14 @@ class HudCanvas(QWidget):
         p.setClipRect(self.rect().adjusted(1,1,-1,-1))
         if self.vertical:
             self.paint_vertical(p)
-        elif self.width() < 950:
+        elif self.height() <= 150:
+            self.paint_slim(p)
+        elif self.width() < 1400:
             self.paint_compact(p)
         else:
-            p.scale(self.width()/1580, self.height()/200)
+            scale=min(self.width()/1580,self.height()/200)
+            p.translate((self.width()-1580*scale)/2,0)
+            p.scale(scale,scale)
             if self.slot_order == self.ORIGINAL:
                 self.paint_horizontal(p)
             else:
@@ -270,13 +287,21 @@ class HudCanvas(QWidget):
     def module_at(self, pos):
         if self.vertical:
             return min(5, max(0, int(pos.y() * 6/max(1, self.height()))))
-        if self.width() < 950:
+        if self.height() <= 150:
+            columns=6 if self.width()>=840 else 3
+            rows=(6+columns-1)//columns
+            col=min(columns-1,max(0,int(pos.x()*columns/max(1,self.width()))))
+            row=min(rows-1,max(0,int(pos.y()*rows/max(1,self.height()))))
+            return min(5,row*columns+col)
+        if self.width() < 1400:
             columns = 2 if self.width() < 520 else 3
             rows = (6 + columns - 1)//columns
             col = min(columns-1, max(0, int(pos.x()*columns/max(1,self.width()))))
             row = min(rows-1, max(0, int(pos.y()*rows/max(1,self.height()))))
             return min(5,row*columns+col)
-        x = max(0, min(1580, pos.x()*1580/max(1, self.width())))
+        scale=min(self.width()/1580,self.height()/200)
+        left=(self.width()-1580*scale)/2
+        x=max(0,min(1580,(pos.x()-left)/max(.01,scale)))
         width = 0
         for i, kind in enumerate(self.slot_order):
             width += self.WIDTHS[kind]
@@ -284,23 +309,27 @@ class HudCanvas(QWidget):
                 return i
         return 5
 
-    def module_global_rect(self, kind):
-        """Actual interactive region in screen coordinates, even after reordering."""
-        index = self.slot_order.index(kind)
+    def module_rect(self,kind):
+        """Single geometry contract for drawing, clicks, dragging and plugin popovers."""
+        index=self.slot_order.index(kind)
         if self.vertical:
-            bounds = QRect(0, round(index*self.height()/6), self.width(),
-                           round(self.height()/6))
-        elif self.width() < 950:
-            columns = 2 if self.width() < 520 else 3
-            rows = (6+columns-1)//columns
-            cw, ch = self.width()/columns, self.height()/rows
-            bounds = QRect(round((index%columns)*cw), round((index//columns)*ch),
-                           round(cw), round(ch))
-        else:
-            offset = sum(self.WIDTHS[part] for part in self.slot_order[:index])
-            bounds = QRect(round(offset*self.width()/1580), 0,
-                           round(self.WIDTHS[kind]*self.width()/1580), self.height())
-        return QRect(self.mapToGlobal(bounds.topLeft()), bounds.size())
+            top=round(index*self.height()/6);bottom=round((index+1)*self.height()/6)
+            return QRect(0,top,self.width(),bottom-top)
+        if self.height()<=150 or self.width()<1400:
+            columns=(6 if self.width()>=840 else 3) if self.height()<=150 else (2 if self.width()<520 else 3)
+            rows=(6+columns-1)//columns
+            col,row=index%columns,index//columns
+            left,right=round(col*self.width()/columns),round((col+1)*self.width()/columns)
+            top,bottom=round(row*self.height()/rows),round((row+1)*self.height()/rows)
+            return QRect(left,top,right-left,bottom-top)
+        scale=min(self.width()/1580,self.height()/200)
+        left=(self.width()-1580*scale)/2
+        offset=sum(self.WIDTHS[slot] for slot in self.slot_order[:index])
+        return QRect(round(left+offset*scale),0,round(self.WIDTHS[kind]*scale),round(200*scale))
+
+    def module_global_rect(self, kind):
+        bounds=self.module_rect(kind)
+        return QRect(self.mapToGlobal(bounds.topLeft()),bounds.size())
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -392,6 +421,39 @@ class HudCanvas(QWidget):
             p.setPen(Qt.PenStyle.NoPen);p.setBrush(glow);p.drawEllipse(center,11,9)
             line(p,[(cx-17,y),(cx-2,y)],"#42e5ff",1.4)
 
+    def paint_slim(self,p):
+        columns=6 if self.width()>=840 else 3
+        rows=(6+columns-1)//columns
+        width,height=self.width()/columns,self.height()/rows
+        entries=[
+            ("cpu","CPU",self.value("cpu_temperature_c",52)+" °C",self.value("cpu_percent",18)+"% · "+self.value("cpu_frequency_ghz",2.4,1)+" GHz","cpu_percent"),
+            ("gpu","GPU",self.value("gpu_temperature_c",48)+" °C",self.gpu_ghz()+" GHz · "+self.value("gpu_percent",32)+"%","gpu_percent"),
+            ("ram","RAM",self.value("ram_percent",44)+"%",self.used_free("ram","14.2 / 17.8 GB"),"ram_percent"),
+            ("storage","SSD",self.value("disk_percent",62)+"%",self.used_free("disk","372 / 628 GB"),"disk_percent"),
+            ("fans","FANS",str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "—", "Ventilation",None),
+            ("network","RÉSEAU","↓"+self.value("net_down_mbs",12.8,1),"↑"+self.value("net_up_mbs",1.6,1)+" MB/s",None)]
+        entries.sort(key=lambda entry:self.slot_order.index(entry[0]))
+        for index,(kind,label,value,detail,key) in enumerate(entries):
+            bounds=self.module_rect(kind)
+            x,y,width,height=bounds.x(),bounds.y(),bounds.width(),bounds.height()
+            path=QPainterPath();path.addRoundedRect(QRectF(x+3,y+3,width-7,height-6),6,6)
+            outline(p,path,module_background(self.module_opacity))
+            p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
+            if height>=50:
+                icon(p,kind,x+11,y+7,17)
+                fitted_text(p,x+35,y+20,self.labels.get(kind,label),width-47,10)
+                baseline=y+max(34,min(height*.6,80))
+                fitted_text(p,x+12,baseline,value,width-24,18 if height<90 else 25)
+                if height>=62:
+                    fitted_text(p,x+12,y+height-12,detail,width-24,10,"#abdaed",False)
+            else:
+                fitted_text(p,x+10,y+12,label,width*.31,8)
+                fitted_text(p,x+width*.36,y+height-8,value,width*.64-10,12)
+            p.restore()
+            if key:
+                fraction=self.fraction(key,.44)
+                line(p,[(x+11,y+height-6),(x+11+max(0,width-24)*fraction,y+height-6)],CYAN,1.3)
+
     def paint_compact(self, p):
         columns = 2 if self.width() < 520 else 3
         rows = math.ceil(6/columns)
@@ -413,6 +475,15 @@ class HudCanvas(QWidget):
             text(p, x+12, y+cell_h-15, value, 12 if cell_w < 210 else 16)
 
     def paint_vertical(self, p):
+        if self.width()<120:
+            cell=self.height()/6
+            for index,kind in enumerate(self.slot_order):
+                y=index*cell
+                path=QPainterPath();path.addRoundedRect(QRectF(3,y+3,self.width()-6,cell-6),6,6)
+                outline(p,path,module_background(self.module_opacity))
+                icon(p,kind,(self.width()-23)/2,y+9,23)
+                text(p,8,y+min(cell-10,49),{"storage":"SSD","network":"NET"}.get(kind,kind.upper()),10)
+            return
         scale = self.width()/240
         p.scale(scale, scale)
         h = self.height()/scale

@@ -1,7 +1,7 @@
 [Setup]
 AppId=CyberNexusHUD
 AppName=CYBER NEXUS HUD
-AppVersion=0.3.1
+AppVersion=0.3.3
 DefaultDirName={localappdata}\Programs\CyberNexusHUD
 DefaultGroupName=CYBER NEXUS HUD
 PrivilegesRequired=lowest
