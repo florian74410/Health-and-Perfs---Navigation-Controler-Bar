@@ -130,13 +130,17 @@ jobs:
         run: |
           git config user.name 'CYBER NEXUS HUD builds'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          export_dir=$(mktemp -d)
+          cp -a Executable "$export_dir/Executable"
+          git restore --staged --worktree Executable
+          git fetch origin "$TARGET_BRANCH"
+          git switch --detach FETCH_HEAD
+          cp -a "$export_dir/Executable/." Executable/
           git add -f Executable
           if ! git diff --cached --quiet; then
             git commit -m 'build: publish standalone OS installers in Executable [skip ci]'
             git push origin "HEAD:$TARGET_BRANCH"
           fi
-          export_dir=$(mktemp -d)
-          cp -a Executable "$export_dir/Executable"
           git fetch origin main --depth=1
           git switch --detach origin/main
           mkdir -p Executable
