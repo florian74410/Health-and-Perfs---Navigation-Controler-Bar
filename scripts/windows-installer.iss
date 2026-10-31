@@ -12,7 +12,7 @@ OutputDir=..\dist
 OutputBaseFilename=CyberNexusHUD-Setup-Windows
 Compression=lzma2/fast
 SolidCompression=yes
-UninstallDisplayIcon={app}\CyberNexusInstaller.exe
+UninstallDisplayIcon={app}\NovaBar\HealthPerfsBar.exe
 
 [InstallDelete]
 ; Remove names used by older launchers; Inno upgrades the standard same-AppId
@@ -21,14 +21,13 @@ Type: files; Name: "{app}\\NovaBarInstaller.exe"
 Type: files; Name: "{app}\\CyberNexusInstaller-old.exe"
 
 [Files]
-Source: "..\dist\CyberNexusInstaller\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 Source: "..\dist\HealthPerfsBar\*"; DestDir: "{app}\NovaBar"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "native-install.json"; DestDir: "{app}\NovaBar"
 
 [Icons]
 Name: "{group}\NovaBar"; Filename: "{app}\NovaBar\HealthPerfsBar.exe"
-Name: "{group}\Désinstaller le lanceur"; Filename: "{uninstallexe}"
+Name: "{group}\Désinstaller NovaBar"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\NovaBar\HealthPerfsBar.exe"; Description: "Ouvrir NovaBar"; Flags: nowait postinstall skipifsilent
