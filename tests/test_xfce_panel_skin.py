@@ -26,6 +26,8 @@ class NativePanelSkinTests(unittest.TestCase):
         custom = "button.some-unrelated-app {color: purple;}\n"
         block = render_css("green-matrix", 10)
         self.assertIn("-XfcePanelWindow-popdown-delay: 10000;", block)
+        self.assertIn("-XfcePanelWindow-autohide-size: 1;", block)
+        self.assertIn("-XfcePanelWindow-popdown-delay: 45000;", render_css("blue-neon",45))
         self.assertIn("#43fa9a", block)
         self.assertIn(".xfce4-panel.background", block)
         merged = with_managed_block(custom, block)
@@ -55,26 +57,30 @@ class NativePanelSkinTests(unittest.TestCase):
             css.parent.mkdir()
             css.write_text("/* Own CSS */\n.somebody-else {color: red;}\n", encoding="utf-8")
             backup = base/"novabar-backup.json"
-            state = {"autohide": "0"}
+            state = {"autohide-behavior": "0", "size": "30"}
             def set_native(panel, property_name, value):
-                state["autohide"] = str(value)
+                state[property_name] = str(value)
                 return True
             with (patch("healthbar.xfce_panel_skin.available", return_value=True),
                   patch("healthbar.xfce_panel_skin.bottom_panel_id", return_value=2),
-                  patch("healthbar.xfce_panel_skin.panel_setting", side_effect=lambda *args:state["autohide"]),
+                  patch("healthbar.xfce_panel_skin.panel_setting", side_effect=lambda panel, prop: state[prop]),
                   patch("healthbar.xfce_panel_skin._set_panel_setting", side_effect=set_native),
                   patch("healthbar.xfce_panel_skin.gtk_css_path", return_value=css),
                   patch("healthbar.xfce_panel_skin.backup_path", return_value=backup),
                   patch("healthbar.xfce_panel_skin._reload_panel") as reload):
                 self.assertTrue(apply_skin("blue-neon")[0])
-                self.assertEqual(state["autohide"], "2")
+                self.assertEqual(state["autohide-behavior"], "2")
+                self.assertEqual(state["size"], "52")
                 self.assertEqual(json.loads(backup.read_text())["original_autohide"], "0")
+                self.assertEqual(json.loads(backup.read_text())["original_size"], 30)
                 self.assertTrue(apply_skin("blue-neon")[0])
                 self.assertEqual(reload.call_count, 1)
-                self.assertTrue(apply_skin("red-blood")[0])
+                self.assertTrue(apply_skin("red-blood", 15, 200)[0])
+                self.assertEqual(state["size"], "60")  # 2x original size, never 2x current.
                 self.assertEqual(reload.call_count, 2)
                 self.assertTrue(remove_skin()[0])
-                self.assertEqual(state["autohide"], "0")
+                self.assertEqual(state["autohide-behavior"], "0")
+                self.assertEqual(state["size"], "30")
                 self.assertNotIn(START, css.read_text())
                 self.assertIn(".somebody-else", css.read_text())
                 self.assertFalse(backup.exists())
@@ -110,6 +116,23 @@ class NativePanelSkinTests(unittest.TestCase):
         finally:
             effect.close()
 
+    def test_invalid_native_thickness_fails_before_any_write(self):
+        with (patch("healthbar.xfce_panel_skin.available", return_value=True),
+              patch("healthbar.xfce_panel_skin.bottom_panel_id", return_value=1),
+              patch("healthbar.xfce_panel_skin._set_panel_setting") as setter):
+            self.assertFalse(apply_skin("blue-neon", 10, 201)[0])
+            self.assertFalse(apply_skin("blue-neon", 121, 150)[0])
+            setter.assert_not_called()
+
+    def test_config_can_run_only_native_xfce_without_other_docks(self):
+        settings = Settings(hud_enabled=False, dock_left_enabled=False,
+                            dock_right_enabled=False, xfce_skin_enabled=True,
+                            xfce_skin_scale_percent=200, xfce_skin_delay_seconds=120)
+        settings.validate()
+        settings.xfce_skin_scale_percent = 201
+        with self.assertRaises(ValueError):
+            settings.validate()
+
     def test_settings_dialog_has_optional_skin(self):
         settings = Settings(configured=True, xfce_skin_enabled=True)
         settings.validate()
@@ -119,6 +142,8 @@ class NativePanelSkinTests(unittest.TestCase):
             self.assertIn("XFCE Cyber", [tabs.tabText(i) for i in range(tabs.count())])
             self.assertTrue(dialog.xfce_skin_enabled.isChecked())
             self.assertEqual(dialog.xfce_skin_fx_intensity.value(), 72)
+            self.assertEqual(dialog.xfce_skin_delay_seconds.value(), 10)
+            self.assertEqual(dialog.xfce_skin_scale_percent.value(), 175)
         finally:
             dialog.close()
 
