@@ -1,7 +1,9 @@
-"""Native transparent shell. Hardware providers are intentionally absent in v0.1."""
+"""Native transparent PCB-style HUD with nonblocking read-only sensor polling."""
 import argparse
 import os
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from PySide6.QtCore import Qt, QTimer, QRect, QPropertyAnimation, QEasingCurve, QLockFile
 from PySide6.QtGui import (QColor, QCursor, QDesktopServices, QIcon, QPainter, QPen,
@@ -13,6 +15,7 @@ from .config import Settings, data_dir
 from .dialogs import SettingsDialog, PluginsDialog, STYLE
 from .plugins import PluginRegistry
 from .hud import HudCanvas
+from .telemetry import Telemetry
 
 
 def button_icon(kind):
@@ -65,7 +68,7 @@ class Bar(QWidget):
         self.retracted = False
         self.expanded = False
         self.busy = False
-        self.setWindowTitle("Health & Perfs • Prototype")
+        self.setWindowTitle("NovaBar • Hardware Health Controller")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setStyleSheet(STYLE + """
@@ -135,6 +138,31 @@ class Bar(QWidget):
         for screen in app.screens():
             screen.geometryChanged.connect(lambda rect: self.apply_settings())
         self.apply_settings()
+        self.sensors = Telemetry()
+        self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
+        self.sensor_future = None
+        self.last_sensor_request = 0.0
+        self.sensor_timer = QTimer(self)
+        self.sensor_timer.setInterval(250)
+        self.sensor_timer.timeout.connect(self.poll_sensors)
+        self.sensor_timer.start()
+
+    def poll_sensors(self):
+        if self.sensor_future is not None and self.sensor_future.done():
+            try:
+                self.canvas.set_telemetry(self.sensor_future.result())
+            except (OSError, RuntimeError, ValueError):
+                pass
+            self.sensor_future = None
+        now = time.monotonic()
+        if self.sensor_future is None and now - self.last_sensor_request >= 2.0:
+            self.last_sensor_request = now
+            self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
+
+    def closeEvent(self, event):
+        self.sensor_timer.stop()
+        self.sensor_worker.shutdown(wait=False, cancel_futures=True)
+        super().closeEvent(event)
 
     def make_button(self, kind, tooltip, callback):
         button = QPushButton()
