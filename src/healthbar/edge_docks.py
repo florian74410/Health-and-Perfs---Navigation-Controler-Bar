@@ -15,7 +15,7 @@ from PySide6.QtGui import QCursor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,
-    QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
+    QMenu, QFileDialog, QVBoxLayout, QWidget,
 )
 
 from .overlay import apply_priority, apply_all_workspaces
@@ -62,12 +62,14 @@ def default_folders() -> list[str]:
 
 
 def desktop_apps() -> list[str]:
-    """Only discover launchers on the user's actual desktop; never guess apps."""
+    """Discover user desktop launchers (Linux, Windows or macOS)."""
     directory = xdg_folder("DESKTOP")
     if not directory.is_dir():
         return []
+    suffixes = (".lnk", ".url") if sys.platform == "win32" else (".app",) if sys.platform == "darwin" else (".desktop",)
     return [str(path) for path in sorted(directory.iterdir(), key=lambda p: p.name.casefold())
-            if path.is_file() and path.suffix.lower() == ".desktop"]
+            if path.suffix.lower() in suffixes and (path.is_file() or path.is_dir() and sys.platform == "darwin")
+            and (path.suffix.lower() != ".desktop" or launcher_metadata(path) is not None)]
 
 
 def normalized_drop(paths, kind):
@@ -77,7 +79,9 @@ def normalized_drop(paths, kind):
         p = Path(path).expanduser()
         if kind == "folders" and p.is_dir():
             value = str(p.resolve())
-        elif kind == "apps" and p.is_file() and p.suffix.lower() == ".desktop":
+        elif kind == "apps" and (
+                p.is_file() and p.suffix.lower() in ((".lnk", ".url") if sys.platform == "win32" else (".desktop",))
+                or sys.platform == "darwin" and p.is_dir() and p.suffix.lower() == ".app"):
             value = str(p.resolve())
         else:
             continue
@@ -120,6 +124,23 @@ def launch_item(value: str, kind: str) -> bool:
         directory = Path(value)
         return directory.is_dir() and QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
     target = Path(value)
+    if sys.platform == "win32":
+        if not target.is_file() or target.suffix.lower() not in (".lnk", ".url"):
+            return False
+        try:
+            os.startfile(str(target))
+            return True
+        except OSError:
+            return False
+    if sys.platform == "darwin":
+        if not target.is_dir() or target.suffix.lower() != ".app":
+            return False
+        try:
+            subprocess.Popen(["open", str(target)], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+            return True
+        except OSError:
+            return False
     if not target.is_file() or target.suffix.lower() != ".desktop" or launcher_metadata(target) is None:
         return False
     if sys.platform.startswith("linux"):
@@ -283,6 +304,8 @@ class EdgeDock(QWidget):
         layout.addWidget(self.heading)
         self.items = DockItems(kind)
         self.items.itemClicked.connect(self.open_item)
+        self.items.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.items.customContextMenuRequested.connect(self.show_item_menu)
         self.items.changed.connect(lambda values: self.entries_changed.emit(self.kind, values))
         layout.addWidget(self.items, 1)
         tip = QLabel("Déposez des dossiers ici" if kind == "folders" else "Déposez vos raccourcis .desktop ici")
@@ -323,12 +346,15 @@ class EdgeDock(QWidget):
                 label, ico = ("Dossier personnel" if p == Path.home() else p.name), provider.icon(QFileInfo(str(p)))
             else:
                 p = Path(value)
-                metadata = launcher_metadata(p)
-                if metadata is None:
-                    continue
-                label, icon_name = metadata
-                ico = QIcon(icon_name) if icon_name.startswith("/") else QIcon.fromTheme(icon_name)
-                if ico.isNull(): ico = provider.icon(QFileInfo(str(p)))
+                if p.suffix.lower() == ".desktop":
+                    metadata = launcher_metadata(p)
+                    if metadata is None:
+                        continue
+                    label, icon_name = metadata
+                    ico = QIcon(icon_name) if icon_name.startswith("/") else QIcon.fromTheme(icon_name)
+                    if ico.isNull(): ico = provider.icon(QFileInfo(str(p)))
+                else:
+                    label, ico = p.stem, provider.icon(QFileInfo(str(p)))
             item = QListWidgetItem(ico, label)
             item.setData(Qt.ItemDataRole.UserRole, value)
             item.setToolTip(value)
@@ -337,6 +363,26 @@ class EdgeDock(QWidget):
     def open_item(self, item):
         launch_item(item.data(Qt.ItemDataRole.UserRole), self.kind)
         self.hide_timer.start(3000)
+
+    def show_item_menu(self, pos):
+        menu = QMenu(self.items)
+        add = menu.addAction("Ajouter un raccourci…")
+        selected = self.items.itemAt(pos)
+        remove = menu.addAction("Retirer ce raccourci") if selected else None
+        action = menu.exec(self.items.mapToGlobal(pos))
+        if action == add:
+            if self.kind == "folders":
+                chosen = QFileDialog.getExistingDirectory(self, "Ajouter un dossier", str(Path.home()))
+            else:
+                filters = "Raccourcis (*.desktop)" if sys.platform.startswith("linux") else (
+                    "Raccourcis (*.lnk *.url)" if sys.platform == "win32" else "Applications (*.app)")
+                chosen, _ = QFileDialog.getOpenFileName(self, "Ajouter une application", str(xdg_folder("DESKTOP")), filters)
+            if chosen:
+                self.entries_changed.emit(self.kind, self.items.values() + [chosen])
+        elif remove is not None and action == remove:
+            values = self.items.values()
+            values.remove(selected.data(Qt.ItemDataRole.UserRole))
+            self.entries_changed.emit(self.kind, values)
 
     def place(self):
         screens = QApplication.screens()
