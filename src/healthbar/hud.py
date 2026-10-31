@@ -237,17 +237,25 @@ class HudCanvas(QWidget):
             offset += width
 
     def module_at(self, pos):
-        x = max(0, min(1580, pos*1580/max(1, self.width())))
+        if self.vertical:
+            return min(5, max(0, int(pos.y() * 6/max(1, self.height()))))
+        if self.width() < 950:
+            columns = 2 if self.width() < 520 else 3
+            rows = (6 + columns - 1)//columns
+            col = min(columns-1, max(0, int(pos.x()*columns/max(1,self.width()))))
+            row = min(rows-1, max(0, int(pos.y()*rows/max(1,self.height()))))
+            return min(5,row*columns+col)
+        x = max(0, min(1580, pos.x()*1580/max(1, self.width())))
         width = 0
         for i, kind in enumerate(self.slot_order):
             width += self.WIDTHS[kind]
             if x < width:
                 return i
-        return len(self.slot_order)-1
+        return 5
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_origin = self.module_at(event.position().x())
+            self._drag_origin = self.module_at(event.position())
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
