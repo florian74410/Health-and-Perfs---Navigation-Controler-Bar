@@ -4,8 +4,6 @@ Run: python3 -m nova_nexus.explorer [path]
 Deletion moves to trash via Gio's GFile.trash; no permanent-delete shortcut.
 """
 from __future__ import annotations
-import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -26,10 +24,11 @@ def run(path=None):
             self.setStyleSheet(qt_stylesheet(self.theme))
             self.model = QtWidgets.QFileSystemModel(self)
             self.model.setRootPath(str(Path.home()))
-            self.model.setReadOnly(False)
+            self.model.setReadOnly(True)
             self.view = QtWidgets.QTreeView()
             self.view.setModel(self.model)
             self.view.setAnimated(True)
+            self.view.setIconSize(QtCore.QSize(self.theme["explorer"]["icon_size"], self.theme["explorer"]["icon_size"]))
             self.view.setAlternatingRowColors(True)
             self.view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
             self.view.doubleClicked.connect(self.open_item)
@@ -59,7 +58,7 @@ def run(path=None):
             self.opacity_effect = QtWidgets.QGraphicsOpacityEffect(self.view.viewport())
             self.view.viewport().setGraphicsEffect(self.opacity_effect)
             self.animation = QtCore.QPropertyAnimation(self.opacity_effect, b"opacity", self)
-            self.animation.setDuration(190)
+            self.animation.setDuration(self.theme["motion"]["duration_ms"] if self.theme["motion"]["enabled"] and not self.theme["motion"]["reduce_motion"] else 0)
             self.go(path or str(Path.home()))
 
         def go(self, folder):
@@ -87,7 +86,8 @@ def run(path=None):
                 subprocess.Popen(["xdg-open", str(file)], start_new_session=True)
 
         def context_menu(self, pos):
-            file = self.selected()
+            idx = self.view.indexAt(pos)
+            file = Path(self.model.filePath(idx)) if idx.isValid() else None
             if file is None:
                 return
             menu = QtWidgets.QMenu(self)
@@ -98,10 +98,10 @@ def run(path=None):
 
         def rename(self, file):
             name, ok = QtWidgets.QInputDialog.getText(self, "NOVA / RENAME", "New name", text=file.name)
-            if not ok or not name or name in (".", "..") or "/" in name or "\\x00" in name:
+            if not ok or not name or name in (".", "..") or "/" in name or chr(0) in name:
                 return
             destination = file.with_name(name)
-            if destination.exists():
+            if destination.exists() or destination.is_symlink():
                 QtWidgets.QMessageBox.warning(self, "NOVA", "Destination already exists")
                 return
             try:
