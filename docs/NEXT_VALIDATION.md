@@ -18,3 +18,7 @@ Validation locale du 31 octobre 2026, Linux x86_64, Python 3.12 / Qt 6.8.3.
 Aucune écriture sur un CPU réel n’a été effectuée. Les backends Intel/CPUFreq ont été testés sur des fichiers temporaires reproduisant le contrat sysfs, y compris refus d’écriture et lecture après écriture. Le comportement matériel, les permissions locales, X11/Wayland, Windows et macOS demandent une validation sur leurs environnements réels.
 
 La CI est configurée pour les builds natifs Linux, Windows et macOS Intel/ARM. Une version du code source n’implique pas qu’une release stable et ses exécutables soient déjà publiés. Le downloader échoue explicitement si aucun manifeste bootstrap stable n’est disponible.
+
+## Complément 0.5.1
+
+68 tests locaux réussis ; rendu des compte-tours, transparence des surfaces Holo, détails réseau par interface et absence de valeurs inventées vérifiés. Runtime, archive d’installation et exécutable extrait du DEB testés. Voir [la note 0.5.1](UPDATE_V051.md). Les nouveaux builds multi-OS restent à suivre dans GitHub Actions.

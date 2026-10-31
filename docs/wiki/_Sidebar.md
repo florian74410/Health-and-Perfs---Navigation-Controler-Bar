@@ -5,7 +5,7 @@
 - [📦 Installation](Installation.md)
 - [🎛️ Interface](Interface.md)
 - [📊 Capteurs](Capteurs.md)
-- [🧠 Holo CPU](Holo-CPU.md)
+- [🧠 Holo CPU et capteurs](Holo-CPU.md)
 - [🧩 Plugins & Sources](Plugins.md)
 - [⚙️ Configuration](Configuration.md)
 - [🔄 Mises à jour](Mises-a-jour.md)

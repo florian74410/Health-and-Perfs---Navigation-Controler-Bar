@@ -37,3 +37,7 @@ Le collecteur GPU actuel utilise notamment `nvidia-smi` : une carte AMD ou Intel
 ---
 
 <sub>NovaBar • CYBER NEXUS HUD • Documentation maintenue dans le dépôt. Les illustrations utilisent des valeurs d'exemple ; les sondes réelles dépendent du système et du matériel.</sub>
+
+## Réseau détaillé — 0.5.1
+
+Le panneau Réseau liste les interfaces exposées par le système : état, vitesse de lien en Mbit/s et débits reçus/émis en MB/s. Les débits sont calculés par différence entre deux relevés ; le premier reste inconnu. Les compteurs globaux regroupent les interfaces et peuvent inclure des interfaces virtuelles ; ils ne représentent pas forcément un seul transfert Internet. Aucune adresse IP ni MAC n’est nécessaire pour ces détails.

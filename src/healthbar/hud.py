@@ -176,6 +176,40 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     text(p, cx-21, cy+31, unit, 15, "#a6c8ff")
 
 
+def tachometer(p, bounds, value, maximum, unit):
+    """Circular dial in device pixels: no nonuniform scaling, no invented sample."""
+    p.save()
+    radius = min(bounds.width(), bounds.height()) / 2 - 3
+    center = bounds.center()
+    valid = isinstance(value, (int, float)) and math.isfinite(value)
+    fraction = min(1, max(0, value / maximum)) if valid and maximum > 0 else None
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for i in range(29):
+        angle = math.radians(140 + i * 260 / 28)
+        color = "#ff4c56" if i > 24 else "#ffca62" if i > 19 else CYAN
+        if fraction is None or i / 28 > fraction:
+            color = "#164b97"
+        p.setPen(QPen(QColor(color), 1.8))
+        p.drawLine(center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 4),
+                   center + QPointF(math.cos(angle), math.sin(angle)) * radius)
+    if fraction is not None:
+        angle = math.radians(140 + fraction * 260)
+        p.setPen(QPen(QColor("#a6faff"), 1.4))
+        p.drawLine(center, center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 7))
+    p.setPen(QPen(QColor(CYAN), 1))
+    p.drawEllipse(center, radius + 1, radius + 1)
+    size = max(8, min(12, int(radius * .48)))
+    font = QFont("DejaVu Sans"); font.setPixelSize(size); font.setBold(True)
+    p.setFont(font); p.setPen(QColor(WHITE))
+    number = (f"{value:.0f}" if unit == "%" else f"{value:.1f}") if valid else "—"
+    p.drawText(QRectF(bounds.left(), center.y()+2, bounds.width(), radius*.65),
+               Qt.AlignmentFlag.AlignCenter, number)
+    font.setPixelSize(8); p.setFont(font); p.setPen(QColor("#abdaed"))
+    p.drawText(QRectF(bounds.left(), bounds.bottom()-10, bounds.width(), 10),
+               Qt.AlignmentFlag.AlignCenter, unit)
+    p.restore()
+
+
 class HudCanvas(QWidget):
     layout_changed = Signal(list)
     module_activated = Signal(str)
@@ -489,11 +523,26 @@ class HudCanvas(QWidget):
             p.restore()
             p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
             if height>=50:
-                fitted_text(p,x+12,y+20,self.labels.get(kind,label),width-48,10)
+                dial_size = min(height-14, width*.36, 92)
+                has_dial = kind in ("cpu", "gpu", "ram", "storage") and width >= 120
+                left = x+12
+                if has_dial:
+                    readings = self.readings or {}
+                    dial_key = "cpu_frequency_ghz" if kind == "cpu" else "gpu_clock_mhz" if kind == "gpu" else key
+                    dial_value = readings.get(dial_key)
+                    if kind == "gpu" and dial_value is not None:
+                        dial_value /= 1000
+                    maximum = max(3.5, readings.get("cpu_frequency_max_ghz") or 0,
+                                  dial_value or 0) if kind == "cpu" else max(3.5, dial_value or 0) if kind == "gpu" else 100
+                    tachometer(p, QRectF(x+8,y+(height-dial_size)/2,dial_size,dial_size),
+                               dial_value, maximum, "GHz" if kind in ("cpu","gpu") else "%")
+                    left = x+12+dial_size
+                available = x+width-left-10
+                fitted_text(p,left,y+20,self.labels.get(kind,label),max(1,available-28),10)
                 baseline=y+max(34,min(height*.6,80))
-                fitted_text(p,x+12,baseline,value,width-24,18 if height<90 else 25)
+                fitted_text(p,left,baseline,value,available,18 if height<90 else 25)
                 if height>=62:
-                    fitted_text(p,x+12,y+height-12,detail,width-24,10,"#abdaed",False)
+                    fitted_text(p,left,y+height-12,detail,available,10,"#abdaed",False)
             else:
                 fitted_text(p,x+10,y+12,label,max(0,width*.31-14),8)
                 fitted_text(p,x+width*.36,y+height-8,value,width*.64-10,12)
