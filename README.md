@@ -1,10 +1,12 @@
 # Health & Perfs — Navigation Controller Bar
 
-Première fondation native **v0.1.0**, inspirée du prototype HUD bleu électrique de Flo.
+Socle natif **v0.2.0**, inspirée du prototype HUD bleu électrique de Flo.
 Une barre de bureau transparente, sur toute la longueur de l’écran, avec ses commandes
 **visibles tout à droite**. Aucune mini-navbar invisible.
 
 ![Aperçu statique de la barre](docs/preview.png)
+
+**V0.2 livrée en branche** : télémétrie read-only, 7 packs ZIP de sondes, cinq onglets, longueur et alignement, glisser-déposer des modules, scripts Shell locaux. Les limites et éléments non finalisés sont détaillés dans [Changelog v0.2](docs/V0.2.md).
 
 ## Ce qui fonctionne
 
@@ -18,10 +20,9 @@ Une barre de bureau transparente, sur toute la longueur de l’écran, avec ses 
 - Préférences et extensions séparées pour chaque compte utilisateur ; une instance par compte.
 - Gestionnaire d’extensions locales : ajout, mise à jour, activation, désactivation, retour à la version précédente.
 
-**Aucun plugin matériel n’est fourni** : aucune collecte CPU/GPU, aucun changement de fréquence,
-aucun contrôle ventilateur, aucune action Turbo, aucun terminal système.
-Le socle d’extensions v1 ne charge que des manifestes déclaratifs et peut nommer les emplacements.
-Il ne constitue pas encore un moteur d’exécution de plugins.
+**Sept packages de plugins capteurs** sont générés via `python scripts/build_plugins.py`. Leur ZIP peut être importé par le gestionnaire API v2. L’application dispose d’un collecteur matériel en lecture seule ; la disponibilité des températures, des ventilateurs et du GPU dépend des pilotes et de l’OS. Les boutons Turbo et contrôle PWM restent sans action matérielle.
+
+Le téléchargement de plugins depuis un store VPS et la pose automatique de leurs dépendances ne sont pas encore opérationnels.
 
 ## Installer
 
