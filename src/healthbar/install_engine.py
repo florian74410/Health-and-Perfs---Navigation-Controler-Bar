@@ -43,7 +43,7 @@ def read_installed_state(root=None):
 
 
 def version_tuple(value):
-    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+\\.[0-9]+\\.[0-9]+", value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", value):
         return None
     return tuple(map(int, value.split(".")))
 

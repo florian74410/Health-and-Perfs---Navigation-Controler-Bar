@@ -460,7 +460,7 @@ class HudCanvas(QWidget):
             shine=QLinearGradient(x,y+3,x,y+min(30,height))
             shine.setColorAt(0,QColor(170,238,255,50))
             shine.setColorAt(1,QColor(170,238,255,0))
-            p.fillRect(QRectF(x+7,y+4,max(0,width-14),min(27,height/3)),shine)
+            p.fillRect(QRectF(x+7,y+4,max(0,width-14),min(27,height/3)),QBrush(shine))
             phase=(time.monotonic()*.24+index*.13)%1
             track_width=max(0,width-30)
             tracer_x=x+15+track_width*phase
