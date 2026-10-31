@@ -320,6 +320,27 @@ class Bar(QWidget):
                 self.xfce_skin_fx.deleteLater()
                 self.xfce_skin_fx = None
 
+    def offer_xfce_cyber(self):
+        """Ask once whether to skin the user's actual system panel after upgrade."""
+        from .xfce_panel_skin import available
+        if (not available() or self.settings.xfce_skin_enabled
+                or self.settings.xfce_skin_offer_done):
+            return
+        response = QMessageBox.question(
+            None, "CYBER NEXUS • Barre système",
+            "Activer le nouvel habillage CYBER NEXUS de la barre système XFCE ?\\n\\n"
+            "Les icônes, applications ouvertes, Wi-Fi et notifications restent natives. "
+            "Le panneau original sera sauvegardé et restaurable depuis les préférences.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes)
+        self.settings.xfce_skin_offer_done = True
+        self.settings.xfce_skin_enabled = response == QMessageBox.StandardButton.Yes
+        self.settings.save()
+        self.sync_xfce_skin()
+        self.build_tray_menu()
+        if self.settings.xfce_skin_enabled and "actif" not in self.xfce_skin_status:
+            QMessageBox.warning(None, "CYBER NEXUS", self.xfce_skin_status)
+
     def xfce_panel_preferences(self):
         from .xfce_panel_skin import available
         if not available():
@@ -440,6 +461,8 @@ class Bar(QWidget):
             f"Délai : {self.settings.xfce_skin_delay_seconds} s · "
             f"épaisseur : {self.settings.xfce_skin_scale_percent} %")
         note.setEnabled(False)
+        status = xfce.addAction(f"État : {self.xfce_skin_status[:76]}")
+        status.setEnabled(False)
         menu.addAction("⚙ Préférences…", self.preferences)
         menu.addAction("◈ Plugin Manager…", self.plugins)
         menu.addAction("📖 Wiki NovaBar", self.open_wiki)
@@ -952,6 +975,8 @@ def main():
     bar = Bar(settings)
     if settings.hud_enabled or args.preview:
         bar.show()
+    if not args.preview:
+        QTimer.singleShot(900, bar.offer_xfce_cyber)
     if args.preview:
         bar.setGeometry(0, 0, 2048, 72)
         bar.actions.setFixedWidth(400)
