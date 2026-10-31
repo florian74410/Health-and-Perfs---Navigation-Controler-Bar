@@ -8,7 +8,10 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QRect
+from PySide6.QtCore import QRect, QPoint, Qt
+from PySide6.QtTest import QTest
+from healthbar.app import Bar
+from healthbar.config import Settings
 from healthbar.holo import CpuHoloPanel
 from healthbar.cpu_detail import sample_cpu_cores
 from healthbar.plugins import PluginRegistry
@@ -32,6 +35,32 @@ class CPUHoloTests(unittest.TestCase):
             registry.install(archive, digest)
             registry.set_enabled(manifest["id"], True)
             self.assertTrue(registry.installed()[0]["enabled"])
+
+
+    def test_hud_click_opens_only_after_cpu_plugin_activated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, HEALTHBAR_DATA_DIR=directory):
+                bar = Bar(Settings(configured=True,auto_hide=False))
+                bar.show()
+                self.qt.processEvents()
+                bar.open_module_holo("cpu")
+                self.assertFalse(bar.holo.isVisible())
+                build(Path(directory)/"packs")
+                archive=Path(directory)/"packs"/"cpu-manager-viewer-v2.0.0.zip"
+                manifest, digest=bar.registry.inspect(archive)
+                bar.registry.install(archive,digest)
+                bar.registry.set_enabled(manifest["id"],True)
+                received=[]
+                bar.canvas.module_activated.connect(received.append)
+                QTest.mouseClick(bar.canvas, Qt.MouseButton.LeftButton, pos=QPoint(18,max(10,bar.canvas.height()//3)))
+                self.qt.processEvents()
+                self.assertIn("cpu", received)
+                self.assertTrue(bar.holo.isVisible())
+                bar.holo.close_panel()
+                bar.sensor_timer.stop()
+                bar.edge_timer.stop()
+                bar.tray.hide()
+                bar.close()
 
     def test_core_frequency_labeling_does_not_mislabel_threads_as_cores(self):
         dummy = SimpleNamespace(
