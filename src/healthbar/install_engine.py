@@ -103,6 +103,11 @@ def activate(executable, settings, identity, desktop, root=None, release_version
     root.mkdir(parents=True,exist_ok=True)
     state_path=root/"installation.json"
     previous=json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else None
+    # Initialize the official plugin source only once; never overwrite user-added repositories.
+    from .plugin_sources import SourceStore, DEFAULT_SOURCE
+    sources = SourceStore()
+    if not sources.path.exists():
+        sources.save([DEFAULT_SOURCE.copy()])
     state={"version":release_version or __version__,"executable":str(executable),"desktop_shortcut":desktop,
            "previous":previous}
     from .profiles import workspace_dir, profile_id
