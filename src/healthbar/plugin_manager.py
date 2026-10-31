@@ -211,7 +211,13 @@ class PluginsDialog(QDialog):
         root.addLayout(status)
         self.refresh_sources()
         self.refresh()
-        QTimer.singleShot(0, self.refresh_catalog)
+        self._opened = False
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._opened:
+            self._opened = True
+            QTimer.singleShot(0, self.refresh_catalog)
 
     def make_table(self, headers):
         table = QTableWidget(0, len(headers))
