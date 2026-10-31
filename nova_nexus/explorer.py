@@ -61,14 +61,14 @@ def run(start=None):
                 QMenu::item:selected {background:#12536B;}
                 QStatusBar {background:rgba(11,40,55,220);color:#A8F3FF;border-top:1px solid #A13A4E;}
                 QPushButton#navBack, QPushButton#navForward {
-                    background:rgba(42,22,28,220);color:#FF6B7E;border:1px solid #D94A61;
+                    background:rgba(18,49,67,215);color:#FF526A;border:1px solid #2D8CA3;
                     font-weight:bold;
                 }
                 QPushButton#navBack:hover, QPushButton#navForward:hover {
-                    background:rgba(122,33,49,235);color:white;border:1px solid #FF8094;
+                    background:rgba(26,84,108,235);color:#FF8094;border:1px solid #3EEBFF;
                 }
                 QPushButton#navBack:pressed, QPushButton#navForward:pressed {
-                    background:rgba(156,31,51,240);color:white;
+                    background:rgba(11,101,126,235);color:#FF9BAA;
                 }
             """)
             self.model = W.QFileSystemModel(self)
@@ -88,7 +88,12 @@ def run(start=None):
             mark.setStyleSheet("color:#00DFFF;font:bold 19px Arial;")
             header.addWidget(mark)
             header.addStretch()
-            header.addWidget(W.QLabel("NOVA NEXUS HD  /  FILE SYSTEM"))
+            self.header_caption = W.QLabel("NOVA NEXUS HD  /  FILE SYSTEM")
+            self.header_caption.mousePressEvent = self.drag_press
+            self.header_caption.mouseMoveEvent = self.drag_move
+            self.header_caption.mouseReleaseEvent = self.drag_release
+            self.header_caption.mouseDoubleClickEvent = self.toggle_maximize
+            header.addWidget(self.header_caption)
             mini = W.QPushButton("−")
             close = W.QPushButton("×")
             for btn in (mini, close):
@@ -98,6 +103,7 @@ def run(start=None):
             close.clicked.connect(self.close)
             header.addWidget(mini)
             header.addWidget(close)
+            mark.mouseDoubleClickEvent = self.toggle_maximize
             mark.mousePressEvent = self.drag_press
             mark.mouseMoveEvent = self.drag_move
             mark.mouseReleaseEvent = self.drag_release
@@ -200,12 +206,17 @@ def run(start=None):
             self.fade.setDuration(190)
             self.navigate(Path(start).expanduser() if start else Path.home())
 
+        def toggle_maximize(self,event):
+            if event.button()==C.Qt.LeftButton:
+                self.showNormal() if self.isMaximized() else self.showMaximized()
+                self.drag_start=None
+                event.accept()
         def drag_press(self,event):
             if event.button()==C.Qt.LeftButton:
                 self.drag_start=event.globalPosition().toPoint()-self.frameGeometry().topLeft()
                 event.accept()
         def drag_move(self,event):
-            if self.drag_start is not None and event.buttons() & C.Qt.LeftButton:
+            if self.drag_start is not None and not self.isMaximized() and event.buttons() & C.Qt.LeftButton:
                 self.move(event.globalPosition().toPoint()-self.drag_start)
                 event.accept()
         def drag_release(self,event):
