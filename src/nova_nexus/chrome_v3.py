@@ -80,6 +80,15 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 area.mousePressEvent=self.drag_start
                 area.mouseMoveEvent=self.drag_move
                 area.mouseReleaseEvent=self.drag_end
+        def position_titlebar(self):
+            if getattr(self,"anchored_titlebar",False):
+                self.bar.setGeometry(23,10,max(1,self.width()-46),30)
+                self.bar.raise_()
+
+        def resizeEvent(self,event):
+            super().resizeEvent(event)
+            self.position_titlebar()
+
         def drag_start(self,event):
             if event.button()==C.Qt.LeftButton:
                 self.drag_origin=event.globalPosition().toPoint()-self.frameGeometry().topLeft()
@@ -96,6 +105,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             self.update()
         def showEvent(self,event):
             super().showEvent(event)
+            self.position_titlebar()
             if motion:self.timer.start()
         def hideEvent(self,event):
             self.timer.stop()
@@ -200,6 +210,10 @@ def make_window(title, content, theme=None):
             while item.layout().count():
                 child=item.layout().takeAt(0)
                 if child.widget():child.widget().deleteLater()
+    layout.removeWidget(panel.bar)
+    layout.setContentsMargins(23,52,23,20)
+    panel.anchored_titlebar=True
+    panel.position_titlebar()
     layout.addWidget(content,1)
     grip=W.QSizeGrip(panel);layout.addWidget(grip,0,C.Qt.AlignRight)
     return panel

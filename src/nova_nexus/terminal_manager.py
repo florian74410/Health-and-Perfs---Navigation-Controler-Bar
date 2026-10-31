@@ -150,14 +150,14 @@ class TerminalManager(C.QObject):
             action=self.action(self.formats,label,lambda checked=False,f=key:self.set_format(f))
             action.setCheckable(True);self.format_actions[key]=action
         self.formats.addSeparator()
-        self.action(self.formats,'Plein écran',self.toggle_fullscreen,'F11')
+        self.action(self.formats,'Agrandir dans la zone disponible',self.toggle_fullscreen,'F11')
         text=self.text_menu=edit.addMenu('Texte')
         self.action(text,'Police, couleur et taille…',self.text_dialog)
         self.action(text,'Agrandir',lambda:self.zoom(1),'Ctrl++')
         self.action(text,'Réduire',lambda:self.zoom(-1),'Ctrl+-')
         self.action(text,'Taille normale',lambda:self.zoom(11-self.text['size']),'Ctrl+0')
         display=self.display_menu=self.menu.addMenu('Affichage')
-        self.action(display,'Plein écran',self.toggle_fullscreen,'Alt+F11')
+        self.action(display,'Agrandir dans la zone disponible',self.toggle_fullscreen,'Alt+F11')
         self.action(display,'Onglet suivant',lambda:self.tabs.setCurrentIndex((self.tabs.currentIndex()+1)%self.tabs.count()),'Ctrl+PageDown')
         self.action(display,'Onglet précédent',lambda:self.tabs.setCurrentIndex((self.tabs.currentIndex()-1)%self.tabs.count()),'Ctrl+PageUp')
         help=self.help_menu=self.menu.addMenu('Aide')
@@ -177,14 +177,14 @@ class TerminalManager(C.QObject):
 
     def set_format(self,key):
         self.workspace().set_format(key)
-        # A chosen split format is presented in full screen as requested.
-        if key!='single':self.window.showFullScreen()
+        # Split layouts maximize into the workarea advertised by the window manager.
+        if key!='single':self.window.showMaximized()
         else:self.window.showNormal()
         self.update_status()
 
     def open_formats(self):self.formats.exec(self.format_button.mapToGlobal(C.QPoint(0,0)))
     def toggle_fullscreen(self):
-        self.window.showNormal() if self.window.isFullScreen() else self.window.showFullScreen()
+        self.window.showNormal() if (self.window.isMaximized() or self.window.isFullScreen()) else self.window.showMaximized()
     def update_status(self,*_):
         space=self.workspace()
         if not space:return
@@ -234,7 +234,7 @@ class TerminalManager(C.QObject):
             self.text.update(font=font.currentFont().family(),size=size.value(),foreground=foreground.text(),background=background.text());self.save_text()
 
     def shortcuts(self):
-        make_dialog('NOVA / RACCOURCIS','Ctrl+Maj+T : onglet · Ctrl+Maj+N : fenêtre\nCtrl+Maj+C / V : copier / coller\nCtrl+Maj+F : rechercher · F11 : plein écran\nMaj+Page ↑↓ : historique · Ctrl+C : interrompre\nChanger de format conserve les sessions masquées.').exec()
+        make_dialog('NOVA / RACCOURCIS','Ctrl+Maj+T : onglet · Ctrl+Maj+N : fenêtre\nCtrl+Maj+C / V : copier / coller\nCtrl+Maj+F : rechercher · F11 : agrandir / rétablir\nMaj+Page ↑↓ : historique · Ctrl+C : interrompre\nChanger de format conserve les sessions masquées.').exec()
 
     def eventFilter(self,watched,event):
         if event.type()==C.QEvent.Close:
