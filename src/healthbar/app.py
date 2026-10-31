@@ -20,6 +20,7 @@ from .hud import HudCanvas
 from .holo import CpuHoloPanel
 from .telemetry import Telemetry
 from .help_links import WIKI_URL
+from .edge_docks import EdgeDock
 
 
 from .ui_kit import QColor
@@ -231,6 +232,65 @@ class Bar(QWidget):
         from .hotkeys import HotkeyController
         self.hotkeys = HotkeyController(self)
         self.hotkeys.configure(self.settings.shortcuts)
+        self.sidebars = {}
+        self.sync_sidebars()
+
+    def sync_sidebars(self):
+        """Create/hide the independent edge launchers without spawning processes."""
+        enabled = {"left": self.settings.dock_left_enabled,
+                   "right": self.settings.dock_right_enabled}
+        kinds = {"left": self.settings.dock_left_kind,
+                 "right": self.settings.dock_right_kind}
+        for side in ("left", "right"):
+            existing = self.sidebars.get(side)
+            if not enabled[side]:
+                if existing is not None:
+                    existing.close()
+                    existing.deleteLater()
+                    self.sidebars.pop(side, None)
+                continue
+            if existing is not None and existing.kind != kinds[side]:
+                existing.close()
+                existing.deleteLater()
+                self.sidebars.pop(side, None)
+                existing = None
+            if existing is None:
+                dock = EdgeDock(side, kinds[side], self.settings)
+                dock.moved_to_other_side.connect(self.move_dock)
+                dock.entries_changed.connect(self.save_dock_entries)
+                dock.settings_requested.connect(self.preferences)
+                self.sidebars[side] = dock
+                dock.show()
+            else:
+                existing.settings = self.settings
+                existing.set_items(existing.default_items())
+                existing.place()
+                existing.show()
+
+    def move_dock(self, from_side):
+        """Dragging to the opposite edge switches, or relocates a lone dock."""
+        if from_side not in ("left", "right"):
+            return
+        left, right = self.settings.dock_left_kind, self.settings.dock_right_kind
+        self.settings.dock_left_kind, self.settings.dock_right_kind = right, left
+        if not (self.settings.dock_left_enabled and self.settings.dock_right_enabled):
+            self.settings.dock_left_enabled, self.settings.dock_right_enabled = (
+                self.settings.dock_right_enabled, self.settings.dock_left_enabled)
+        self.settings.save()
+        self.sync_sidebars()
+
+    def save_dock_entries(self, kind, values):
+        from .edge_docks import normalized_drop
+        if kind == "folders":
+            clean = [x for x in values if x == "recent:///" or
+                     x in normalized_drop([x], "folders")]
+            self.settings.dock_folder_paths = list(dict.fromkeys(clean))[:128]
+        elif kind == "apps":
+            self.settings.dock_app_paths = list(dict.fromkeys(normalized_drop(values, "apps")))[:128]
+        self.settings.save()
+        for dock in self.sidebars.values():
+            if dock.kind == kind:
+                dock.set_items(dock.default_items())
 
     def sample_sensors(self):
         readings = self.sensors.sample()
@@ -269,6 +329,8 @@ class Bar(QWidget):
 
     def closeEvent(self, event):
         self.tray.hide()
+        for dock in getattr(self, "sidebars", {}).values():
+            dock.close()
         self.holo.close_panel()
         for panel in self.module_holos.values(): panel.close_panel()
         self.sensor_timer.stop()
@@ -413,12 +475,16 @@ class Bar(QWidget):
         self.root.activate()
         self.setGeometry(self.full_rect)
         self.update()
+        if hasattr(self, "sidebars"):
+            self.sync_sidebars()
         self.arm_hide()
 
     def showEvent(self, event):
         super().showEvent(event)
         from .overlay import apply_priority
         self.overlay_status = apply_priority(self, self.settings.always_on_top)
+        from .overlay import apply_all_workspaces
+        apply_all_workspaces(self)
         self.expand_button.setToolTip("Minimiser manuellement · " + self.overlay_status)
 
     def paintEvent(self, event):
@@ -525,9 +591,10 @@ class Bar(QWidget):
     def preferences(self):
         if self.holo.isVisible() and not self.holo.pinned:
             self.holo.close_panel()
-        if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(), parent=self)) == QDialog.DialogCode.Accepted:
+        if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(),
+                                          parent=self if self.isVisible() else None)) == QDialog.DialogCode.Accepted:
             self.apply_settings()
-            self.show()
+            self.setVisible(self.settings.hud_enabled)
             from .ui_kit import stylesheet
             for panel in [self.holo, *self.module_holos.values()]:
                 panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,self.settings.always_on_top)
@@ -670,6 +737,7 @@ def main():
     app = QApplication(sys.argv[:1])
     app.setApplicationName("HealthPerfsBar")
     app.setOrganizationName("HealthPerfs")
+    app.setQuitOnLastWindowClosed(False)
     if args.self_test:
         if args.expect_version and args.expect_version != __version__:
             return 4
@@ -708,7 +776,8 @@ def main():
             dialog.exec()
             return 0
     bar = Bar(settings)
-    bar.show()
+    if settings.hud_enabled or args.preview:
+        bar.show()
     if args.preview:
         bar.setGeometry(0, 0, 2048, 72)
         bar.actions.setFixedWidth(400)
