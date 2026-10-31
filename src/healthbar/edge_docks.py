@@ -252,7 +252,7 @@ class EdgeDock(QWidget):
         self.settings = settings
         self.collapsed = True
         self.edge_width = 9
-        self.panel_width = 205
+        self.panel_width = 250
         self.full_rect = None
         self.setWindowTitle(f"NovaBar • {kind} • {side}")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint |
@@ -403,6 +403,9 @@ class EdgeDock(QWidget):
         if not self.collapsed or not self.full_rect: return
         self.collapsed = False
         self.hide_timer.stop()
+        # Release the edge-only width constraint before showing the content.
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(16777215)
         self.setGeometry(*self.full_rect)
         self.content.show()
         self.update()
@@ -413,6 +416,9 @@ class EdgeDock(QWidget):
         self.hide_timer.stop()
         x, y, width, height = self.full_rect
         self.content.hide()
+        # QWidget layout hints can otherwise keep a 170+ px invisible dock
+        # even after the entire body has been hidden.
+        self.setFixedWidth(self.edge_width)
         self.setGeometry(x if self.side == "left" else x+width-self.edge_width, y, self.edge_width, height)
         self.update()
 
