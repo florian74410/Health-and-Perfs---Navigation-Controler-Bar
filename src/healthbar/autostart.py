@@ -7,6 +7,12 @@ from pathlib import Path
 
 
 def launch_command():
+    # An activated user update takes precedence over an inherited DEB/Flatpak marker.
+    if getattr(sys,"frozen",False):
+        from .install_engine import read_installed_state
+        state=read_installed_state()
+        if state and Path(state.get("executable","")).resolve()==Path(sys.executable).resolve():
+            return [sys.executable]
     # Desktop package paths remain stable across system package upgrades.
     if os.getenv("NOVABAR_PACKAGED") == "deb":
         return ["/usr/bin/novabar"]

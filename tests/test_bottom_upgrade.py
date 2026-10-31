@@ -109,6 +109,12 @@ class BottomUpgradeTests(unittest.TestCase):
             self.assertIn('new version',(apps/'io.github.florian74410.NovaBar.desktop').read_text())
             self.assertIn('NoDisplay=true',(apps/'novabar.desktop').read_text())
 
+    def test_autostart_uses_activated_runtime_even_with_old_deb_environment(self):
+        from healthbar.autostart import launch_command
+        import sys
+        with patch.dict(os.environ,NOVABAR_PACKAGED='deb'),patch.object(sys,'frozen',True,create=True),patch('healthbar.install_engine.read_installed_state',return_value={'executable':sys.executable}):
+            self.assertEqual(launch_command(),[sys.executable])
+
     def test_native_commands_do_not_inherit_frozen_qt_or_glib_libraries(self):
         with patch.dict(os.environ,LD_LIBRARY_PATH='/tmp/bundle',LD_LIBRARY_PATH_ORIG='/system/lib',QT_PLUGIN_PATH='/bundle/qt'):
             env=native_env();self.assertEqual(env['LD_LIBRARY_PATH'],'/system/lib');self.assertNotIn('QT_PLUGIN_PATH',env)
