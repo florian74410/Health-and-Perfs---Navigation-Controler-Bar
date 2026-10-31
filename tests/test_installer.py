@@ -48,6 +48,32 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue((workspace_dir()/'Profiles'/path.name).is_file())
         wizard.header.timer.stop();wizard.close()
 
+    def test_reopening_preserves_opt_out_identity_and_installation_metadata(self):
+        save_profile({'username':'Flo','email':'keep@example.org','share_experience':False},
+                     asdict(Settings()),{'version':'0.2.0','executable':'previous'})
+        wizard=InstallerWizard(Settings(configured=True,autostart=False))
+        self.assertEqual(wizard.email.text(),'keep@example.org')
+        self.assertEqual(wizard.username.text(),'Flo')
+        self.assertFalse(wizard.share.isChecked())
+        self.assertFalse(wizard.autostart.isChecked())
+        save_profile({'username':'Flo','email':'keep@example.org','share_experience':False},asdict(Settings()))
+        path=workspace_dir()/'App/Profiles'/(current_profile()+'.json')
+        self.assertEqual(json.loads(path.read_text())['installation']['version'],'0.2.0')
+        wizard.header.timer.stop();wizard.close()
+
+    def test_existing_plugins_migrate_into_precreated_empty_workspace(self):
+        from healthbar.profiles import ensure_workspace
+        from healthbar.plugins import PluginRegistry
+        ensure_workspace()
+        old=data_dir()/'App/Plugins/old-slot';old.mkdir(parents=True)
+        (old/'manifest.json').write_text(json.dumps({'id':'old-slot','name':'Existing','version':'1.0.0',
+            'api_version':1,'kind':'declarative','slot':'cpu'}))
+        (old/'state.json').write_text('{"enabled":true}')
+        registry=PluginRegistry()
+        self.assertEqual(registry.installed()[0]['name'],'Existing')
+        self.assertTrue(old.exists())
+        self.assertEqual(registry.root,workspace_dir()/'Plugins')
+
     def test_legacy_choice_cannot_be_enabled_by_selecting_another_family(self):
         with self.assertRaises(ValueError):validate_host('high-sierra')
         wrong='macos' if __import__('sys').platform!='darwin' else 'windows11'
@@ -99,12 +125,27 @@ class InstallerTests(unittest.TestCase):
         archive=self.root/'runtime.zip'
         import stat
         for name in ('../escape','/absolute','C:/drive','a\\b'):
-            with zipfile.ZipFile(archive,'w') as z:z.writestr(name,'bad')
+            with zipfile.ZipFile(archive,'w') as z:
+                entry=zipfile.ZipInfo('placeholder');entry.filename=name;z.writestr(entry,'bad')
             with self.assertRaises(ValueError):extract_runtime(archive,self.root/'stage')
         with zipfile.ZipFile(archive,'w') as z:
             item=zipfile.ZipInfo('link');item.external_attr=(stat.S_IFLNK|0o777)<<16;z.writestr(item,'outside')
         with self.assertRaises(ValueError):extract_runtime(archive,self.root/'stage')
         self.assertFalse((self.root/'escape').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Creating a valid symbolic link may require Windows developer privileges')
+    def test_update_preserves_valid_internal_bundle_links(self):
+        import stat
+        archive=self.root/'bundle.zip'
+        with zipfile.ZipFile(archive,'w') as z:
+            z.writestr('App/Framework/Versions/A/library','runtime data')
+            item=zipfile.ZipInfo('App/Framework/Versions/Current')
+            item.create_system=3;item.external_attr=(stat.S_IFLNK|0o777)<<16
+            z.writestr(item,'A')
+        extract_runtime(archive,self.root/'stage')
+        link=self.root/'stage/App/Framework/Versions/Current'
+        self.assertTrue(link.is_symlink())
+        self.assertEqual((link/'library').read_text(),'runtime data')
 
     def test_contact_never_sends_without_explicit_confirmation(self):
         with patch('healthbar.contact.smtplib.SMTP') as smtp:

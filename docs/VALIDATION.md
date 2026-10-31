@@ -41,10 +41,10 @@ Bazzite/Wayland ou Mac Intel anciens. Les contrôles PWM/Turbo restent absents.
 
 ## CYBER NEXUS HUD / NovaBar 0.3
 
-22 tests locaux au moment de la première vérification : acceptation des conditions, profil local,
+25 tests locaux après vérification des migrations et des liens internes de bundles : acceptation des conditions, profil local,
 préservation de l’e-mail lors d’un changement de préférences, refus d’une autre famille d’OS ou
 High Sierra, raccourcis en double, conservation d’une version existante, absence d’activation
-si le binaire échoue, manifeste officiel et versions, refus des chemins/liens ZIP, refus d’envoi
+si le binaire échoue, manifeste officiel et versions, refus des chemins ZIP et des liens externes, refus d’envoi
 SMTP sans confirmation, et conservation de l’état actif en cas de mauvais SHA-256.
 Aperçus des deux pages inspectés. Les tests utilisent des répertoires temporaires.
 
@@ -54,3 +54,6 @@ staged avec version 0.3.0 attendue, création du profil et activation testées s
 l’autostart ni créer de raccourci sur la machine de travail. Archive runtime créée, extraite
 avec l’extracteur de l’updater, puis vrai binaire extrait exécuté en self-test : succès.
 Les deux pages ont été inspectées à partir des captures du lanceur.
+
+Le chemin source a également été exécuté en entier : venv privé, téléchargement des dépendances,
+compilation PyInstaller sur l’hôte Linux, self-test du binaire produit et activation temporaire : succès.

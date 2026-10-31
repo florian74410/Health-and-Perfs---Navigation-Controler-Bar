@@ -55,6 +55,11 @@ def save_profile(identity, preferences, installation=None):
     root = ensure_workspace()
     key = profile_id()  # OS account identity, not user-entered paths or email.
     path = root / "App/Profiles" / (key + ".json")
+    if installation is None and path.is_file():
+        try:
+            installation = json.loads(path.read_text(encoding="utf-8")).get("installation", {})
+        except (ValueError, OSError, AttributeError):
+            installation = {}
     record = {"schema_version": 1, "identity": identity, "preferences": preferences,
               "installation": installation or {}}
     write_json(path, record)

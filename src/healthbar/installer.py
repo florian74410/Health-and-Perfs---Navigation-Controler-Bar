@@ -17,7 +17,7 @@ from . import __version__
 from .branding import BrandHeader
 from .config import Settings
 from .platforms import TARGETS, detected_target, target_by_key, validate_host
-from .profiles import save_profile, workspace_dir
+from .profiles import save_profile, workspace_dir, current_profile
 from .install_engine import install
 
 REPOSITORY = "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar"
@@ -167,6 +167,15 @@ class InstallerWizard(QDialog):
         self.os_choice.setCurrentIndex(next(i for i,t in enumerate(TARGETS) if t.key==detected_target()))
         form.addRow("E-mail",self.email);form.addRow("Utilisateur / Nom",self.username);form.addRow("Système d’exploitation",self.os_choice)
         box.addLayout(form)
+        try:
+            import json
+            path=workspace_dir()/"App/Profiles"/(current_profile()+".json")
+            identity=json.loads(path.read_text(encoding="utf-8")).get("identity",{})
+            self.email.setText(identity.get("email",""))
+            self.username.setText(identity.get("username",getpass.getuser()))
+            self.share.setChecked(identity.get("share_experience",True))
+        except (OSError,ValueError,AttributeError,TypeError):
+            pass
         self.capabilities=QLabel();self.capabilities.setWordWrap(True);box.addWidget(self.capabilities)
         self.os_choice.currentIndexChanged.connect(self.show_capabilities);self.show_capabilities()
         box.addStretch()
@@ -182,7 +191,7 @@ class InstallerWizard(QDialog):
 
     def build_preferences_page(self):
         box=self.scroll_page();form=QFormLayout();form.setSpacing(12)
-        self.autostart=QCheckBox("Afficher NovaBar à chaque ouverture de session");self.autostart.setChecked(True)
+        self.autostart=QCheckBox("Afficher NovaBar à chaque ouverture de session");self.autostart.setChecked(self.settings.autostart if self.settings.configured else True)
         self.desktop=QCheckBox("Créer un raccourci sur le bureau");self.desktop.setChecked(True)
         self.opacity=QSlider(Qt.Orientation.Horizontal);self.opacity.setRange(0,100);self.opacity.setValue(self.settings.opacity)
         self.opacity_value=QLabel(f"{self.settings.opacity} %")
@@ -346,4 +355,4 @@ def main():
 
 def payload_executable_available(path):
     from .install_engine import payload_executable
-    return payload_executable(path) is not None
+    return any(path.glob("NovaBar-runtime-*.zip")) or payload_executable(path) is not None

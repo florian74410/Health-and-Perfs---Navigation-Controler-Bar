@@ -100,7 +100,7 @@ L’archive runtime ne contient ni profil, ni thème utilisateur, ni plugin util
 
 Le manifeste `novabar-update-manifest.json` associe version, URL et SHA-256 des archives
 `NovaBar-runtime-<os>-<architecture>.zip`. Seules les URLs de releases du dépôt officiel
-sont acceptées. Extraction contrôlée, refus de chemins traversants/liens, plafonds de taille,
+sont acceptées. Extraction contrôlée, refus de chemins traversants et de liens externes, plafonds de taille,
 test du binaire extrait, puis activation de sa nouvelle version. L’ancien dossier reste conservé.
 Le bouton Redémarrer attend la fermeture de l’ancien processus avant de lancer le nouveau.
 Les erreurs de téléchargement/empreinte/test ne remplacent pas l’installation active.

@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import platform
+import posixpath
 import re
 import shutil
 import stat
@@ -79,11 +80,13 @@ def check_release():
 
 def extract_runtime(archive,destination):
     destination=Path(destination)
+    destination.mkdir(parents=True,exist_ok=True)
+    base=destination.resolve()
     with zipfile.ZipFile(archive) as package:
         infos=package.infolist()
         if len(infos)>10000 or sum(i.file_size for i in infos)>MAX_EXPANDED:
             raise ValueError("Archive trop volumineuse")
-        names=set()
+        names=set();links=[]
         for item in infos:
             path=PurePosixPath(item.filename)
             if (not item.filename or path.is_absolute() or ".." in path.parts or "\\" in item.filename
@@ -91,13 +94,37 @@ def extract_runtime(archive,destination):
                 raise ValueError("Chemin de mise à jour interdit")
             names.add(path.as_posix().casefold())
             mode=item.external_attr>>16
-            if stat.S_ISLNK(mode):raise ValueError("Les liens symboliques ne sont pas acceptés dans le paquet de mise à jour")
+            if stat.S_ISLNK(mode):
+                if item.file_size>4096:raise ValueError("Lien trop long")
+                target=package.read(item).decode("utf-8")
+                normalized=posixpath.normpath(posixpath.join(str(path.parent),target))
+                if (not target or PurePosixPath(target).is_absolute() or "\\" in target or ":" in target
+                    or normalized==".." or normalized.startswith("../") or "\x00" in target):
+                    raise ValueError("Lien sortant du paquet")
+                links.append((path,target))
         for item in infos:
+            if stat.S_ISLNK(item.external_attr>>16):continue
             target=destination.joinpath(*PurePosixPath(item.filename).parts)
+            if not target.parent.resolve().is_relative_to(base):raise ValueError("Dossier sortant du paquet")
             if item.is_dir():target.mkdir(parents=True,exist_ok=True);continue
             target.parent.mkdir(parents=True,exist_ok=True)
             with package.open(item) as src,target.open("wb") as dst:shutil.copyfileobj(src,dst,1024*1024)
             target.chmod(0o755 if (item.external_attr>>16)&0o111 else 0o644)
+        # Create links only after all regular files, so no archive write follows a link.
+        for path,target in links:
+            link=destination.joinpath(*path.parts)
+            if not link.parent.resolve().is_relative_to(base):raise ValueError("Parent de lien externe")
+            link.parent.mkdir(parents=True,exist_ok=True)
+            normalized=posixpath.normpath(posixpath.join(str(path.parent),target))
+            destination_path=destination.joinpath(*PurePosixPath(normalized).parts)
+            link.symlink_to(target,target_is_directory=destination_path.is_dir())
+        for path,target in links:
+            link=destination.joinpath(*path.parts)
+            try:
+                if not link.resolve().is_relative_to(base) or not link.exists():
+                    raise ValueError("Cible de lien manquante ou externe")
+            except RuntimeError as error:
+                raise ValueError("Cycle de liens interdit") from error
 
 
 def prepare_update(release,progress):

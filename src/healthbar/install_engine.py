@@ -154,11 +154,18 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
         temporary=Path(temporary);stage=temporary/"stage";stage.mkdir()
         if payload:
             progress(15,"Préparation du paquet natif pour ce système")
-            original=payload_executable(payload)
-            if not original:
-                raise ValueError("Exécutable natif manquant dans le lanceur")
-            component=original.relative_to(payload).parts[0]
-            shutil.copytree(Path(payload)/component,stage/component,symlinks=True)
+            archives=list(Path(payload).glob("NovaBar-runtime-*.zip"))
+            if archives:
+                if len(archives) != 1:
+                    raise ValueError("Le lanceur contient plusieurs runtimes ambigus")
+                from .updates import extract_runtime
+                extract_runtime(archives[0],stage)
+            else:
+                original=payload_executable(payload)
+                if not original:
+                    raise ValueError("Exécutable natif manquant dans le lanceur")
+                component=original.relative_to(payload).parts[0]
+                shutil.copytree(Path(payload)/component,stage/component,symlinks=True)
         else:
             source_root=Path(source_root or "")
             if not (source_root/"pyproject.toml").is_file():
