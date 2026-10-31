@@ -21,6 +21,7 @@ from .holo import CpuHoloPanel
 from .telemetry import Telemetry
 from .help_links import WIKI_URL
 from .edge_docks import EdgeDock
+from .app_icon import novabar_icon
 
 
 from .ui_kit import QColor
@@ -147,6 +148,7 @@ class Bar(QWidget):
         self.canvas = HudCanvas(self.registry)
         self.canvas.set_telemetry({})  # No illustrative values before the first real sample.
         self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
+        self.canvas.hidden_modules = list(settings.hidden_modules)
         self.canvas.layout_changed.connect(self.save_layout)
         self.canvas.module_activated.connect(self.open_module_holo)
         self.root.addWidget(self.canvas, 1)
@@ -196,17 +198,12 @@ class Bar(QWidget):
         self.edge_timer.setInterval(120)
         self.edge_timer.timeout.connect(self.check_edge)
         self.edge_timer.start()
-        self.tray = QSystemTrayIcon(button_icon("settings"), self)
-        self.tray.setToolTip("Health & Perfs Bar • Prototype")
-        tray_menu = QMenu(self)
-        tray_menu.addAction("Afficher", self.reveal)
-        tray_menu.addAction("Préférences", self.preferences)
-        tray_menu.addAction("Extensions", self.plugins)
-        tray_menu.addAction("📖 Wiki NovaBar", self.open_wiki)
-        tray_menu.addSeparator()
-        tray_menu.addAction("Quitter", QApplication.instance().quit)
-        self.tray.setContextMenu(tray_menu)
-        self.tray.activated.connect(lambda reason: self.reveal() if reason == QSystemTrayIcon.ActivationReason.Trigger else None)
+        self.tray = QSystemTrayIcon(novabar_icon(settings.theme), self)
+        self.tray.setToolTip("NovaBar • CYBER NEXUS HUD")
+        self.tray_menu = QMenu(self)
+        self.tray.setContextMenu(self.tray_menu)
+        self.tray.activated.connect(self.tray_activated)
+        self.build_tray_menu()
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray.show()
         app = QApplication.instance()
@@ -291,6 +288,94 @@ class Bar(QWidget):
         for dock in self.sidebars.values():
             if dock.kind == kind:
                 dock.set_items(dock.default_items())
+
+    def tray_activated(self, reason):
+        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            self.setVisible(True)
+            self.reveal()
+        elif reason == QSystemTrayIcon.ActivationReason.Trigger:
+            self.build_tray_menu()
+            self.tray_menu.popup(QCursor.pos())
+
+    def quick_settings(self, **updates):
+        from dataclasses import replace
+        try:
+            changed = replace(self.settings, **updates).validate()
+            changed.save()
+        except (ValueError, OSError) as error:
+            QMessageBox.warning(None, "NovaBar", str(error))
+            return
+        self.settings.__dict__.update(changed.__dict__)
+        from .ui_kit import set_theme
+        set_theme(self.settings.theme)
+        self.apply_settings()
+        self.setVisible(self.settings.hud_enabled)
+        self.build_tray_menu()
+
+    def tray_toggle(self, panel):
+        field = {"hud": "hud_enabled", "left": "dock_left_enabled",
+                 "right": "dock_right_enabled"}[panel]
+        self.quick_settings(**{field: not getattr(self.settings, field)})
+
+    def tray_dock_side(self, kind, target):
+        current_side = ("left" if self.settings.dock_left_kind == kind else "right")
+        if current_side != target:
+            self.move_dock(current_side)
+        self.build_tray_menu()
+
+    def show_dock(self, kind):
+        dock = next((d for d in self.sidebars.values() if d.kind == kind), None)
+        if dock:
+            dock.expand()
+            dock.raise_()
+
+    def build_tray_menu(self):
+        menu = self.tray_menu
+        menu.clear()
+        menu.addAction("◈ Afficher le HUD", lambda: (self.setVisible(True), self.reveal()))
+        menu.addAction("📁 Afficher les dossiers", lambda: self.show_dock("folders"))
+        menu.addAction("▦ Afficher les applications", lambda: self.show_dock("apps"))
+        menu.addSeparator()
+        panels = menu.addMenu("◉ Barres actives")
+        for name, key in (("HUD télémétrie", "hud"), ("Dock gauche", "left"),
+                          ("Dock droit", "right")):
+            setting = {"hud":"hud_enabled", "left":"dock_left_enabled", "right":"dock_right_enabled"}[key]
+            action = panels.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(getattr(self.settings, setting))
+            action.triggered.connect(lambda checked=False, k=key: self.tray_toggle(k))
+        themes = menu.addMenu("🎨 Thème couleur")
+        for key, title in (("blue-neon", "Blue Neon"), ("green-matrix", "Green Matrix"),
+                           ("red-blood", "Red Blood")):
+            act = themes.addAction(title)
+            act.setCheckable(True)
+            act.setChecked(self.settings.theme == key or
+                           key == "blue-neon" and self.settings.theme == "cyber-futuriste")
+            act.triggered.connect(lambda checked=False, k=key: self.quick_settings(theme=k))
+        positions = menu.addMenu("◈ Positions")
+        hud_positions = positions.addMenu("Barre télémétrie")
+        for key, title in (("top", "Haut"), ("bottom", "Bas"),
+                           ("left", "Gauche (verticale)"), ("right", "Droite (verticale)")):
+            action = hud_positions.addAction(title)
+            action.setCheckable(True)
+            action.setChecked(self.settings.position == key)
+            action.triggered.connect(lambda checked=False, k=key: self.quick_settings(position=k))
+        for kind, title in (("folders", "Dossiers"), ("apps", "Applications")):
+            dock_menu = positions.addMenu(title)
+            for side, side_name in (("left", "À gauche"), ("right", "À droite")):
+                action = dock_menu.addAction(side_name)
+                action.setCheckable(True)
+                action.setChecked((self.settings.dock_left_kind if side == "left"
+                                   else self.settings.dock_right_kind) == kind)
+                action.triggered.connect(lambda checked=False, k=kind, x=side:
+                                         self.tray_dock_side(k, x))
+        menu.addSeparator()
+        menu.addAction("⚙ Préférences…", self.preferences)
+        menu.addAction("◈ Plugin Manager…", self.plugins)
+        menu.addAction("📖 Wiki NovaBar", self.open_wiki)
+        menu.addSeparator()
+        menu.addAction("⏻ Quitter NovaBar", self.quit_app)
+        self.tray.setIcon(novabar_icon(self.settings.theme))
 
     def sample_sensors(self):
         readings = self.sensors.sample()
@@ -416,6 +501,8 @@ class Bar(QWidget):
         thickness = int(thickness)
         self.canvas.vertical = vertical
         self.canvas.module_opacity = self.settings.opacity
+        self.canvas.hidden_modules = list(self.settings.hidden_modules)
+        self.canvas.slot_order = (self.settings.slot_order or self.canvas.ORIGINAL).copy()
         self.canvas.update()
         for child in self.buttons.findChildren(NeonButton):
             kind = child.property("icon_kind")
@@ -477,6 +564,8 @@ class Bar(QWidget):
         self.update()
         if hasattr(self, "sidebars"):
             self.sync_sidebars()
+        if hasattr(self, "tray_menu"):
+            self.build_tray_menu()
         self.arm_hide()
 
     def showEvent(self, event):
@@ -601,6 +690,8 @@ class Bar(QWidget):
                 panel.setStyleSheet(stylesheet(panel.base_style))
                 panel.update()
             self.hotkeys.configure(self.settings.shortcuts)
+            self.tray.setIcon(novabar_icon(self.settings.theme))
+            self.build_tray_menu()
 
     def plugins(self):
         self.run_dialog(PluginsDialog(self.registry, self))
@@ -737,6 +828,7 @@ def main():
     app = QApplication(sys.argv[:1])
     app.setApplicationName("HealthPerfsBar")
     app.setOrganizationName("HealthPerfs")
+    app.setWindowIcon(novabar_icon("blue-neon"))
     app.setQuitOnLastWindowClosed(False)
     if args.self_test:
         if args.expect_version and args.expect_version != __version__:
