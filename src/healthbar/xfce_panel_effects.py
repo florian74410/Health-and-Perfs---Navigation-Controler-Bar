@@ -11,7 +11,7 @@ import os
 import sys
 import time
 
-from PySide6.QtCore import QPointF, Qt, QTimer, QRect
+from PySide6.QtCore import QPointF, Qt, QTimer, QRect, QRectF
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -142,6 +142,18 @@ class XFCEPanelCircuitEffects(QWidget):
             p.drawLine(QPointF(x+14, 4.5), QPointF(x+32, 4.5))
             p.setPen(QPen(accent, 1))
             p.drawEllipse(QPointF(x+32, 4.5), 1.4, 1.4)
+        # Subminiature silicon nodes are confined to the thin upper edge.
+        # No added row: all existing launcher and systray hit zones remain native.
+        for chip_x in range(108, width-35, 224):
+            core = QColor(theme[0]); core.setAlpha(round(35*strength))
+            p.setPen(QPen(soft, .7))
+            p.setBrush(core)
+            p.drawRoundedRect(QRectF(chip_x, .5, 18, 7), 1.2, 1.2)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRect(QRectF(chip_x+5, 2.3, 8, 3.1))
+            for pin in (3, 8, 13):
+                p.drawLine(QPointF(chip_x+pin, 0), QPointF(chip_x+pin, 1.5))
+                p.drawLine(QPointF(chip_x+pin, 6.9), QPointF(chip_x+pin, 8.3))
         for x in (9, width-10):
             p.setPen(QPen(accent, 1))
             p.drawEllipse(QPointF(x, height-4), 2.4, 2.4)
