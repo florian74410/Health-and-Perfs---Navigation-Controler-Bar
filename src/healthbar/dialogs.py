@@ -1,12 +1,17 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
-    QMessageBox, QListWidget, QHBoxLayout)
+    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit)
 from . import __version__
 from .autostart import set_enabled
+from .plugins import PluginRegistry
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
+QTabWidget::pane { border: 1px solid #17639b; border-radius: 8px; padding: 15px; }
+QTabBar::tab { color: #c6eaff; padding: 10px 13px; background: #091b32; border: 1px solid #17639b; }
+QTabBar::tab:selected { background: #104377; color: #31dcff; border-bottom: 2px solid #21ceff; }
+QLineEdit { color: #e4f2ff; background: #0b2440; border: 1px solid #17639b; padding: 8px; }
 QLabel, QCheckBox { color: #c4d9f7; font-size: 13px; }
 QLabel#title { color: #31dcff; font-size: 25px; font-weight: 700; }
 QPushButton, QComboBox, QSpinBox { color: #dcecff; background: #0b2440;
@@ -26,7 +31,8 @@ class SettingsDialog(QDialog):
         self.settings = settings
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
         self.setStyleSheet(STYLE)
-        self.setMinimumWidth(510)
+        self.setMinimumWidth(630)
+        self.resize(710, 630)
         box = QVBoxLayout(self)
         box.setContentsMargins(30, 26, 30, 26)
         box.setSpacing(20)
@@ -66,8 +72,68 @@ class SettingsDialog(QDialog):
         form.addRow("Rétractation", self.auto_hide)
         self.autostart = QCheckBox("Lancer à l’ouverture de ma session")
         self.autostart.setChecked(settings.autostart)
-        form.addRow("Démarrage", self.autostart)
-        box.addLayout(form)
+        
+        self.hide_seconds = QSpinBox()
+        self.hide_seconds.setRange(3, 120)
+        self.hide_seconds.setValue(settings.hide_seconds)
+        self.hide_seconds.setSuffix(" secondes")
+        form.addRow("Délai avant veille", self.hide_seconds)
+        self.length_percent = QSpinBox()
+        self.length_percent.setRange(25, 100)
+        self.length_percent.setValue(settings.length_percent)
+        self.length_percent.setSuffix(" % écran")
+        form.addRow("Longueur", self.length_percent)
+        self.alignment = QComboBox()
+        self.alignment.addItems(["Left", "Middle", "Right"])
+        self.alignment.setCurrentIndex(("left", "center", "right").index(settings.alignment))
+        form.addRow("Alignement", self.alignment)
+        tabs = QTabWidget()
+        general = QWidget()
+        general_form = QFormLayout(general)
+        general_form.addRow("Démarrage", self.autostart)
+        self.refresh_seconds = QSpinBox()
+        self.refresh_seconds.setRange(1, 30)
+        self.refresh_seconds.setSuffix(" s")
+        self.refresh_seconds.setValue(settings.refresh_seconds)
+        general_form.addRow("Actualisation", self.refresh_seconds)
+        self.shell_dir = QLineEdit(settings.shell_dir)
+        self.shell_dir.setPlaceholderText("~/Scripts/HardwareHealth")
+        folder_row = QHBoxLayout()
+        folder_row.addWidget(self.shell_dir)
+        browse = QPushButton("Parcourir")
+        browse.clicked.connect(self.choose_script_folder)
+        folder_row.addWidget(browse)
+        general_form.addRow("Dossier Shell", folder_row)
+        general_form.addRow("Thème actif", QLabel("CYBER-FUTURISTE • Electric Blue"))
+        display = QWidget()
+        display.setLayout(form)
+        edit = QWidget()
+        editor = QVBoxLayout(edit)
+        editor.addWidget(QLabel("ÉDITION DU HUD • réglages rapides"))
+        tip = QLabel("La présentation se compacte automatiquement lorsque la longueur diminue.")
+        tip.setWordWrap(True)
+        editor.addWidget(tip)
+        reset = QPushButton("Rétablir l'affichage d'origine")
+        reset.clicked.connect(self.reset_display)
+        editor.addWidget(reset)
+        editor.addStretch()
+        extensions = QWidget()
+        ext_layout = QVBoxLayout(extensions)
+        ext_layout.addWidget(QLabel("Importer des ZIP v2, activer les plugins et restaurer une version."))
+        open_ext = QPushButton("OUVRIR LE PLUGIN MANAGER")
+        open_ext.clicked.connect(lambda: PluginsDialog(PluginRegistry(), self).exec())
+        ext_layout.addWidget(open_ext)
+        ext_layout.addStretch()
+        help_tab = QWidget()
+        help_layout = QVBoxLayout(help_tab)
+        howto = QLabel("Bord de l'écran : révéler la barre\nCarré flèche : agrandir / réduire\nTurbo : disponible uniquement avec contrôleur certifié\nZIP : code jamais exécuté automatiquement")
+        howto.setWordWrap(True)
+        help_layout.addWidget(howto)
+        help_layout.addStretch()
+        for name, widget in (("Générale", general), ("Affichage", display),
+                              ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
+            tabs.addTab(widget, name)
+        box.addWidget(tabs, 1)
         note = QLabel("Les mesures affichées sont une maquette statique.\nAucun plugin matériel ni contrôle Turbo n’est activé dans cette version.")
         note.setWordWrap(True)
         box.addWidget(note)
@@ -78,12 +144,26 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         box.addWidget(buttons)
 
+    def choose_script_folder(self):
+        chosen = QFileDialog.getExistingDirectory(self, "Dossier de scripts Shell", self.shell_dir.text())
+        if chosen:
+            self.shell_dir.setText(chosen)
+
+    def reset_display(self):
+        self.length_percent.setValue(100)
+        self.thickness.setValue(200)
+        self.opacity.setValue(88)
+        self.hide_seconds.setValue(15)
+
     def save(self):
         from dataclasses import replace
         updated = replace(self.settings, position=("top", "bottom", "right")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
-            auto_hide=self.auto_hide.isChecked(), hide_seconds=15,
-            autostart=self.autostart.isChecked(), configured=True)
+            auto_hide=self.auto_hide.isChecked(), hide_seconds=self.hide_seconds.value(),
+            autostart=self.autostart.isChecked(), configured=True,
+            length_percent=self.length_percent.value(),
+            alignment=("left", "center", "right")[self.alignment.currentIndex()],
+            refresh_seconds=self.refresh_seconds.value(), shell_dir=self.shell_dir.text().strip())
         try:
             set_enabled(updated.autostart)
             updated.save()
@@ -98,7 +178,7 @@ class PluginsDialog(QDialog):
     def __init__(self, registry, parent=None):
         super().__init__(parent)
         self.registry = registry
-        self.setWindowTitle("Extensions • Health & Perfs")
+        self.setWindowTitle("NovaBar • Plugin Manager")
         self.setStyleSheet(STYLE)
         self.resize(650, 440)
         box = QVBoxLayout(self)
@@ -106,7 +186,7 @@ class PluginsDialog(QDialog):
         title = QLabel("DOCK D’EXTENSIONS")
         title.setObjectName("title")
         box.addWidget(title)
-        note = QLabel("API v1 • Ajouter ou mettre à jour un paquet local .hbp\nSocle déclaratif : réserve et nomme les emplacements ; aucun code de plugin exécuté.")
+        note = QLabel("API v1/v2 • Importer ZIP ou .hbp\nArchives vérifiées ; scripts du plugin jamais exécutés automatiquement.")
         note.setWordWrap(True)
         box.addWidget(note)
         self.list = QListWidget()
