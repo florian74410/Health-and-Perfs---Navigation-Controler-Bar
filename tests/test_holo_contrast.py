@@ -19,3 +19,24 @@ class HoloContrastTests(unittest.TestCase):
         self.assertGreater(sum(c.alpha()==255 and c.lightness()>220 for c in pixels),50)
         self.assertEqual(image.pixelColor(150,20).alpha(),0)
         label.close()
+
+    def test_background_follows_every_theme_and_keeps_partial_opacity(self):
+        from healthbar.ui_kit import set_theme, holo_background
+        colors=[]
+        for theme in ('blue-neon','green-matrix','red-blood'):
+            set_theme(theme);color=holo_background()
+            self.assertEqual(color.alpha(),217)
+            self.assertLess(color.lightness(),32)
+            colors.append(color.name())
+        self.assertEqual(len(set(colors)),3)
+        set_theme('blue-neon')
+
+    def test_theme_does_not_turn_values_or_labels_green(self):
+        from healthbar.ui_kit import set_theme, stylesheet
+        style='QLabel {color:#F0F5FB;} QLabel#holoHeading {color:#AEBED0;} QPushButton {border-color:#00d9ff;}'
+        for theme in ('green-matrix','red-blood'):
+            set_theme(theme);rendered=stylesheet(style)
+            self.assertIn('color:#F0F5FB',rendered)
+            self.assertIn('color:#AEBED0',rendered)
+            self.assertNotIn('border-color:#00d9ff',rendered)
+        set_theme('blue-neon')

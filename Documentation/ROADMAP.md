@@ -2,6 +2,12 @@
 
 > Document de référence des fonctionnalités, validé le 31 octobre 2026. Le statut « prévu » ne signifie pas implémenté. Les versions des plugins et du runtime doivent être compatibles avant distribution.
 
+## Réalisé dans le code 0.5.3
+
+- Fond Holo uni teinté à 85 % d’opacité et extérieur transparent.
+- Angles biseautés, contours segmentés et détails diagonaux sur le pourtour.
+- Palette distincte pour valeurs, libellés et accents ; texte non intégralement vert.
+
 ## Réalisé dans le code 0.5.2
 
 - Contour sombre des textes et boutons Holo sur fond transparent.

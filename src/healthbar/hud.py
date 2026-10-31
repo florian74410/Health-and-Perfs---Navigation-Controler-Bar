@@ -3,6 +3,7 @@ import math
 import time
 from PySide6.QtCore import Qt, QPointF, QRectF, QRect, Signal, QTimer
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush, QFontMetricsF
+from PySide6.QtGui import QColor as TextColor
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
@@ -28,9 +29,9 @@ def text(p, x, y, value, size=18, color=WHITE, bold=True):
     font.setBold(bold)
     p.setFont(font)
     glyphs=QPainterPath();glyphs.addText(QPointF(x,y),font,str(value))
-    glow=QColor(color);glow.setAlpha(45)
+    glow=TextColor(color);glow.setAlpha(45)
     p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(glow,2.3));p.drawPath(glyphs)
-    p.setPen(QColor(color))
+    p.setPen(TextColor(color))
     p.drawText(QPointF(x, y), str(value))
 
 
