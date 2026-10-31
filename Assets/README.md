@@ -45,3 +45,13 @@ Courbes UP verte et DOWN rouge ; histogramme de ping bleu. Les mesures des captu
 - `Previews/novabar-v053-holo-glass-themes.png` : comparaison des trois thèmes sur fond clair ; textes neutres et accents colorés.
 
 Les captures Qt utilisent des données de démonstration et un fond de présentation.
+
+
+### NOVA NEXUS HD 0.7.0
+
+- `Previews/nova-v070-terminal-manager.png` : interface Qt réelle, format 2 + 2, contenu de démonstration sans commandes exécutées.
+- `Previews/nova-v070-terminal-column.png` : grande colonne gauche et deux panneaux droits.
+- `Overlays/nova_pcb_overlay.svg` : pistes PCB partagées avec le châssis.
+- `Wallpapers/nova-electric-blue-pcb.svg` : fond vectoriel embarqué.
+
+Régénérer les deux aperçus avec `PYTHONPATH=src python scripts/render_nova_terminal.py`.

@@ -40,7 +40,7 @@ class CockpitTests(unittest.TestCase):
             self.assertEqual(launch.grid.iconSize().width(),44)
         finally:launch.close()
     def test_cockpit_is_large_and_theme_changes_real_pixels(self):
-        self.assertGreaterEqual(bottom_height(Settings()),80)
+        self.assertEqual(bottom_height(Settings()),70)
         frame=CockpitFrame('blue-neon');frame.resize(1000,88)
         first=QImage(frame.size(),QImage.Format.Format_ARGB32);first.fill(Qt.GlobalColor.transparent);frame.render(first)
         frame.theme='red-blood';second=QImage(frame.size(),QImage.Format.Format_ARGB32);second.fill(Qt.GlobalColor.transparent);frame.render(second)

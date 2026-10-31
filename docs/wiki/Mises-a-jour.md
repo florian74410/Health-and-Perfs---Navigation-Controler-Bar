@@ -1,5 +1,9 @@
 > **0.6.11 :** la refonte du cockpit conserve le moteur Upgrade de la 0.6.10. Depuis la 0.6.10, utiliser **Paramètres → Upgrade**.
 
+
+**0.7.0 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
+
+
 # 🔄 Mises à jour et sauvegardes
 
 > La priorité est de ne pas détruire une installation saine ni les plugins locaux.

@@ -1,5 +1,9 @@
 > **0.6.11 :** [cockpit à grandes icônes, NEXUS organisé et icônes système](../UPDATE_V0611.md). Mise à jour via **Paramètres → Upgrade**.
 
+
+**0.7.0 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
+
+
 > **0.6.10 :** [barre inférieure autonome et bords invisibles](Docks.md) · [Upgrade intégré](Mises-a-jour.md).
 
 <p align="center"><img src="assets/banner.svg" alt="NovaBar — Wiki CYBER NEXUS HUD" width="100%"></p>

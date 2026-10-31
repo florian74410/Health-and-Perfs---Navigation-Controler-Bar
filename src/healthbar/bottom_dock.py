@@ -19,7 +19,7 @@ from .system_status import DesktopStatus
 from .status_notifier import StatusNotifierHost,item_icon
 
 
-def bottom_height(settings):return min(104,max(72,round(50*settings.xfce_skin_scale_percent/100)))
+def bottom_height(settings):return min(112,max(60,settings.bottom_dock_height))
 
 
 def applications():return [(a.path,a.name,a.icon) for a in catalog()]
@@ -92,6 +92,7 @@ class BottomDock(QWidget):
             button=QToolButton();button.setToolTip(tip);button.setAccessibleName(tip);button.setIcon(symbol_icon({'network':'wifi','notifications':'bell','lock':'shield'}.get(kind,kind)));button.clicked.connect(handler);self.indicators[kind]=button;self.row.addWidget(button)
         self.clock=QToolButton();self.clock.setObjectName('cockpitClock');self.clock.clicked.connect(self.open_system);self.row.addWidget(self.clock)
         self.status=self.clock  # Retain system-menu access for existing integrations.
+        self.desktop_button=QToolButton();self.desktop_button.setIcon(symbol_icon('desktop'));self.desktop_button.setToolTip('Afficher / restaurer le bureau');self.desktop_button.setAccessibleName('Afficher le bureau');self.desktop_button.setCheckable(True);self.desktop_button.clicked.connect(lambda:self.backend.toggle_desktop());self.row.addWidget(self.desktop_button)
         self.preferences=QToolButton();self.preferences.setIcon(symbol_icon('settings'));self.preferences.setToolTip('Préférences NovaBar');self.preferences.clicked.connect(self.settings_requested.emit);self.row.addWidget(self.preferences)
         self.tray=StatusNotifierHost(self);self.tray.items_changed.connect(self.update_tray);self.tray.menu_ready.connect(self.tray_menu)
         if self.live_status and os.getenv('DBUS_SESSION_BUS_ADDRESS'):self.tray.start()
@@ -105,7 +106,7 @@ class BottomDock(QWidget):
 
     def housing_regions(self):
         regions=[self.launchers.geometry().adjusted(-7,-7,7,7)]
-        widgets=[w for w in [self.tray_widget,*self.indicators.values(),self.clock,self.preferences] if w.isVisible() and w.width()>0]
+        widgets=[w for w in [self.tray_widget,*self.indicators.values(),self.clock,self.desktop_button,self.preferences] if w.isVisible() and w.width()>0]
         if widgets:
             left=min(w.geometry().left() for w in widgets);right=max(w.geometry().right() for w in widgets)
             regions.append(QRect(left-7,13,right-left+15,self.height()-26))
@@ -128,6 +129,9 @@ class BottomDock(QWidget):
         if not screens:return
         bounds=screens[min(settings.screen,len(screens)-1)].geometry();height=bottom_height(settings)
         self.full_rect=QRect(bounds.left(),bounds.bottom()-height+1,bounds.width(),height);self.setFixedHeight(height);self.setGeometry(self.full_rect)
+        margin=14 if height<88 else 20
+        self.row.setContentsMargins(23,margin,23,margin)
+        content=height-2*margin
         key=tuple(pinned_apps(settings))
         if key!=self._pin_key:
             self._pin_key=key
@@ -139,9 +143,10 @@ class BottomDock(QWidget):
                 if not info:continue
                 button=QToolButton();button.setIcon(app_icon(info[1]));button.setToolTip(info[0]);button.setAccessibleName(info[0]);button.clicked.connect(lambda checked=False,p=path:launch_item(p,'apps'));self.pins.addWidget(button)
         self._task_key=None
-        for button in self.launchers.findChildren(QToolButton):button.setFixedSize(height-36,height-40);button.setIconSize(QSize(min(42,height-48),min(42,height-48)))
-        for button in self.indicators.values():button.setFixedSize(34,height-40);button.setIconSize(QSize(27,27))
-        self.preferences.setFixedSize(30,height-40);self.preferences.setIconSize(QSize(23,23));self.clock.setFixedSize(76,height-40)
+        for button in self.launchers.findChildren(QToolButton):button.setFixedSize(content,content);button.setIconSize(QSize(min(42,content-6),min(42,content-6)))
+        for button in self.indicators.values():button.setFixedSize(34,content);button.setIconSize(QSize(27,27))
+        self.preferences.setFixedSize(30,content);self.preferences.setIconSize(QSize(23,23));self.clock.setFixedSize(76,content)
+        self.desktop_button.setFixedSize(30,content);self.desktop_button.setIconSize(QSize(23,23))
         self.hide_timer.setInterval(settings.xfce_skin_delay_seconds*1000)
         if not self.collapsed:self.show()
         self.body.update()
@@ -160,6 +165,8 @@ class BottomDock(QWidget):
         elif not self.hide_timer.isActive():self.hide_timer.start()
 
     def refresh(self):
+        if self._closing:return
+        self.desktop_button.setChecked(self.backend.showing_desktop())
         self.clock.setText(QDateTime.currentDateTime().toString('HH:mm'));self.clock.setToolTip(QDateTime.currentDateTime().toString('dddd dd MMMM yyyy')+'\nCliquer : système et session')
         rows,active=self.backend.snapshot();self._active=active
         key=tuple((r['id'],r['name'],r['icon']) for r in rows)+(active,self.settings.theme,self.tasks_area.viewport().width())
@@ -174,7 +181,7 @@ class BottomDock(QWidget):
                     icon=QIcon.fromTheme(row['icon'])
                     if icon.isNull():icon=self.backend.window_icon(row['id'])
                     self._icon_cache[row['id']]=icon if not icon.isNull() else app_icon(row['icon'])
-                button=TaskButton(row,self._icon_cache[row['id']],self.settings.theme);button.setFixedHeight(self.full_rect.height()-42);button.setProperty('active',row['id']==active)
+                button=TaskButton(row,self._icon_cache[row['id']],self.settings.theme);button.setFixedHeight(self.full_rect.height()-(28 if self.full_rect.height()<88 else 40));button.setProperty('active',row['id']==active)
                 button.setFixedWidth(min(480,max(128,(self.tasks_area.viewport().width()-14)//max(1,len(rows))-8)))
                 button.clicked.connect(lambda checked=False,x=row['id']:self.backend.action(x,minimize=x==self._active))
                 button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);button.customContextMenuRequested.connect(lambda pos,b=button,r=row:self.task_menu(b,r));self.tasks.addWidget(button)
@@ -275,7 +282,10 @@ class BottomDock(QWidget):
         if command:
             try:subprocess.Popen(command,env=native_env(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
             except OSError:pass
-    def showEvent(self,event):super().showEvent(event);apply_priority(self,True);schedule_all_workspaces(self)
+    def showEvent(self,event):
+        super().showEvent(event)
+        from .overlay import mark_desktop_panel
+        mark_desktop_panel(self);apply_priority(self,True);schedule_all_workspaces(self)
     def closeEvent(self,event):
         if not self._closing:
             self._closing=True

@@ -38,7 +38,7 @@ class DesktopBackend:
                     window=con.create_resource_object('window',int(xid))
                     if skip in self.prop(con,window,'_NET_WM_STATE',[]):continue
                     if dock in self.prop(con,window,'_NET_WM_WINDOW_TYPE',[]):continue
-                    if self.prop(con,window,'_NET_WM_PID',[0])[0] == os.getpid():continue
+                    if self.prop(con,window,'_NET_WM_PID',[0])[0] == os.getpid() and not self.prop(con,window,'_NOVABAR_APPLICATION',[0])[0]:continue
                     if self.prop(con,window,'_NET_WM_DESKTOP',[desktop])[0] not in (desktop,0xffffffff):continue
                     raw=self.prop(con,window,'_NET_WM_NAME')
                     name=bytes(raw).decode('utf-8','replace') if raw is not None else window.get_wm_name()
@@ -83,6 +83,31 @@ class DesktopBackend:
             values=[3,0,0,0,0] if minimize else [0,2,0,0,0] if close else [2,X.CurrentTime,0,0,0]
             root.send_event(protocol.event.ClientMessage(window=window,client_type=con.intern_atom(name),data=(32,values)),
                             event_mask=X.SubstructureRedirectMask|X.SubstructureNotifyMask)
+            con.flush();return True
+        except Exception:return False
+        finally:
+            if con:con.close()
+
+    def showing_desktop(self):
+        if not x11_ready():return False
+        con=None
+        try:
+            con=self._connect()
+            return bool(self.prop(con,con.screen().root,'_NET_SHOWING_DESKTOP',[0])[0])
+        except Exception:return False
+        finally:
+            if con:con.close()
+
+    def toggle_desktop(self):
+        if not x11_ready():return False
+        from Xlib import X,protocol
+        con=None
+        try:
+            con=self._connect();root=con.screen().root
+            value=not bool(self.prop(con,root,'_NET_SHOWING_DESKTOP',[0])[0])
+            root.send_event(protocol.event.ClientMessage(window=root,
+                client_type=con.intern_atom('_NET_SHOWING_DESKTOP'),data=(32,[int(value),0,0,0,0])),
+                event_mask=X.SubstructureRedirectMask|X.SubstructureNotifyMask)
             con.flush();return True
         except Exception:return False
         finally:

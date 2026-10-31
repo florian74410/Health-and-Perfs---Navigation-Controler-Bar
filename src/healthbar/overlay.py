@@ -131,3 +131,19 @@ def maintain_all_workspaces(widget):
             apply_all_workspaces(widget)
     except RuntimeError:
         pass
+
+
+def mark_desktop_panel(widget):
+    if not sys.platform.startswith("linux") or not os.getenv("DISPLAY"):
+        return False
+    from PySide6.QtWidgets import QApplication
+    if QApplication.platformName() != "xcb":return False
+    from Xlib import Xatom,display
+    connection=display.Display()
+    try:
+        window=connection.create_resource_object("window",int(widget.winId()))
+        window.change_property(connection.intern_atom("_NET_WM_WINDOW_TYPE"),Xatom.ATOM,32,
+                               [connection.intern_atom("_NET_WM_WINDOW_TYPE_DOCK")])
+        connection.flush()
+        return True
+    finally:connection.close()

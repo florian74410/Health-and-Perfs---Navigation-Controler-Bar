@@ -1,5 +1,17 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
+
+## 0.7.0 — NOVA NEXUS HD complet
+
+- Unifie le runtime 0.6.11 et la fondation NOVA NEXUS HD dans l'installateur et Upgrade.
+- Ajoute NOVA Explorer, le gestionnaire NOVA Terminal Linux et leurs lanceurs.
+- Ajoute six formats de terminal, onglets, préférences de texte et châssis partagé avec les dialogues.
+- Ajoute activation/restauration du bureau XFCE et de l'association des dossiers.
+- Réduit le cockpit à 70 px, hauteur réglable 60–112 px, et ajoute Afficher le bureau.
+- Remodèle les touches HUD et renforce les pistes PCB en zigzag.
+- Synchronise les capteurs intégrés compatibles en conservant les choix d'activation et les extensions personnalisées.
+
+
 La barre inférieure adopte une coque métallique à plusieurs niveaux, des compartiments biseautés, des rails lumineux et des circuits. Elle conserve les couleurs du thème et passe à une hauteur adaptée à de grandes icônes (88 px au réglage par défaut, au lieu de 49 px).
 
 

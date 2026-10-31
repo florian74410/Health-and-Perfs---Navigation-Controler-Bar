@@ -59,6 +59,17 @@ def main():
             wait_for(lambda:con.create_resource_object('window',row['id']).get_attributes().map_state==X.IsUnmapped,app)
             assert backend.action(row['id'])
             wait_for(lambda:con.create_resource_object('window',row['id']).get_attributes().map_state==X.IsViewable,app)
+            assert backend.toggle_desktop()
+            wait_for(backend.showing_desktop,app)
+            wait_for(lambda:con.create_resource_object('window',row['id']).get_attributes().map_state==X.IsUnmapped,app)
+            assert dock.isVisible()
+            assert con.create_resource_object('window',int(dock.winId())).get_attributes().map_state==X.IsViewable
+            assert backend.toggle_desktop()
+            wait_for(lambda:not backend.showing_desktop(),app)
+            from healthbar.nova_components import open_explorer,_windows
+            assert open_explorer(temp)
+            wait_for(lambda:any(r['name']=='NOVA Explorer' for r in backend.snapshot()[0]),app)
+            for window in list(_windows):window.close()
             dock.collapse();assert not dock.isVisible()
             dock.expand();assert dock.isVisible()
             dock.close()
@@ -73,7 +84,7 @@ def main():
             wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsViewable for r in panels),app)
             assert not dock.native.path.exists()
             con.close()
-            print('PASS: real XFCE hidden/restored after close AND crash; task activation/minimize; autonomous dock')
+            print('PASS: XFCE close/crash restoration; task activation; show desktop; NOVA Explorer task; cockpit')
         finally:
             if dock:dock.close()
             for process in reversed(processes):

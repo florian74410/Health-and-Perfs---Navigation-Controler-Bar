@@ -260,10 +260,14 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
             python=venv_root/("Scripts/python.exe" if sys.platform=="win32" else "bin/python")
             progress(25,"Installation des dépendances dans l’environnement privé")
             run_logged([python,"-m","pip","install",source_root,"pyinstaller==6.16.0"],report)
+            progress(42,"Préparation des huit plugins intégrés")
+            run_logged([python,"-c","import sys;sys.path.insert(0,sys.argv[1]);from build_plugins import build;build(sys.argv[2])",
+                        source_root/"scripts",source_root/"src/healthbar/assets/plugins"],report)
             progress(45,"Compilation de l’application pour votre système")
             run_logged([python,"-m","PyInstaller","--noconfirm","--windowed","--name","HealthPerfsBar",
                         "--paths",source_root/"src","--distpath",stage,"--workpath",temporary/"build",
                         "--specpath",temporary,"--add-data",str(source_root/"src/healthbar/assets")+os.pathsep+"healthbar/assets","--osx-bundle-identifier","com.healthperfs.bar",
+                        "--add-data",str(source_root/"src/nova_nexus/assets")+os.pathsep+"nova_nexus/assets",
                         source_root/"scripts/entrypoint.py"],report)
         executable=payload_executable(stage)
         if not executable:

@@ -52,8 +52,8 @@ class CockpitFrame(QFrame):
         for edge in (0,1):
             y=7 if edge==0 else h-8;sign=1 if edge==0 else -1
             for x in range(42,w-40,94):
-                trace=QPainterPath(QPointF(x,y));trace.lineTo(x+15,y);trace.lineTo(x+20,y+sign*5);trace.lineTo(x+66,y+sign*5);trace.lineTo(x+72,y)
-                glow(p,trace,secondary,.8)
+                trace=QPainterPath(QPointF(x,y));trace.lineTo(x+15,y);trace.lineTo(x+22,y+sign*6);trace.lineTo(x+35,y+sign*6);trace.lineTo(x+42,y);trace.lineTo(x+52,y);trace.lineTo(x+59,y+sign*6);trace.lineTo(x+68,y+sign*6);trace.lineTo(x+75,y)
+                glow(p,trace,primary,1.65)
                 for k in range(4):
                     p.setPen(QPen(QColor('#274453'),2));p.drawLine(QPointF(x+4+k*5,y+sign*6),QPointF(x+8+k*5,y+sign*10))
                 p.setPen(Qt.PenStyle.NoPen);c=QColor(primary);c.setAlpha(150 if (x//94+int(self.phase))%4 else 255);p.setBrush(c);p.drawRoundedRect(QRectF(x+43,y-1.5,11,2.5),1,1)
@@ -65,6 +65,7 @@ class CockpitFrame(QFrame):
 
 
 _SVGS={
+ 'desktop':'<rect x="5" y="7" width="38" height="27" rx="2"/><path d="M24 34v8m-11 0h22M10 12h28"/>',
  'wifi':'<path d="M4 12q20-18 40 0M10 21q14-12 28 0M17 30q7-6 14 0"/><circle cx="24" cy="38" r="3" fill="currentColor" stroke="none"/>',
  'ethernet':'<path d="M10 6h28v25H10zM16 6v9m8-9v9m8-9v9M17 31v8h14v-8M24 39v6"/>',
  'volume':'<path d="M7 19h9L27 9v30L16 29H7zM33 17q8 7 0 14m5-21q15 14 0 28"/>',
