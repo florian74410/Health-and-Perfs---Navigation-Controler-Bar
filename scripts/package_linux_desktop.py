@@ -18,11 +18,7 @@ RUNTIME = "25.08"
 ROOT = Path(__file__).resolve().parents[1]
 BINARY = ROOT / "dist/HealthPerfsBar"
 OUT = ROOT / "dist/linux"
-ICON = """<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-<rect width="128" height="128" rx="26" fill="#041124"/>
-<path d="M18 28H110L64 105Z" fill="none" stroke="#00d9ff" stroke-width="8"/>
-<path d="M42 48H86L64 83Z" fill="none" stroke="#54ecff" stroke-width="6"/>
-<path d="M15 15H113" stroke="#167bff" stroke-width="3"/></svg>"""
+ICON = (ROOT / "src/healthbar/assets/novabar-icon.svg").read_text(encoding="utf-8")
 
 
 def _write(path, content, executable=False):

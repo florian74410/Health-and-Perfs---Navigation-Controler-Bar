@@ -14,7 +14,7 @@ class PluginV2Tests(unittest.TestCase):
             root = Path(tmp)
             with patch.dict(os.environ, HEALTHBAR_DATA_DIR=str(root)):
                 count = build(root / "zip")
-                self.assertEqual(count, 7)
+                self.assertEqual(count, 8)
                 registry = PluginRegistry(root / "App" / "Plugins")
                 for archive in sorted((root/"zip").glob("*.zip")):
                     manifest, digest = registry.inspect(archive)
@@ -22,8 +22,8 @@ class PluginV2Tests(unittest.TestCase):
                     self.assertEqual(manifest["kind"], "builtin-sensor")
                     registry.install(archive, digest)
                     registry.set_enabled(manifest["id"], True)
-                self.assertEqual(len(registry.installed()), 7)
-                self.assertEqual(len(list((root/"App"/"Repports"/"Plugins").glob("REPORT-*.md"))), 7)
+                self.assertEqual(len(registry.installed()), 8)
+                self.assertEqual(len(list((root/"App"/"Repports"/"Plugins").glob("REPORT-*.md"))), 8)
 
     def test_sample_has_stable_structure(self):
         data = Telemetry().sample()

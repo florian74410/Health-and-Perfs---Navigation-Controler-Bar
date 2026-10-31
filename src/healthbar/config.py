@@ -49,6 +49,10 @@ class Settings:
     theme: str = "cyber-futuriste"
     slot_order: list = None
     hidden_modules: list = field(default_factory=lambda: ["power"])
+    xfce_skin_enabled: bool = False
+    xfce_skin_delay_seconds: int = 10
+    xfce_skin_scale_percent: int = 175
+    xfce_skin_fx_intensity: int = 72
     shortcuts: list = field(default_factory=lambda: [{"action": "toggle", "sequence": "Ctrl+B"}])
 
     def validate(self):
@@ -72,11 +76,18 @@ class Settings:
         self.auto_hide = self.retract_mode == "auto"
         if type(self.always_on_top) is not bool or type(self.holo_enabled) is not bool:
             raise ValueError("Option affichage invalide")
-        for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled"):
+        for name in ("hud_enabled", "dock_left_enabled", "dock_right_enabled", "xfce_skin_enabled"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Activation de barre invalide : {name}")
-        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled):
-            raise ValueError("Activer au moins une des trois barres NovaBar")
+        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled or self.xfce_skin_enabled):
+            raise ValueError("Activer au moins une barre NovaBar ou le panneau XFCE")
+        if (type(self.xfce_skin_delay_seconds) is not int or
+                not 1 <= self.xfce_skin_delay_seconds <= 120 or
+                type(self.xfce_skin_scale_percent) is not int or
+                not 100 <= self.xfce_skin_scale_percent <= 200 or
+                type(self.xfce_skin_fx_intensity) is not int or
+                not 0 <= self.xfce_skin_fx_intensity <= 100):
+            raise ValueError("Délai ou intensité des effets XFCE invalide")
         if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
             raise ValueError("Un dock Dossiers et un dock Applications sont requis")
         for key in ("dock_folder_paths", "dock_app_paths"):
@@ -154,6 +165,9 @@ class Settings:
             f"- Thème: {self.theme}",
             f"- Modules: {', '.join(self.slot_order)}",
             f"- Modules masqués: {', '.join(self.hidden_modules)}",
+            f"- Habillage XFCE: {self.xfce_skin_enabled}",
+            f"- Repli XFCE: {self.xfce_skin_delay_seconds}s",
+            f"- Épaisseur XFCE: {self.xfce_skin_scale_percent}% de l'originale",
             "",
             "Le fichier settings.json est la source des préférences actives.",
         ]

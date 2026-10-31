@@ -231,6 +231,10 @@ class Bar(QWidget):
         self.hotkeys.configure(self.settings.shortcuts)
         self.sidebars = {}
         self.sync_sidebars()
+        self.xfce_skin_fx = None
+        self._xfce_skin_was_active = False
+        self.xfce_skin_status = "Non activé"
+        self.sync_xfce_skin()
 
     def sync_sidebars(self):
         """Create/hide the independent edge launchers without spawning processes."""
@@ -288,6 +292,44 @@ class Bar(QWidget):
         for dock in self.sidebars.values():
             if dock.kind == kind:
                 dock.set_items(dock.default_items())
+
+    def sync_xfce_skin(self):
+        """Manage the native Xfce panel without taking ownership of its icons."""
+        from .xfce_panel_skin import apply_skin, remove_skin, backup_path
+        enabled = bool(self.settings.xfce_skin_enabled)
+        if enabled:
+            ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,
+                                     self.settings.xfce_skin_scale_percent)
+            self.xfce_skin_status = message
+            if ok:
+                self._xfce_skin_was_active = True
+                if self.xfce_skin_fx is None:
+                    from .xfce_panel_effects import XFCEPanelCircuitEffects
+                    self.xfce_skin_fx = XFCEPanelCircuitEffects(self.settings)
+                self.xfce_skin_fx.settings = self.settings
+                self.xfce_skin_fx.locate_native_panel()
+            elif self.xfce_skin_fx is not None:
+                self.xfce_skin_fx.hide()
+        else:
+            if self._xfce_skin_was_active or backup_path().exists():
+                _ok, self.xfce_skin_status = remove_skin()
+                self._xfce_skin_was_active = not _ok
+            if self.xfce_skin_fx is not None:
+                self.xfce_skin_fx.close()
+                self.xfce_skin_fx.deleteLater()
+                self.xfce_skin_fx = None
+
+    def xfce_panel_preferences(self):
+        from .xfce_panel_skin import available
+        if not available():
+            QMessageBox.information(None, "XFCE", "Le panneau XFCE n'est pas disponible dans cette session.")
+            return
+        try:
+            subprocess.Popen(["xfce4-panel", "--preferences"],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        except OSError as error:
+            QMessageBox.warning(None, "XFCE", str(error))
 
     def tray_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
@@ -370,6 +412,33 @@ class Bar(QWidget):
                 action.triggered.connect(lambda checked=False, k=kind, x=side:
                                          self.tray_dock_side(k, x))
         menu.addSeparator()
+        from .xfce_panel_skin import available as xfce_available
+        xfce = menu.addMenu("⚡ Barre système XFCE")
+        toggle = xfce.addAction("Habillage CYBER NEXUS")
+        toggle.setCheckable(True)
+        toggle.setChecked(self.settings.xfce_skin_enabled)
+        toggle.setEnabled(xfce_available())
+        toggle.triggered.connect(
+            lambda checked: self.quick_settings(xfce_skin_enabled=bool(checked)))
+        xfce.addAction("Gérer les icônes et raccourcis…", self.xfce_panel_preferences).setEnabled(xfce_available())
+        shortcuts = xfce.addMenu("Rétraction rapide")
+        for seconds in (3, 5, 10, 15, 30, 60):
+            action = shortcuts.addAction(f"{seconds} secondes")
+            action.setCheckable(True)
+            action.setChecked(self.settings.xfce_skin_delay_seconds == seconds)
+            action.triggered.connect(lambda checked=False, n=seconds:
+                                     self.quick_settings(xfce_skin_delay_seconds=n))
+        thickness = xfce.addMenu("Épaisseur")
+        for percent in (100, 125, 150, 175, 200):
+            action = thickness.addAction(f"{percent} %")
+            action.setCheckable(True)
+            action.setChecked(self.settings.xfce_skin_scale_percent == percent)
+            action.triggered.connect(lambda checked=False, n=percent:
+                                     self.quick_settings(xfce_skin_scale_percent=n))
+        note = xfce.addAction(
+            f"Délai : {self.settings.xfce_skin_delay_seconds} s · "
+            f"épaisseur : {self.settings.xfce_skin_scale_percent} %")
+        note.setEnabled(False)
         menu.addAction("⚙ Préférences…", self.preferences)
         menu.addAction("◈ Plugin Manager…", self.plugins)
         menu.addAction("📖 Wiki NovaBar", self.open_wiki)
@@ -409,6 +478,12 @@ class Bar(QWidget):
             self.sensor_future = self.sensor_worker.submit(self.sample_sensors)
 
     def quit_app(self):
+        # Return the original desktop to XFCE when NovaBar exits normally.
+        if getattr(self, "_xfce_skin_was_active", False):
+            from .xfce_panel_skin import remove_skin
+            ok, message = remove_skin()
+            self.xfce_skin_status = message
+            self._xfce_skin_was_active = not ok
         self.close()
         QApplication.instance().quit()
 
@@ -416,6 +491,8 @@ class Bar(QWidget):
         self.tray.hide()
         for dock in getattr(self, "sidebars", {}).values():
             dock.close()
+        if getattr(self, "xfce_skin_fx", None) is not None:
+            self.xfce_skin_fx.close()
         self.holo.close_panel()
         for panel in self.module_holos.values(): panel.close_panel()
         self.sensor_timer.stop()
@@ -564,6 +641,8 @@ class Bar(QWidget):
         self.update()
         if hasattr(self, "sidebars"):
             self.sync_sidebars()
+        if hasattr(self, "xfce_skin_fx"):
+            self.sync_xfce_skin()
         if hasattr(self, "tray_menu"):
             self.build_tray_menu()
         self.arm_hide()

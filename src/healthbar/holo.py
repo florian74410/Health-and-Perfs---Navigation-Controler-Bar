@@ -403,7 +403,7 @@ class SensorHoloPanel(CpuHoloPanel):
             self.summary.setText("PUISSANCE + TENSIONS • W / V")
             self.note.setText("— = non mesurable sans sonde ou wattmètre externe · "
                               "W secteur ≠ puissance package/batterie")
-            self.resize(450, 390)
+            # Keep the compact glass size; the power detail table is scrollable.
         while self.grid.count():
             widget = self.grid.takeAt(0).widget()
             if widget:
