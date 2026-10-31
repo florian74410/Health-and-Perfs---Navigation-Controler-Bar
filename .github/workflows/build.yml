@@ -27,6 +27,8 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
       - run: python scripts/build.py
+      - name: Package first-party ZIP plugins
+        run: python scripts/build_plugins.py
       - name: Linux installer archive
         if: runner.os == 'Linux'
         run: |
@@ -52,3 +54,4 @@ jobs:
             HealthPerfsBar-*.tar.xz
             HealthPerfsBar-*.dmg
             dist/*-Setup-*.exe
+            dist/plugins/*.zip
