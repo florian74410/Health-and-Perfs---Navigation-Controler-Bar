@@ -1,3 +1,5 @@
+> **0.6.11 :** NovaBar affiche les icônes StatusNotifier/AppIndicator et XApp de Linux Mint dans la barre inférieure, avec leurs actions et menus. Les icônes exclusivement XEmbed restent sur le panneau XFCE. [Notes du cockpit](../UPDATE_V0611.md).
+
 # Barre inférieure XFCE / NovaBar 0.6.10
 
 La 0.6.10 remplace l’habillage seul de la 0.6.9 par une **barre NovaBar autonome**. Le message « Aucun panneau XFCE fixé au bord inférieur » ne bloque plus son affichage.

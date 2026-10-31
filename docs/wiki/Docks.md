@@ -1,4 +1,6 @@
-# Les quatre surfaces NovaBar — 0.6.10
+> **0.6.11 :** barre de 88 px au réglage par défaut, grandes icônes, fenêtres avec titres et coques biseautées. NEXUS propose catégories, favoris, recherche et grille de 44 px. Les indicateurs réseau/volume/Bluetooth/batterie sont réels ; les icônes StatusNotifier et XApp sont affichées avec leurs menus. [Détails et limites](../UPDATE_V0611.md).
+
+# Les quatre surfaces NovaBar — 0.6.11
 
 - HUD de performances : CPU, GPU, RAM, SSD, ventilateurs, réseau et Holo.
 - Dock Dossiers : répertoires personnels XDG, favoris et Récents.

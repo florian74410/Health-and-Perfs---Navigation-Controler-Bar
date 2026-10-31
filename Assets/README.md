@@ -1,3 +1,13 @@
+## NovaBar 0.6.11 — aperçus des widgets Qt livrés
+
+Données de démonstration, avec les vraies icônes natives/Papirus. Le pack de secours est attribué dans `src/healthbar/assets/icons/README.md`.
+
+![Cockpit 1280 px](Previews/novabar-v0611-cockpit-1280.png)
+
+![Cockpit 1920 px](Previews/novabar-v0611-cockpit-1920.png)
+
+![NEXUS et catégories](Previews/novabar-v0611-nexus.png)
+
 # Aperçus NovaBar
 
 ## 0.6.10

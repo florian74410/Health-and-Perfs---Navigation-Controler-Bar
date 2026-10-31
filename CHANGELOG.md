@@ -1,3 +1,12 @@
+# NovaBar 0.6.11 — Cockpit inférieur et NEXUS
+
+La barre inférieure adopte une coque métallique à plusieurs niveaux, des compartiments biseautés, des rails lumineux et des circuits. Elle conserve les couleurs du thème et passe à une hauteur adaptée à de grandes icônes (88 px au réglage par défaut, au lieu de 49 px).
+
+
+- Grandes icônes, titres de fenêtres, menu NEXUS par catégories, favoris et recherche.
+- Indicateurs système réels et hôtes StatusNotifier/DBusMenu/XApp.
+- Upgrade conservé.
+
 # NovaBar 0.6.10 — barre inférieure autonome et Upgrade
 
 - Barre inférieure Linux/X11 indépendante de `xfconf-query` : applications avec recherche, lanceurs XFCE, fenêtres actives, activation/réduction, clic droit fermer, horloge et accès réseau/volume/Bluetooth/session selon les outils installés.
