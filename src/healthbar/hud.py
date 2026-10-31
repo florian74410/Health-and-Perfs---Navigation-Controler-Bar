@@ -1,8 +1,8 @@
 """Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
 import time
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
@@ -24,18 +24,31 @@ def text(p, x, y, value, size=18, color=WHITE, bold=True):
     font.setPixelSize(size)
     font.setBold(bold)
     p.setFont(font)
+    glyphs=QPainterPath();glyphs.addText(QPointF(x,y),font,str(value))
+    glow=QColor(color);glow.setAlpha(45)
+    p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(glow,2.3));p.drawPath(glyphs)
     p.setPen(QColor(color))
-    p.drawText(QPointF(x, y), value)
+    p.drawText(QPointF(x, y), str(value))
 
 
 def outline(p, path, fill=None):
-    p.setBrush(QColor(fill) if fill else Qt.BrushStyle.NoBrush)
-    for width, alpha in ((10, 13), (5, 30), (2, 150), (0.8, 255)):
-        color = QColor(CYAN)
-        color.setAlpha(alpha)
-        p.setPen(QPen(color, width))
-        p.drawPath(path)
-        p.setBrush(Qt.BrushStyle.NoBrush)
+    # Glass stays inside each module. The surrounding desktop is never painted.
+    if fill is not None:
+        background=QColor(fill)
+        p.fillPath(path,background)
+        bounds=path.boundingRect()
+        reflection=QLinearGradient(bounds.left(),bounds.top(),bounds.left(),bounds.top()+24)
+        strength=background.alphaF()
+        reflection.setColorAt(0,QColor(174,238,255,round(42*strength)))
+        reflection.setColorAt(.22,QColor(66,161,255,round(18*strength)))
+        reflection.setColorAt(1,QColor(0,0,0,0))
+        p.fillPath(path,reflection)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for width, color, alpha in ((22,BLUE,9),(14,BLUE,21),(8,CYAN,27),
+                                 (3.4,BLUE,190),(1.5,CYAN,255),(.55,"#dcffff",235)):
+        neon=QColor(color);neon.setAlpha(alpha)
+        pen=QPen(neon,width);pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen);p.drawPath(path)
 
 
 def module_background(opacity):
@@ -113,6 +126,7 @@ def meter(p, x, y, w, ratio):
     grad.setColorAt(1, QColor("#61f6ff"))
     p.setBrush(grad)
     p.drawRoundedRect(QRectF(x+2, y+2, max(2, (w-4)*ratio), 11), 5, 5)
+    line(p,[(x+6,y+4),(x+max(6,(w-4)*ratio-2),y+4)],"#c4ffff",.7)
     for i in range(int((w-4)*ratio/12)):
         line(p, [(x+9+i*12, y+3), (x+4+i*12, y+12)], "#b1ffff", 1)
 
@@ -121,6 +135,10 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
     p.drawEllipse(QPointF(cx, cy), radius+9, radius+9)
+    ring=QConicalGradient(QPointF(cx,cy),35)
+    for stop,shade in ((0,"#0552dc"),(.22,"#b6fcff"),(.34,"#00bbff"),(.62,"#091d51"),(.82,"#168dff"),(1,"#0552dc")):
+        ring.setColorAt(stop,QColor(shade))
+    p.setPen(QPen(QBrush(ring),2.5));p.drawEllipse(QPointF(cx,cy),radius+7,radius+7)
     for j in range(39):
         a = math.radians(140+j*6.8)
         r1, r2 = radius-10, radius
@@ -156,8 +174,16 @@ class HudCanvas(QWidget):
         self.readings = None
         self.slot_order = self.ORIGINAL.copy()
         self._drag_origin = None
+        self.visual_timer=QTimer(self)
+        self.visual_timer.setInterval(50)
+        self.visual_timer.timeout.connect(self.animate_neon)
+        self.visual_timer.start()
         self.refresh_plugins()
         self.setToolTip("Mesures réelles si sonde disponible • tiret = indisponible")
+
+    def animate_neon(self):
+        if self.isVisible() and not getattr(self.window(),"retracted",False):
+            self.update()
 
     def set_telemetry(self, readings):
         self.readings = readings
@@ -206,6 +232,7 @@ class HudCanvas(QWidget):
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setClipRect(self.rect().adjusted(1,1,-1,-1))
         if self.vertical:
             self.paint_vertical(p)
         elif self.width() < 950:
@@ -261,7 +288,7 @@ class HudCanvas(QWidget):
 
     def mouseReleaseEvent(self, event):
         if self._drag_origin is not None:
-            index = self.module_at(event.position().x())
+            index = self.module_at(event.position())
             if index != self._drag_origin:
                 slot = self.slot_order.pop(self._drag_origin)
                 self.slot_order.insert(index, slot)
@@ -328,6 +355,16 @@ class HudCanvas(QWidget):
         points = [(1434+i*5, 166+math.sin(i*1.7)*3+math.cos(i*.5)*2) for i in range(25)]
         line(p, points, CYAN, 1.3)
         text(p, 26, 191, "DÉMO" if self.readings is None else "CAPTEURS LOCAUX", 8, "#78aad0", False)
+        phase=(time.monotonic()%7)/7
+        for y,offset in ((5,0),(195,.48)):
+            cx=24+((phase+offset)%1)*1516
+            center=QPointF(cx,y)
+            glow=QRadialGradient(center,11)
+            glow.setColorAt(0,QColor(210,255,255,230))
+            glow.setColorAt(.22,QColor(17,199,255,155))
+            glow.setColorAt(1,QColor(0,40,255,0))
+            p.setPen(Qt.PenStyle.NoPen);p.setBrush(glow);p.drawEllipse(center,11,9)
+            line(p,[(cx-17,y),(cx-2,y)],"#42e5ff",1.4)
 
     def paint_compact(self, p):
         columns = 2 if self.width() < 520 else 3

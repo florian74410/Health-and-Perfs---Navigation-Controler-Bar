@@ -13,7 +13,21 @@ et son système d’installation, de profils et de mises à jour.
 
 *Aperçu de démonstration : les valeurs illustrées ne sont pas des relevés matériels en direct.*
 
-## Version 0.3 — installateur graphique
+## Télécharger les installateurs
+
+Les paquets autonomes, **NovaBar incluse**, sont rangés dans [Executable/](Executable/README.md) :
+Linux Mint XFCE / Ubuntu, Windows 10/11, macOS Intel et Apple Silicon.
+Le `.run` Linux s’ouvre avec `sh CyberNexusHUD-Linux-x86_64.run`, sans Python ni compilation.
+
+## Version 0.3.1 — affichage néon et installateurs autonomes
+
+![NovaBar — néons et reflets renforcés](docs/novabar-neon-preview.png)
+
+La barre utilise par défaut 100 % de la largeur de l’écran sélectionné et touche son bord supérieur,
+sans marge extérieure. Halos multicouches, liserés spéculaires, reflets de verre et impulsions
+lumineuses sont dessinés en 2D par Qt : aucun matériel RTX n’est requis.
+
+## Installateur graphique
 
 ![Installateur CYBER NEXUS HUD](docs/installer-page1.png)
 

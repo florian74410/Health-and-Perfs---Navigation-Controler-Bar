@@ -57,3 +57,13 @@ Les deux pages ont été inspectées à partir des captures du lanceur.
 
 Le chemin source a également été exécuté en entier : venv privé, téléchargement des dépendances,
 compilation PyInstaller sur l’hôte Linux, self-test du binaire produit et activation temporaire : succès.
+
+## NovaBar 0.3.1 — bord supérieur et exécutables
+
+- Géométrie de fenêtre vérifiée à 100 % sur 1366, 1920, 2560 et 3840 pixels logiques,
+  avec écran sélectionné, origines négatives et écran décalé en hauteur. Gauche, droite,
+  centre et bord supérieur correspondent exactement à l’écran ; aucune marge extérieure.
+- Alpha nul du fond général et alpha des fonds de modules/boutons vérifiés après ajout des reflets.
+- Fichier Linux .run : contrôle SHA-256 embarqué et refus d’un téléchargement corrompu.
+- Aucun nouveau plugin développé. Les effets sont des simulations vectorielles 2D et ne requièrent pas RTX.
+- Les tests offscreen ne remplacent pas un contrôle du placement sous XFCE/Wayland sur machine réelle.

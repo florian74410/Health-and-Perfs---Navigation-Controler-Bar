@@ -79,6 +79,15 @@ class NeonButton(QPushButton):
         p.setPen(QPen(edge, 1.6))
         panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
         p.drawRoundedRect(panel, 9, 9)
+        from PySide6.QtGui import QLinearGradient
+        glass=QLinearGradient(0,2,0,22)
+        glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
+        glass.setColorAt(1,QColor(0,0,0,0))
+        shine=QPainterPath();shine.addRoundedRect(panel,9,9)
+        p.fillPath(shine,glass)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
+        p.setPen(QPen(light,.65));p.drawRoundedRect(panel.adjusted(1,1,-1,-1),8,8)
         icon = self.icon()
         if not icon.isNull():
             size = min(32, max(18, min(self.width(), self.height()) - 14))
@@ -113,7 +122,7 @@ class Bar(QWidget):
             QMenu::item:disabled { color: #6986a3; }
         """)
         self.root = QHBoxLayout(self)
-        self.root.setContentsMargins(4, 4, 8, 4)
+        self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
         self.canvas = HudCanvas(self.registry)
         self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
@@ -504,6 +513,9 @@ def main():
     if args.preview:
         bar.setGeometry(0, 0, 2048, 205)
         bar.actions.setFixedWidth(400)
+        bar.turbo.setFixedSize(125,58)
+        for index in range(1,bar.button_layout.count()):
+            bar.button_layout.itemAt(index).widget().setFixedSize(55,58)
         app.processEvents()
         if not bar.grab().save(args.preview):
             raise OSError("Impossible d’enregistrer l’aperçu")

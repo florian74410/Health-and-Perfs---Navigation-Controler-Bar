@@ -144,6 +144,27 @@ class ShellTests(unittest.TestCase):
                 self.assertTrue(self.bar.buttons.rect().contains(button.geometry()), (position, button.geometry(), self.bar.buttons.rect()))
             self.assertFalse(self.bar.grab().isNull())
 
+    def test_top_anchor_covers_selected_screen_and_has_zero_outer_margins(self):
+        from types import SimpleNamespace
+        cases = [QRect(0,0,1366,768),QRect(-1920,0,1920,1080),
+                 QRect(1920,-200,2560,1440),QRect(0,0,3840,2160)]
+        self.settings.position='top'
+        self.settings.length_percent=100
+        self.settings.alignment='center'
+        self.settings.screen=1
+        for bounds in cases:
+            screens=[SimpleNamespace(geometry=lambda:QRect(0,0,800,600)),
+                     SimpleNamespace(geometry=lambda rect=bounds:QRect(rect))]
+            with patch('healthbar.app.QApplication.screens',return_value=screens):
+                self.bar.apply_settings()
+                self.app.processEvents()
+                self.assertEqual(self.bar.geometry().left(),bounds.left())
+                self.assertEqual(self.bar.geometry().top(),bounds.top())
+                self.assertEqual(self.bar.geometry().width(),bounds.width())
+                self.assertEqual(self.bar.geometry().right(),bounds.right())
+                self.assertEqual(self.bar.geometry().center().x(),bounds.center().x())
+        self.assertEqual(self.bar.root.getContentsMargins(),(0,0,0,0))
+
     def test_compact_and_large_render(self):
         for width in (800, 1024, 1366, 2048):
             self.bar.resize(width, 200)

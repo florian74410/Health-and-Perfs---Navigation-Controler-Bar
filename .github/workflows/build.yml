@@ -96,3 +96,54 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" release/* --title "CYBER NEXUS HUD / NovaBar $GITHUB_REF_NAME" --generate-notes
+  executable-folder:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cyber-nexus-installer-v03'
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: CyberNexusHUD-*
+          path: native-artifacts
+      - name: Assemble standalone installers at repository root
+        env:
+          NEXUS_BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/package_executables.py native-artifacts
+      - name: Verify the Linux single-file installer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0
+          sh Executable/Linux/CyberNexusHUD-Linux-x86_64.run --check
+          sh Executable/Linux/CyberNexusHUD-Linux-x86_64.run --verify
+      - name: Commit installers to development branch and main
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name 'CYBER NEXUS HUD builds'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f Executable
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: publish standalone OS installers in Executable [skip ci]'
+            git push origin "HEAD:$TARGET_BRANCH"
+          fi
+          export_dir=$(mktemp -d)
+          cp -a Executable "$export_dir/Executable"
+          git fetch origin main --depth=1
+          git switch --detach origin/main
+          mkdir -p Executable
+          cp -a "$export_dir/Executable/." Executable/
+          git add -f Executable
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: add downloadable CYBER NEXUS HUD installers [skip ci]'
+            git push origin HEAD:main
+          fi
+          rm -rf -- "$export_dir"
