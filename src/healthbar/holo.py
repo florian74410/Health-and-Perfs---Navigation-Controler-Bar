@@ -30,8 +30,8 @@ class CpuHoloPanel(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setObjectName("cpuHolo")
         self.setWindowTitle("NovaBar · CPU CORE MATRIX")
-        self.setMinimumSize(380, 300)
-        self.resize(570, 440)
+        self.setMinimumSize(320, 240)
+        self.resize(460, 330)
         self.pinned = False
         self._readings = {}
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -47,22 +47,22 @@ class CpuHoloPanel(QWidget):
         from .ui_kit import stylesheet
         self.base_style = """
             QLabel {color: #DBEEFF; background: transparent; border: 0;}
-            QLabel#holoTitle { color: #91EEFF; font-size: 19px; font-weight: 900; letter-spacing: 2px; }
+            QLabel#holoTitle { color: #91EEFF; font-size: 14px; font-weight: 900; letter-spacing: 2px; }
             QLabel#holoSubtitle {color:#6CBFD9; font-size: 11px;}
             QLabel#holoHeading {color:#5EEBFF; font-size: 11px; font-weight: 700;}
-            QLabel#holoValue {color:#EAF7FF; font-size: 13px; font-weight: 700;}
+            QLabel#holoValue {color:#EAF7FF; font-size: 11px; font-weight: 700;}
             QLabel#holoFoot {color:#80B2CA; font-size: 10px;}
             QPushButton {background: transparent; color:#9FEAFF; border: 1px solid #1AB8EF;
                          border-radius: 6px; padding: 3px 8px;}
             QPushButton:hover {color:#FFFFFF; border: 1px solid #C8FFFF;}
-            QScrollArea {background: transparent; border: 0;}
-            QScrollBar:vertical {width:6px;background:#031229;}
+            QWidget#cpuHolo, QScrollArea, QScrollArea QWidget {background: transparent; border: 0;}
+            QScrollBar:vertical {width:6px;background:transparent;}
             QScrollBar::handle:vertical {background:#129BD8;border-radius:3px;}
         """
         self.setStyleSheet(stylesheet(self.base_style))
         root = QVBoxLayout(self)
-        root.setContentsMargins(27, 24, 27, 24)
-        root.setSpacing(11)
+        root.setContentsMargins(20, 18, 20, 18)
+        root.setSpacing(6)
         top = QHBoxLayout()
         title = QLabel("◈ CPU CORE MATRIX")
         title.setObjectName("holoTitle")
@@ -100,9 +100,12 @@ class CpuHoloPanel(QWidget):
         self.grid_widget = QWidget()
         self.grid = QGridLayout(self.grid_widget)
         self.grid.setContentsMargins(1, 6, 1, 6)
-        self.grid.setVerticalSpacing(9)
-        self.grid.setHorizontalSpacing(12)
+        self.grid.setVerticalSpacing(5)
+        self.grid.setHorizontalSpacing(8)
         self.scroll.setWidget(self.grid_widget)
+        self.scroll.viewport().setAutoFillBackground(False)
+        self.grid_widget.setAutoFillBackground(False)
+        self.grid_widget.setStyleSheet("background: transparent;")
         root.addWidget(self.scroll, 1)
         self.note = QLabel("W = puissance instantanée si mesurée • TDP nominal ≠ puissance par cœur.  — = capteur indisponible")
         self.note.setObjectName("holoFoot")
@@ -144,8 +147,8 @@ class CpuHoloPanel(QWidget):
 
     def show_at(self, anchor, screen_rect, position="top"):
         """Place adjacent to clicked slot, keeping all edges on the active display."""
-        width = min(max(380, self.width()), max(260, screen_rect.width() - 12))
-        height = min(max(290, self.height()), max(220, screen_rect.height() - 12))
+        width = min(max(320, self.width()), max(260, screen_rect.width() - 12))
+        height = min(max(240, self.height()), max(220, screen_rect.height() - 12))
         self.resize(width, height)
         if position == "bottom":
             candidate = QRect(anchor.center().x() - width//2, anchor.top() - height - 10, width, height)
@@ -227,19 +230,7 @@ class CpuHoloPanel(QWidget):
         path.lineTo(rect.left(),rect.bottom()-cut)
         path.lineTo(rect.left(),rect.top()+cut)
         path.closeSubpath()
-        painter.fillPath(path,QColor(2,9,26,230))
-        glass = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        glass.setColorAt(0,QColor(0,150,255,45))
-        glass.setColorAt(0.5,QColor(0,24,73,20))
-        glass.setColorAt(1,QColor(76,210,255,13))
-        painter.fillPath(path,glass)
-        # Glass reflection in the upper rim; luminous details follow the same
-        # electric-cyan language as NovaBar slim, with no opaque outer backdrop.
-        gloss=QLinearGradient(rect.left(),rect.top(),rect.left(),rect.top()+75)
-        gloss.setColorAt(0,QColor(187,247,255,63))
-        gloss.setColorAt(.25,QColor(25,146,230,24))
-        gloss.setColorAt(1,QColor(5,24,46,0))
-        painter.fillPath(path,gloss)
+        # The desktop remains visible through every Holo surface.
         painter.setBrush(Qt.BrushStyle.NoBrush)
         for width,rgba in ((21,(0,64,255,12)),(13,(0,145,255,34)),(7,(0,194,255,58)),
                            (3,(2,120,255,190)),(1.2,(129,241,255,245))):
@@ -269,18 +260,44 @@ class SensorHoloPanel(CpuHoloPanel):
         self.slot = slot; super().__init__(parent)
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
-        self.topology.hide(); self.scroll.hide()
+        self.topology.hide()
+        self.resize(380, 280)
         self.note.setText("— = capteur indisponible · données système locales")
         self.setWindowTitle("NovaBar · " + slot.upper())
     def set_telemetry(self, data):
+        data = data or {}
+        self._readings = data
         labels = {"gpu_percent":"Charge GPU", "gpu_temperature_c":"Température GPU",
                   "gpu_clock_mhz":"Fréquence GPU", "vram_used_gb":"VRAM utilisée", "gpu_power_w":"Puissance GPU",
                   "ram_percent":"Charge mémoire", "ram_used_gb":"RAM utilisée", "ram_available_gb":"RAM disponible",
                   "disk_used_gb":"Stockage utilisé", "disk_free_gb":"Stockage libre", "disk_read_mbs":"Lecture disque",
                   "disk_write_mbs":"Écriture disque", "net_down_mbs":"Réception réseau", "net_up_mbs":"Envoi réseau"}
-        rows = [labels[key] + " : " + readout(data.get(key), unit)
+        rows = [(labels[key], readout(data.get(key), unit))
                 for key, unit in self.FIELDS[self.slot]]
+        totals = {"gpu": ("vram_total_gb", "VRAM totale"),
+                  "ram": ("ram_total_gb", "RAM totale"),
+                  "storage": ("disk_total_gb", "Capacité volume système")}
+        if self.slot in totals:
+            key, label = totals[self.slot]
+            rows.append((label, readout(data.get(key), "GB")))
+        if self.slot == "network":
+            for interface in data.get("net_interfaces", []):
+                name = interface.get("name", "Interface")
+                rows.extend([(name, "CONNECTÉE" if interface.get("isup") else "DÉCONNECTÉE"),
+                             ("  Vitesse lien", readout(interface.get("speed_mbps"), "Mbit/s", 0)),
+                             ("  Réception", readout(interface.get("down_mbs"), "MB/s", 2)),
+                             ("  Envoi", readout(interface.get("up_mbs"), "MB/s", 2))])
         if self.slot == "fans":
-            rows = [str(f.get("name", "Fan")) + " : " + readout(f.get("rpm"), "RPM", 0)
-                    for f in data.get("fans", [])] or ["Ventilateurs : — (capteur indisponible)"]
-        self.summary.setText("\n\n".join(rows))
+            rows = [(str(f.get("name", "Fan")), readout(f.get("rpm"), "RPM", 0))
+                    for f in data.get("fans", [])] or [("Ventilateurs", "—")]
+        while self.grid.count():
+            widget = self.grid.takeAt(0).widget()
+            if widget:
+                widget.deleteLater()
+        for index, (label, value) in enumerate(rows):
+            self._add_cell(label, index, 0, True)
+            self._add_cell(value, index, 1)
+        self.summary.setText("MESURES EN DIRECT · " + self.slot.upper())
+        self.note.setText("— = capteur indisponible · données système locales" +
+                          (" · Débits agrégés : toutes interfaces" if self.slot == "network" else
+                           " · I/O : tous disques ; capacité : volume système" if self.slot == "storage" else ""))

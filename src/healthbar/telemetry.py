@@ -70,6 +70,7 @@ class Telemetry:
         self.last_at = time.monotonic()
         self.last_net = None
         self.last_disk = None
+        self.last_interfaces = {}
         self.package_power = PackagePower()
         self.cpu_model = cpu_identity()
         if psutil:
@@ -84,6 +85,7 @@ class Telemetry:
             "disk_read_mbs", "disk_write_mbs", "disk_health_percent",
             "net_down_mbs", "net_up_mbs")
         data = dict.fromkeys(keys)
+        data["net_interfaces"] = []
         data["fans"] = []
         data["cpu_cores"] = []
         if psutil is None:
@@ -116,6 +118,20 @@ class Telemetry:
             if self.last_net and net:
                 data["net_down_mbs"] = max(0, (net.bytes_recv-self.last_net.bytes_recv)/delta/1e6)
                 data["net_up_mbs"] = max(0, (net.bytes_sent-self.last_net.bytes_sent)/delta/1e6)
+            try:
+                counters = psutil.net_io_counters(pernic=True)
+                stats = psutil.net_if_stats()
+                for name, counter in sorted(counters.items()):
+                    info = stats.get(name)
+                    previous = self.last_interfaces.get(name)
+                    data["net_interfaces"].append({
+                        "name": name, "isup": bool(info and info.isup),
+                        "speed_mbps": info.speed if info and info.speed > 0 else None,
+                        "down_mbs": max(0, (counter.bytes_recv-previous.bytes_recv)/delta/1e6) if previous else None,
+                        "up_mbs": max(0, (counter.bytes_sent-previous.bytes_sent)/delta/1e6) if previous else None})
+                self.last_interfaces = counters
+            except (OSError, RuntimeError, ValueError):
+                self.last_interfaces = {}
             self.last_net = net
             io = psutil.disk_io_counters()
             if self.last_disk and io:

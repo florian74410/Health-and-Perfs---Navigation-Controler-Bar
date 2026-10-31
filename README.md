@@ -6,7 +6,7 @@
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.5.0-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.5.1-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
@@ -23,7 +23,7 @@
 
 ## 🌌 Découvrez la NovaBar
 
-<p align="center"><img src="docs/novabar-neon-preview.png" width="100%" alt="Aperçu de NovaBar généré par le logiciel, thème néon bleu"></p>
+<p align="center"><img src="Assets/Previews/novabar-v051-transparent-holo.png" width="100%" alt="NovaBar 0.5.1 : compte-tours et panneaux Holo transparents CPU et réseau"></p>
 <sub>📸 Aperçu de l'application, avec données d'illustration : les valeurs affichées ne sont pas celles de votre machine.</sub>
 
 NovaBar reste au bord de votre bureau pour exposer les informations pertinentes sans encombrer l'écran : contours PCB cyan, panneaux vitrés, reflets, halo au survol et transparence hors des modules. **72 px** par défaut, **50–150 px** réglables et **100 % de largeur** initialement.
@@ -39,7 +39,9 @@ Les informations proviennent des capteurs du système : une valeur **—** signi
 ## ✨ L'expérience NovaBar
 
 - **🎨 Mode néon** — halos cyan, reflet de verre, opacité modulable, barre responsive et rétractable.
-- **🧠 Holo CPU CORE MATRIX** — affichage détaillé du processeur via le plugin CPU Manager / Viewer.
+- **📟 Compte-tours 0.5.1** — CPU/GPU en GHz, RAM/SSD en pourcentage ; proportions conservées de 50 à 150 px.
+- **🧠 Holo compacts et transparents** — CPU 460 × 330 px, autres capteurs 380 × 280 px ; détails au clic sur le logo en haut à droite, tableaux défilants sans fond gris ou blanc.
+- **🌐 Réseau détaillé** — état, vitesse de lien et débits individuels des interfaces.
 - **🧩 Plugin Control Center 2-en-1** — onglets **Plugins / Sources**, ZIP versionnés, sources GitHub configurables et restauration.
 - **📐 Barre ajustable** — haut, bas, gauche, droite ; 25–100 % de longueur ; 50–150 px d'épaisseur.
 - **🔌 Monitoring local** — collecteur CPU/GPU/RAM/disques/ventilateurs/réseau en lecture seule.
@@ -48,6 +50,12 @@ Les informations proviennent des capteurs du système : une valeur **—** signi
 
 <p align="center"><img src="docs/novabar-normal-holo-neon.svg" width="100%" alt="Comparatif illustré : barre normale et panneau CPU Holo"></p>
 <sub>Illustration vectorielle Normal/Holo. Les logos en haut à droite ouvrent les panneaux Holo par clic uniquement. Turbo Linux dépend du noyau et des droits ; aucun contrôle PWM.</sub>
+
+## 🆕 Mise à jour 0.5.1
+
+[Guide de mise à jour](docs/UPDATE_V051.md) · [Guide des Holo](docs/wiki/Holo-CPU.md) · [Captures avec transparence](Assets/README.md).
+
+Les consommations CPU/GPU sont affichées uniquement lorsqu’une sonde les fournit. Les valeurs initiales ou inconnues restent « — ». Les images utilisent des données de démonstration.
 
 ## 📦 Télécharger & installer
 

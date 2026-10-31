@@ -3,7 +3,7 @@
 <p align="center"><strong>Votre PC. Votre cockpit.</strong> · Une barre néon compacte et modulaire sous Linux, Windows et macOS.</p>
 <p align="center"><a href="Premiers-pas.md">🚀 Commencer</a> · <a href="Installation.md">📦 Installer</a> · <a href="Architecture.md">🏗️ Architecture</a> · <a href="Depannage.md">🧰 Assistance</a></p>
 
-![NovaBar — aperçu néon généré par l'application](../novabar-neon-preview.png)
+![NovaBar — aperçu néon généré par l'application](../../Assets/Previews/novabar-v051-transparent-holo.png)
 
 <sub>📸 Capture d'aperçu fournie par le projet. Les valeurs visibles sont des exemples, pas une lecture du PC du visiteur.</sub>
 
@@ -36,11 +36,11 @@
 
 ## ✅ Livré / ⏳ Prévu
 
-**Disponible dans le code :** modules adaptatifs, télémétrie locale en lecture seule, Plugin Manager 2-en-1, fontes et halos cyan, bouton Quitter, profil local et fenêtre CPU Holo avec son plugin compatible. Le bouton **? Wiki** fait partie de l'intégration **v0.3.6** et ouvre ce guide dans le navigateur.
+**Disponible dans le code :** modules adaptatifs, télémétrie locale en lecture seule, Plugin Manager 2-en-1, fontes et halos cyan, bouton Quitter, profil local, cadrans CPU/GPU/RAM/SSD et Holo compacts transparents pour les six modules avec leurs plugins actifs. Le bouton **? Wiki** fait partie de l'intégration **v0.3.6** et ouvre ce guide dans le navigateur.
 
-**Non disponible à ce stade :** contrôle matériel Turbo/PWM, panneaux Holo natifs pour tous les autres modules, signatures d'éditeur des installateurs et comportement garanti sur tous les compositeurs Wayland.
+**Non disponible à ce stade :** contrôle PWM, signatures d’éditeur des installateurs et comportement garanti sur tous les compositeurs Wayland.
 
-> ⚠️ Ce wiki est publié dans **`docs/wiki/`** (compatible avec la structure des Wikis GitHub). Le wiki natif séparé de GitHub n'est pas synchronisé automatiquement : pour l'instant, ce sont bien ces pages du dépôt qui font foi.
+> ⚠️ Ce wiki est publié dans **`docs/wiki/`** (compatible avec la structure des Wikis GitHub). Ces pages du dépôt sont la référence. Le workflow de synchronisation met aussi à jour le Wiki natif lorsqu’il est initialisé et accessible.
 
 ---
 
@@ -48,3 +48,7 @@
 
 - [CPU Mode et priorité OS](CPU-Mode.md)
 - [Downloader](Downloader.md)
+
+## Version 0.5.1
+
+Compte-tours proportionnels, Holo plus petits et transparents, débits par interface : [notes de mise à jour](../UPDATE_V051.md). Les visuels sont regroupés dans [Assets](../../Assets/README.md).

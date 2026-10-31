@@ -255,7 +255,8 @@ class ShellTests(unittest.TestCase):
             self.assertAlmostEqual(image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
             # Text remains visible even when the module background is completely clear.
             baseline=max(34,min(canvas.height()*.6,80))
-            text_rect=QRect(12,int(baseline)-26,100,30)
+            dial_size=min(canvas.height()-14,first.width()*.36,92)
+            text_rect=QRect(int(12+dial_size),int(baseline)-26,100,30)
             opaque_text = sum(image.pixelColor(canvas.mapTo(self.bar, QPoint(x, y))).alpha() == 255
                               for x in range(text_rect.left(), text_rect.right())
                               for y in range(text_rect.top(), text_rect.bottom()))

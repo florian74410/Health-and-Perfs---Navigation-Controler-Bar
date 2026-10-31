@@ -19,8 +19,8 @@ class WikiTests(unittest.TestCase):
     def test_local_links_images_and_svg_are_valid(self):
         for source in [ROOT/"README.md", *WIKI.glob("*.md")]:
             txt=source.read_text(encoding="utf-8")
-            urls=re.findall(r"\\[[^]\\n]*\\]\\(([^)]+)\\)",txt)
-            urls+=re.findall(r'<img\\s+[^>]*src="([^"]+)"',txt)
+            urls=re.findall(r"\[[^\]\n]*\]\(([^)]+)\)",txt)
+            urls+=re.findall(r'<img\s+[^>]*src="([^"]+)"',txt)
             for uri in urls:
                 relative=unquote(uri.split("#",1)[0])
                 if not relative or re.match(r"^(?:https?://|mailto:)",relative):

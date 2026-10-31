@@ -5,6 +5,7 @@ profiles, themes, settings and plugins; updating a package replaces ONLY app fil
 """
 import argparse
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -67,6 +68,9 @@ def populate(root, base, application, version):
 
 def build_deb(version):
     OUT.mkdir(parents=True, exist_ok=True)
+    # A locally frozen Python may require the build host's newer glibc.
+    libc_name, libc_version = platform.libc_ver()
+    minimum_libc = libc_version if libc_name == "glibc" and libc_version else "2.35"
     with tempfile.TemporaryDirectory(prefix="novabar-deb-") as temporary:
         stage = Path(temporary) / "package"
         populate(stage, Path("usr"), "deb", version)
@@ -76,7 +80,7 @@ def build_deb(version):
             f"Version: {version}\nArchitecture: amd64\n"
             "Maintainer: NovaBar Contributors <noreply@github.com>\n"
             f"Installed-Size: {size}\n"
-            "Depends: libc6 (>= 2.35), libx11-6, libx11-xcb1, libxcb1, "
+            f"Depends: libc6 (>= {minimum_libc}), libx11-6, libx11-xcb1, libxcb1, "
             "libxkbcommon-x11-0, libxcb-xkb1, libxcb-cursor0, "
             "libxcb-icccm4, libxcb-image0, libxcb-keysyms1, "
             "libxcb-render-util0, libxcb-randr0, libxcb-xinerama0, "

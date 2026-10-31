@@ -1,0 +1,85 @@
+name: Publish NovaBar GitHub Wiki
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/wiki/**'
+      - 'Assets/**'
+      - 'docs/novabar-neon-preview.png'
+      - 'docs/novabar-slim-preview.png'
+      - 'docs/novabar-normal-holo-neon.svg'
+      - '.github/workflows/publish-wiki.yml'
+permissions:
+  contents: write
+concurrency:
+  group: publish-novabar-native-wiki
+  cancel-in-progress: true
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docs
+            Assets
+          sparse-checkout-cone-mode: true
+      - name: Open native GitHub Wiki repository, if initialized
+        id: wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.wiki.git"
+          if git clone --depth=1 "$remote" "$RUNNER_TEMP/novabar-wiki"; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Native Wiki not initialized. Open the repository Wiki tab and create a first Home page, then rerun this workflow."
+            echo '⚠️ Initialise **Wiki → Create the first page** sur GitHub, puis relance **Publish NovaBar GitHub Wiki**. Les pages complètes sont déjà disponibles sous docs/wiki/.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Sync wiki Markdown, graphics and navigation
+        if: steps.wiki.outputs.ready == 'true'
+        env:
+          TARGET: ${{ runner.temp }}/novabar-wiki
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import os,re,shutil
+          from pathlib import Path
+          root=Path.cwd()
+          source=root/'docs/wiki'
+          target=Path(os.environ['TARGET'])
+          repo=os.environ['REPO']
+          known={f.stem for f in source.glob('*.md')}
+          (target/'assets').mkdir(exist_ok=True)
+          for path in source.glob('*.md'):
+              content=path.read_text(encoding='utf-8')
+              for stem in known:
+                  content=content.replace(f']({stem}.md)',f'](https://github.com/{repo}/wiki/{stem})')
+              content=content.replace('../../Assets/Previews/', 'assets/Previews/')
+              content=re.sub(r'\]\(\.\./UPDATE_V051.md\)',lambda m:f'](https://github.com/{repo}/blob/main/docs/UPDATE_V051.md)',content)
+              content=re.sub(r'\]\(\.\./\.\./([^)]*)\)',lambda m:f'](https://github.com/{repo}/blob/main/{m.group(1)})',content)
+              content=content.replace('../novabar-neon-preview.png','assets/novabar-neon-preview.png')
+              content=content.replace('../novabar-slim-preview.png','assets/novabar-slim-preview.png')
+              content=content.replace('../novabar-normal-holo-neon.svg','assets/novabar-normal-holo-neon.svg')
+              (target/path.name).write_text(content,encoding='utf-8')
+          for path in (source/'assets').glob('*.svg'):
+              shutil.copy2(path,target/'assets'/path.name)
+          if (root/'Assets/Previews').is_dir():
+              shutil.copytree(root/'Assets/Previews',target/'assets/Previews',dirs_exist_ok=True)
+          for name in ('novabar-neon-preview.png','novabar-slim-preview.png','novabar-normal-holo-neon.svg'):
+              shutil.copy2(root/'docs'/name,target/'assets'/name)
+          PY
+          cd "$TARGET"
+          git config user.name "NovaBar Documentation Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Home.md _Sidebar.md _Footer.md *.md assets/
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: synchronize illustrated NovaBar manual [skip ci]"
+            git push
+          fi
+          echo "✅ Native Wiki synchronized: https://github.com/$REPO/wiki" >> "$GITHUB_STEP_SUMMARY"

@@ -1,3 +1,12 @@
+# NovaBar 0.5.1
+
+- Compte-tours circulaires dans la barre compacte : CPU/GPU en GHz, RAM/SSD en pourcentage. Les cadrans restent proportionnels de 50 à 150 px ; en espace réduit, les valeurs restent prioritaires.
+- Holo CPU réduit à 460 × 330 px, autres Holo à 380 × 280 px ; tableaux défilants.
+- Surfaces des Holo entièrement transparentes, y compris les zones de défilement ; seuls textes, cadres et circuits néon sont dessinés.
+- Réseau : état, vitesse de lien et débits par interface ; valeurs initiales ou indisponibles signalées par un tiret.
+- Détails GPU/CPU : puissance mesurée si disponible. Capacité RAM/VRAM/volume système et I/O disque clairement identifiés.
+- 68 tests locaux réussis. Rendu Qt inspecté avec des données de démonstration.
+
 # Changelog
 
 ## 0.5.0 — Update 2
