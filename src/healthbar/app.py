@@ -155,7 +155,7 @@ class Bar(QWidget):
                 pass
             self.sensor_future = None
         now = time.monotonic()
-        if self.sensor_future is None and now - self.last_sensor_request >= 2.0:
+        if self.sensor_future is None and now - self.last_sensor_request >= self.settings.refresh_seconds:
             self.last_sensor_request = now
             self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
 
@@ -202,7 +202,10 @@ class Bar(QWidget):
             self.actions.setFixedHeight(410)
             self.buttons.setFixedHeight(320)
             self.turbo.setFixedSize(min(125, thickness-30), 48)
-            self.full_rect = QRect(g.right()-thickness+1, g.top(), thickness, g.height())
+            length = max(200, round(g.height()*self.settings.length_percent/100))
+            shift = {"left": 0, "center": (g.height()-length)//2,
+                     "right": g.height()-length}[self.settings.alignment]
+            self.full_rect = QRect(g.right()-thickness+1, g.top()+shift, thickness, length)
         else:
             self.button_layout.setDirection(QHBoxLayout.Direction.LeftToRight)
             self.buttons.setFixedHeight(58)
@@ -215,7 +218,10 @@ class Bar(QWidget):
                 self.button_layout.itemAt(i).widget().setFixedSize(size, 58)
             self.turbo.setFixedSize(turbo_width, 58)
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
-            self.full_rect = QRect(g.left(), y, g.width(), thickness)
+            length = max(250, round(g.width()*self.settings.length_percent/100))
+            shift = {"left": 0, "center": (g.width()-length)//2,
+                     "right": g.width()-length}[self.settings.alignment]
+            self.full_rect = QRect(g.left()+shift, y, length, thickness)
         self.setGeometry(self.full_rect)
         self.update()
         self.arm_hide()
