@@ -1,4 +1,4 @@
-"""Build seven separately distributable NovaBar API v2 sensor ZIPs."""
+"""Build eight separately distributable NovaBar API v2 sensor ZIPs."""
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 import json
@@ -23,6 +23,12 @@ PACKS = [
      ["fans"]),
     ("network-viewer", "Network Viewer", "network",
      "Network traffic up/down in MB/s", ["net_down_mbs", "net_up_mbs"]),
+    ("power-viewer", "Power Plugin", "power",
+     "Power and voltage readings only when supported by the hardware sensor, never estimated",
+     ["power_total_w", "power_mains_voltage_v", "cpu_power_w", "cpu_cores",
+      "cpu_package_voltage_v", "gpu_power_w", "gpu_core_voltage_v",
+      "gpu_core_power_w", "gpu_vram_power_w", "gpu_vram_voltage_v",
+      "ram_voltage_rails", "battery_discharge_w"]),
 ]
 
 def build(dest=Path("dist/plugins")):
@@ -30,7 +36,7 @@ def build(dest=Path("dist/plugins")):
     dest.mkdir(parents=True, exist_ok=True)
     for ident, name, slot, description, sensors in PACKS:
         is_cpu_holo = ident == "cpu-manager-viewer"
-        version = "2.1.0" if is_cpu_holo else "1.1.0"
+        version = "2.1.0" if is_cpu_holo else "1.0.0" if ident == "power-viewer" else "1.1.0"
         manifest = {
             "api_version": 2, "id": ident, "name": name,
             "version": version, "slot": slot, "kind": "builtin-sensor",
