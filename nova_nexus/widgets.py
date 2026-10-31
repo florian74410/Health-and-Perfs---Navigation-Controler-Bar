@@ -68,6 +68,11 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             self.setAutoFillBackground(False)
             self.setMinimumSize(400, 170 if actions else 143)
             self.setFixedWidth(460)
+            self._phase = 0
+            self._motion = bool(t["motion"]["enabled"] and not t["motion"]["reduce_motion"])
+            self._timer = QtCore.QTimer(self)
+            self._timer.setInterval(40)
+            self._timer.timeout.connect(self._animate)
             self.setStyleSheet("""
                 QFrame#novaGlassNotification { background: transparent; border: none; }
                 QLabel { background: transparent; border: none; }
@@ -103,6 +108,21 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
                     action_row.addWidget(button)
                 action_row.addStretch()
                 layout.addLayout(action_row)
+            if self._motion:
+                self._timer.start()
+
+        def _animate(self):
+            self._phase = (self._phase + 1) % 150
+            self.update()
+
+        def hideEvent(self, event):
+            self._timer.stop()
+            super().hideEvent(event)
+
+        def showEvent(self, event):
+            super().showEvent(event)
+            if self._motion:
+                self._timer.start()
 
         def paintEvent(self, event):
             painter = QtGui.QPainter(self)
@@ -123,9 +143,9 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
 
             # Transparent smoked glass, subtle gradient and optical reflection.
             bg = QtGui.QLinearGradient(0, 0, w, h)
-            bg.setColorAt(0, QtGui.QColor(9, 28, 42, int(208 * t["effects"]["opacity"])))
-            bg.setColorAt(.55, QtGui.QColor(5, 14, 25, int(223 * t["effects"]["opacity"])))
-            bg.setColorAt(1, QtGui.QColor(8, 28, 41, int(198 * t["effects"]["opacity"])))
+            bg.setColorAt(0, QtGui.QColor(9, 28, 42, int(228 * t["effects"]["opacity"])))
+            bg.setColorAt(.55, QtGui.QColor(5, 14, 25, int(239 * t["effects"]["opacity"])))
+            bg.setColorAt(1, QtGui.QColor(8, 28, 41, int(224 * t["effects"]["opacity"])))
             painter.fillPath(path, bg)
             reflection = QtGui.QLinearGradient(w * .44, 0, w * .75, h)
             reflection.setColorAt(0, QtGui.QColor(237, 252, 255, 0))
@@ -134,6 +154,15 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             reflection.setColorAt(1, QtGui.QColor(237, 252, 255, 0))
             painter.fillPath(path, reflection)
             painter.setClipping(False)
+            # Layered rim illumination: simulated neon bloom with several soft strokes.
+            glow_power = float(t["effects"]["glow"])
+            for width, alpha in ((12, 12), (8, 23), (5, 42), (2.3, 142)):
+                halo = QtGui.QColor(c["primary"])
+                halo.setAlpha(min(255, int(alpha * glow_power)))
+                painter.setPen(QtGui.QPen(halo, width, QtCore.Qt.SolidLine,
+                                        QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
+                painter.setBrush(QtCore.Qt.NoBrush)
+                painter.drawPath(path)
 
             def stroke(points, color, width=1.0):
                 painter.setPen(QtGui.QPen(color, width))
@@ -165,6 +194,20 @@ def make_notification(title: str, message: str, theme=None, *, actions=None):
             glow.setColorAt(1, QtGui.QColor(0, 203, 243, 0))
             painter.fillRect(QtCore.QRectF(w*.37, 6, w*.26, 3), glow)
             painter.fillRect(QtCore.QRectF(w*.37, h-9, w*.26, 3), glow)
+            # Moving electric pulse across the top rail and a moving glossy sweep.
+            if self._motion:
+                x = (self._phase / 149.0) * (w + 120) - 60
+                pulse = QtGui.QRadialGradient(QtCore.QPointF(x, 7), 68)
+                pulse.setColorAt(0, QtGui.QColor(105, 245, 255, int(180 * glow_power)))
+                pulse.setColorAt(1, QtGui.QColor(0, 203, 243, 0))
+                painter.fillRect(QtCore.QRectF(max(5, x - 68), 5, 136, 7), pulse)
+                painter.setClipPath(path)
+                sweep = QtGui.QLinearGradient(x - 75, 0, x + 75, 0)
+                sweep.setColorAt(0, QtGui.QColor(255, 255, 255, 0))
+                sweep.setColorAt(.5, QtGui.QColor(180, 244, 255, 22))
+                sweep.setColorAt(1, QtGui.QColor(255, 255, 255, 0))
+                painter.fillRect(QtCore.QRectF(x-75, 0, 150, h), sweep)
+                painter.setClipping(False)
             painter.end()
 
     return GlassNotification()
