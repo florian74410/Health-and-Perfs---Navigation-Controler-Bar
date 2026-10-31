@@ -25,3 +25,16 @@ Bazzite/Wayland et plein écran. Le pipeline de builds n’équivaut pas à ces 
 
 Correction de transparence : test pixel alpha du fond général à 0 et des fonds de modules/boutons
 à 0 %, 35 % et 100 %, avec maintien des textes opaques. 11 tests locaux passent.
+
+
+## Exécution vérifiée pour V0.2 — 31/10/2026
+
+CI : https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41149562691
+
+- Ubuntu 22.04 : **SUCCESS** (tests + binaire + archive Linux).
+- Windows Server 2022 : **SUCCESS** (tests + compilation + installeur Inno Setup).
+- macOS 15 Apple Silicon : **SUCCESS** (tests + compilation + DMG arm64).
+- Suite : 13 tests Python (11 fondation + 2 plugins/télémétrie), avec paquets ZIP v2 créés en test.
+
+Cette validation en environnement CI n'est pas un essai matériel sur Windows 7,
+Bazzite/Wayland ou Mac Intel anciens. Les contrôles PWM/Turbo restent absents.
