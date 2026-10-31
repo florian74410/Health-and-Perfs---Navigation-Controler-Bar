@@ -17,8 +17,8 @@ def desktop_quote(value):
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%') + '"'
 
 
-def set_enabled(enabled):
-    command = launch_command()
+def set_enabled(enabled, command=None):
+    command = command or launch_command()
     if sys.platform == "win32":
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,

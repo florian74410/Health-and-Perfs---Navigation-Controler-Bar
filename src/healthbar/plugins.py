@@ -59,11 +59,17 @@ class PluginRegistry:
         if root:
             self.root = Path(root)
         else:
-            modern = data_dir() / "App" / "Plugins"
-            legacy = data_dir() / "plugins"
+            from .profiles import workspace_dir
+            modern = workspace_dir() / "Plugins"
+            legacy = data_dir() / "App/Plugins"
+            if not legacy.exists():
+                legacy = data_dir() / "plugins"
             if legacy.exists() and not modern.exists():
                 modern.parent.mkdir(parents=True, exist_ok=True)
-                legacy.rename(modern)
+                with tempfile.TemporaryDirectory(dir=modern.parent, prefix=".migrate-") as temp:
+                    stage = Path(temp) / "Plugins"
+                    shutil.copytree(legacy, stage)
+                    stage.rename(modern)
             self.root = modern
 
     def installed(self):

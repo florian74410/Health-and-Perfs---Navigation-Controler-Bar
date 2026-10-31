@@ -180,6 +180,9 @@ class Bar(QWidget):
         self.sensor_timer.setInterval(250)
         self.sensor_timer.timeout.connect(self.poll_sensors)
         self.sensor_timer.start()
+        from .hotkeys import HotkeyController
+        self.hotkeys = HotkeyController(self)
+        self.hotkeys.configure(self.settings.shortcuts)
 
     def poll_sensors(self):
         if self.sensor_future is not None and self.sensor_future.done():
@@ -195,6 +198,7 @@ class Bar(QWidget):
 
     def closeEvent(self, event):
         self.sensor_timer.stop()
+        self.hotkeys.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
 
@@ -228,7 +232,7 @@ class Bar(QWidget):
         screens = QApplication.screens()
         screen = screens[min(self.settings.screen, len(screens)-1)]
         g = screen.geometry()
-        vertical = self.settings.position == "right"
+        vertical = self.settings.position in ("right", "left")
         thickness = min(self.settings.thickness * (1.5 if self.expanded else 1),
                         g.width() if vertical else g.height())
         thickness = int(thickness)
@@ -255,7 +259,7 @@ class Bar(QWidget):
             length = max(200, round(g.height()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.height()-length)//2,
                      "right": g.height()-length}[self.settings.alignment]
-            self.full_rect = QRect(g.right()-thickness+1, g.top()+shift, thickness, length)
+            self.full_rect = QRect(g.left() if self.settings.position == "left" else g.right()-thickness+1, g.top()+shift, thickness, length)
         else:
             self.button_layout.setDirection(QHBoxLayout.Direction.LeftToRight)
             self.buttons.setFixedHeight(58)
@@ -308,6 +312,8 @@ class Bar(QWidget):
             rect.translate(0, -rect.height()+4)
         elif self.settings.position == "bottom":
             rect.translate(0, rect.height()-4)
+        elif self.settings.position == "left":
+            rect.translate(-rect.width()+4, 0)
         else:
             rect.translate(rect.width()-4, 0)
         self.retracted = True
@@ -346,6 +352,7 @@ class Bar(QWidget):
     def preferences(self):
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(), parent=self)) == QDialog.DialogCode.Accepted:
             self.apply_settings()
+            self.hotkeys.configure(self.settings.shortcuts)
 
     def plugins(self):
         self.run_dialog(PluginsDialog(self.registry, self))
@@ -440,14 +447,41 @@ class Bar(QWidget):
 
 def main():
     parser = argparse.ArgumentParser()
+    from . import __version__
+    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--expect-version")
+    parser.add_argument("--wait-for-pid", type=int)
+    parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--setup", action="store_true", help="Reopen installation preferences")
     parser.add_argument("--preview", metavar="PNG", help="Render static HUD offscreen without changing user settings")
     args = parser.parse_args()
-    if args.preview:
+    if args.wait_for_pid:
+        import psutil
+        deadline = time.monotonic() + 40
+        while psutil.pid_exists(args.wait_for_pid) and time.monotonic() < deadline:
+            time.sleep(.2)
+        if psutil.pid_exists(args.wait_for_pid):
+            return 3
+    if args.preview or args.self_test:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if not (args.preview or args.self_test) and sys.platform.startswith("linux") and os.getenv("DISPLAY"):
+        from .platforms import detected_target
+        if detected_target() == "bazzite":
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
     app = QApplication(sys.argv[:1])
     app.setApplicationName("HealthPerfsBar")
     app.setOrganizationName("HealthPerfs")
+    if args.self_test:
+        if args.expect_version and args.expect_version != __version__:
+            return 4
+        widget = HudCanvas(PluginRegistry())
+        widget.resize(1400, 190)
+        widget.show()
+        app.processEvents()
+        if widget.grab().isNull():
+            return 2
+        widget.close()
+        return 0
     if args.preview:
         settings = Settings(configured=True, auto_hide=False)
     else:
@@ -458,9 +492,13 @@ def main():
             return 0
         settings = Settings.load()
         if args.setup or not settings.configured:
-            dialog = SettingsDialog(settings, app.screens(), first_run=not settings.configured)
-            if dialog.exec() != QDialog.DialogCode.Accepted:
-                return 0
+            from .installer import InstallerWizard
+            payload = None
+            if getattr(sys, "frozen", False):
+                payload = Path(sys.executable).parents[3] if sys.platform == "darwin" else Path(sys.executable).parent.parent
+            dialog = InstallerWizard(settings, source_root=os.getenv("HEALTHBAR_SOURCE_ROOT"), payload=payload)
+            dialog.exec()
+            return 0
     bar = Bar(settings)
     bar.show()
     if args.preview:

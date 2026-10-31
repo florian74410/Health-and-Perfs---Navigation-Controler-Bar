@@ -46,8 +46,8 @@ class SettingsDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(16)
         self.position = QComboBox()
-        self.position.addItems(["Haut", "Bas", "Droite • verticale"])
-        self.position.setCurrentIndex(("top", "bottom", "right").index(settings.position))
+        self.position.addItems(["Haut", "Bas", "Droite • verticale", "Gauche • verticale"])
+        self.position.setCurrentIndex(("top", "bottom", "right", "left").index(settings.position))
         form.addRow("Placement", self.position)
         self.screen = QComboBox()
         self.screen.addItems([f"Écran {i+1} • {s.name()}" for i, s in enumerate(screens)])
@@ -105,6 +105,12 @@ class SettingsDialog(QDialog):
         folder_row.addWidget(browse)
         general_form.addRow("Dossier Shell", folder_row)
         general_form.addRow("Thème actif", QLabel("CYBER-FUTURISTE • Electric Blue"))
+        update_button = QPushButton("Mises à jour…")
+        update_button.clicked.connect(self.open_updates)
+        general_form.addRow("CYBER NEXUS HUD", update_button)
+        installer_button = QPushButton("Profil, confidentialité et raccourcis…")
+        installer_button.clicked.connect(self.open_installer)
+        general_form.addRow("NovaBar", installer_button)
         display = QWidget()
         display.setLayout(form)
         edit = QWidget()
@@ -144,6 +150,51 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         box.addWidget(buttons)
 
+    def open_updates(self):
+        from .updates import UpdateDialog
+        UpdateDialog(self).exec()
+
+    def open_installer(self):
+        from .installer import InstallerWizard
+        from .profiles import workspace_dir, current_profile
+        import json
+        wizard = InstallerWizard(self.settings, parent=self)
+        path = workspace_dir() / "App/Profiles" / (current_profile() + ".json")
+        if path.is_file():
+            record = json.loads(path.read_text(encoding="utf-8"))
+            identity = record.get("identity", {})
+            wizard.email.setText(identity.get("email", ""))
+            wizard.username.setText(identity.get("username", ""))
+            wizard.share.setChecked(identity.get("share_experience", False))
+        # Editing the profile uses the first page and preserves installed runtime files.
+        def save_profile_settings():
+            from .profiles import save_profile
+            from dataclasses import asdict, replace
+            if wizard.stack.currentIndex() == 0:
+                wizard.advance()
+                if wizard.stack.currentIndex() == 1:
+                    wizard.next.setText("ENREGISTRER")
+            elif wizard.stack.currentIndex() == 1:
+                try:
+                    changed = replace(self.settings, position=wizard.position.currentData(),
+                        thickness=wizard.thickness.value(), length_percent=wizard.length.value(),
+                        opacity=wizard.opacity.value(), auto_hide=wizard.auto_hide.isChecked(),
+                        autostart=wizard.autostart.isChecked(), shortcuts=wizard.bindings()).validate()
+                    set_enabled(changed.autostart)
+                    changed.save()
+                    previous = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+                    save_profile(wizard.identity, asdict(changed), previous.get("installation"))
+                    self.settings.__dict__.update(changed.__dict__)
+                    wizard.accept()
+                except (ValueError, OSError) as error:
+                    QMessageBox.warning(wizard, "Profil", str(error))
+        wizard.next.clicked.disconnect()
+        wizard.next.clicked.connect(save_profile_settings)
+        wizard.autostart.setChecked(self.settings.autostart)
+        wizard.next.setText("VALIDER")
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.accept()
+
     def choose_script_folder(self):
         chosen = QFileDialog.getExistingDirectory(self, "Dossier de scripts Shell", self.shell_dir.text())
         if chosen:
@@ -157,7 +208,7 @@ class SettingsDialog(QDialog):
 
     def save(self):
         from dataclasses import replace
-        updated = replace(self.settings, position=("top", "bottom", "right")[self.position.currentIndex()],
+        updated = replace(self.settings, position=("top", "bottom", "right", "left")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
             auto_hide=self.auto_hide.isChecked(), hide_seconds=self.hide_seconds.value(),
             autostart=self.autostart.isChecked(), configured=True,

@@ -38,3 +38,19 @@ CI : https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar
 
 Cette validation en environnement CI n'est pas un essai matériel sur Windows 7,
 Bazzite/Wayland ou Mac Intel anciens. Les contrôles PWM/Turbo restent absents.
+
+## CYBER NEXUS HUD / NovaBar 0.3
+
+22 tests locaux au moment de la première vérification : acceptation des conditions, profil local,
+préservation de l’e-mail lors d’un changement de préférences, refus d’une autre famille d’OS ou
+High Sierra, raccourcis en double, conservation d’une version existante, absence d’activation
+si le binaire échoue, manifeste officiel et versions, refus des chemins/liens ZIP, refus d’envoi
+SMTP sans confirmation, et conservation de l’état actif en cas de mauvais SHA-256.
+Aperçus des deux pages inspectés. Les tests utilisent des répertoires temporaires.
+
+Validation native locale 0.3 : runtime et lanceur PyInstaller construits ; lanceur autonome
+ouvert en aperçu ; installation du vrai runtime dans un dossier temporaire, test de l’exécutable
+staged avec version 0.3.0 attendue, création du profil et activation testées sans enregistrer
+l’autostart ni créer de raccourci sur la machine de travail. Archive runtime créée, extraite
+avec l’extracteur de l’updater, puis vrai binaire extrait exécuté en self-test : succès.
+Les deux pages ont été inspectées à partir des captures du lanceur.

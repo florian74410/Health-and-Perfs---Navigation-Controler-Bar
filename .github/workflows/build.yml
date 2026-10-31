@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-15]
+        os: [ubuntu-22.04, windows-2022, macos-15, macos-15-intel]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -27,14 +27,29 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
       - run: python scripts/build.py
+      - run: python scripts/package_runtime.py
+      - run: python scripts/test_runtime_package.py
       - name: Package first-party ZIP plugins
         run: python scripts/build_plugins.py
-      - name: Linux installer archive
+      - name: Test the exact packaged runtime
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            QT_QPA_PLATFORM=offscreen dist/HealthPerfsBar/HealthPerfsBar.exe --self-test
+          else
+            QT_QPA_PLATFORM=offscreen dist/HealthPerfsBar/HealthPerfsBar --self-test
+          fi
+      - name: Test macOS runtime
+        if: runner.os == 'macOS'
+        run: QT_QPA_PLATFORM=offscreen dist/HealthPerfsBar.app/Contents/MacOS/HealthPerfsBar --self-test
+      - name: Linux and Bazzite installer archives
         if: runner.os == 'Linux'
         run: |
           cp scripts/install-binary-linux.sh dist/Install.sh
-          cp docs/INSTALLATION.md dist/INSTALLATION.md
-          tar -C dist -cJf HealthPerfsBar-Linux-x86_64.tar.xz HealthPerfsBar Install.sh INSTALLATION.md
+          chmod +x dist/Install.sh
+          XZ_OPT=-1 tar -C dist -cJf CyberNexusHUD-Linux-x86_64.tar.xz CyberNexusInstaller Install.sh
+          cp CyberNexusHUD-Linux-x86_64.tar.xz CyberNexusHUD-Bazzite-x86_64.tar.xz
       - name: Windows setup
         if: runner.os == 'Windows'
         shell: pwsh
@@ -43,15 +58,40 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p dmg
-          cp -R dist/HealthPerfsBar.app dmg/
-          ln -s /Applications dmg/Applications
-          hdiutil create -volname 'Health & Perfs Bar' -srcfolder dmg -ov -format UDZO HealthPerfsBar-macOS-arm64.dmg
+          cp -R dist/CyberNexusInstaller.app dmg/
+          ARCH=$(uname -m)
+          hdiutil create -volname 'CYBER NEXUS HUD' -srcfolder dmg -ov -format UDZO CyberNexusHUD-macOS-$ARCH.dmg
       - uses: actions/upload-artifact@v4
         with:
-          name: HealthPerfsBar-${{ matrix.os }}
+          name: CyberNexusHUD-${{ matrix.os }}
           if-no-files-found: error
           path: |
-            HealthPerfsBar-*.tar.xz
-            HealthPerfsBar-*.dmg
+            CyberNexusHUD-*.tar.xz
+            CyberNexusHUD-*.dmg
             dist/*-Setup-*.exe
+            NovaBar-runtime-*.zip
             dist/plugins/*.zip
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Gather versioned installers and runtimes
+        run: |
+          mkdir release
+          find artifacts -type f \( -name '*.dmg' -o -name '*-Setup-*.exe' -o -name 'CyberNexusHUD-*.tar.xz' -o -name 'NovaBar-runtime-*.zip' \) -exec cp {} release/ \;
+          python scripts/release_manifest.py "$GITHUB_REF_NAME"
+          python -c 'import os,tomllib; assert os.environ["GITHUB_REF_NAME"] == "v" + tomllib.load(open("pyproject.toml","rb"))["project"]["version"]'
+      - name: Publish tagged release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --title "CYBER NEXUS HUD / NovaBar $GITHUB_REF_NAME" --generate-notes
