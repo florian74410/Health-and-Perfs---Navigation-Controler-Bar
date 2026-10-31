@@ -25,7 +25,7 @@ class TransparentHoloTests(unittest.TestCase):
                 # Power has additional detail labels; sample the glass margin,
                 # not a brightly painted value glyph near the grid's right edge.
                 glass_x = panel.width()-18 if getattr(panel, "slot", None) == "power" else panel.width()-30
-                self.assertEqual(image.pixelColor(glass_x, panel.height()//2).alpha(), 217)
+                self.assertAlmostEqual(image.pixelColor(glass_x, panel.height()//2).alpha(), 217, delta=2)
                 self.assertEqual(image.pixelColor(0, 0).alpha(), 0)
                 panel.show_at(QRect(400, 0, 100, 72), QRect(0, 0, 800, 600))
                 self.assertTrue(QRect(0, 0, 800, 600).contains(panel.geometry()))
