@@ -2,6 +2,7 @@
 import re
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
@@ -120,8 +121,13 @@ class PluginsDialog(QDialog):
         self._catalog_thread = None
         self._download_thread = None
         self._tempdir = None
+        self._queued_refresh = False
         self.items = []
-        self.sources = self.sources_store.load()
+        try:
+            self.sources = self.sources_store.load()
+        except (OSError, ValueError, TypeError) as error:
+            self.sources = []
+            self.errors = [f"Configuration des sources invalide : {error}"]
         self.setWindowTitle("NovaBar   •   PLUGIN CONTROL CENTER")
         self.resize(745, 485)
         self.setMinimumSize(590, 355)
@@ -341,6 +347,7 @@ class PluginsDialog(QDialog):
 
     def refresh_catalog(self):
         if self.busy():
+            self._queued_refresh = True
             return
         self.status.setText("Synchronisation du catalogue GitHub…")
         self.refresh_button.setEnabled(False)
@@ -352,6 +359,9 @@ class PluginsDialog(QDialog):
     def _idle(self):
         if not self.busy():
             self.refresh_button.setEnabled(True)
+            if self._queued_refresh:
+                self._queued_refresh = False
+                QTimer.singleShot(0, self.refresh_catalog)
 
     def on_catalog(self, catalog, errors):
         self.remote = catalog
@@ -441,7 +451,7 @@ class PluginsDialog(QDialog):
             try:
                 manifest, digest = self.registry.inspect(path)
                 self.confirm_install(path, manifest, digest)
-            except (ValueError, OSError) as error:
+            except (ValueError, OSError, zipfile.BadZipFile, RuntimeError) as error:
                 QMessageBox.warning(self, "Archive refusée", str(error))
 
     def toggle(self):
@@ -460,6 +470,13 @@ class PluginsDialog(QDialog):
                 self.status.setText("Version précédente restaurée")
             except (ValueError, OSError) as error:
                 QMessageBox.warning(self, "Restauration impossible", str(error))
+
+    def closeEvent(self, event):
+        if self.busy():
+            self.status.setText("Synchronisation ou téléchargement en cours…")
+            event.ignore()
+        else:
+            super().closeEvent(event)
 
     def reject(self):
         if self.busy():
