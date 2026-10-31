@@ -38,8 +38,8 @@ jobs:
           mkdir -p dist/NOVA-NEXUS-HD-preview
           cp -r nova_nexus dist/NOVA-NEXUS-HD-preview/
           cp -r staging/NOVA-NEXUS-HD dist/NOVA-NEXUS-HD-preview/Theme
-          mkdir -p dist/NOVA-NEXUS-HD-preview/Wallpapers
-          cp Assets/Wallpapers/nova-electric-blue-pcb.svg dist/NOVA-NEXUS-HD-preview/Wallpapers/
+          mkdir -p dist/NOVA-NEXUS-HD-preview/Assets/Wallpapers
+          cp Assets/Wallpapers/nova-electric-blue-pcb.svg dist/NOVA-NEXUS-HD-preview/Assets/Wallpapers/
           cp docs/NOVA_DESKTOP_INSTALL.md dist/NOVA-NEXUS-HD-preview/README.md
           tar -C dist -czf NOVA-NEXUS-HD-preview.tar.gz NOVA-NEXUS-HD-preview
           sha256sum NOVA-NEXUS-HD-preview.tar.gz > NOVA-NEXUS-HD-preview.SHA256SUMS
