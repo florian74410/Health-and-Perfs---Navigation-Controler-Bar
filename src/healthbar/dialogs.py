@@ -120,6 +120,9 @@ class SettingsDialog(QDialog):
         for key, label in THEMES.items(): self.theme.addItem(label, key)
         self.theme.setCurrentIndex(max(0, self.theme.findData(settings.theme)))
         general_form.addRow("Thème actif", self.theme)
+        self.holo_enabled=QCheckBox("Ouvrir les panneaux par clic sur le logo du plugin")
+        self.holo_enabled.setChecked(settings.holo_enabled)
+        general_form.addRow("Holo",self.holo_enabled)
         update_button = QPushButton("Mises à jour…")
         update_button.clicked.connect(self.open_updates)
         general_form.addRow("CYBER NEXUS HUD", update_button)
@@ -157,7 +160,7 @@ class SettingsDialog(QDialog):
         ext_layout.addStretch()
         help_tab = QWidget()
         help_layout = QVBoxLayout(help_tab)
-        howto = QLabel("Bord de l'écran : révéler la barre\nCarré flèche : agrandir / réduire\nTurbo : disponible uniquement avec contrôleur certifié\nZIP : code jamais exécuté automatiquement")
+        howto = QLabel("Bord de l'écran : révéler la barre\nFlèche haute : minimiser\nLogo en haut à droite : ouvrir/fermer le Holo\nCPU Mode : selon noyau et permissions\nZIP : code jamais exécuté automatiquement")
         howto.setWordWrap(True)
         help_layout.addWidget(howto)
         help_layout.addStretch()
@@ -214,7 +217,8 @@ class SettingsDialog(QDialog):
                 try:
                     changed = replace(self.settings, position=wizard.position.currentData(),
                         thickness=wizard.thickness.value(), length_percent=wizard.length.value(),
-                        opacity=wizard.opacity.value(), auto_hide=wizard.auto_hide.isChecked(),
+                        opacity=wizard.opacity.value(), auto_hide=wizard.retract_mode.currentData()=="auto", retract_mode=wizard.retract_mode.currentData(),
+                        theme=wizard.theme.currentData(),always_on_top=wizard.always_on_top.isChecked(),holo_enabled=wizard.holo_enabled.isChecked(),
                         autostart=wizard.autostart.isChecked(), shortcuts=wizard.bindings()).validate()
                     set_enabled(changed.autostart)
                     changed.save()
@@ -247,7 +251,7 @@ class SettingsDialog(QDialog):
         updated = replace(self.settings, position=("top", "bottom", "right", "left")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
             auto_hide=self.retract_mode.currentData() == "auto", retract_mode=self.retract_mode.currentData(),
-            always_on_top=self.always_on_top.isChecked(), theme=self.theme.currentData(), hide_seconds=self.hide_seconds.value(),
+            always_on_top=self.always_on_top.isChecked(), theme=self.theme.currentData(), holo_enabled=self.holo_enabled.isChecked(), hide_seconds=self.hide_seconds.value(),
             autostart=self.autostart.isChecked(), configured=True,
             length_percent=self.length_percent.value(),
             alignment=("left", "center", "right")[self.alignment.currentIndex()],

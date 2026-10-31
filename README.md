@@ -6,7 +6,7 @@
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.4.0-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.5.0-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
@@ -47,7 +47,7 @@ Les informations proviennent des capteurs du système : une valeur **—** signi
 - **📖 Wiki intégré (0.3.6+)** — bouton **?** dans la barre, dans les préférences, le menu contextuel et la zone de notification.
 
 <p align="center"><img src="docs/novabar-normal-holo-neon.svg" width="100%" alt="Comparatif illustré : barre normale et panneau CPU Holo"></p>
-<sub>Illustration vectorielle Normal/Holo. Seule la vue native Holo CPU est disponible dans cette version ; Turbo/PWM ne contrôle pas encore le matériel.</sub>
+<sub>Illustration vectorielle Normal/Holo. Les logos en haut à droite ouvrent les panneaux Holo par clic uniquement. Turbo Linux dépend du noyau et des droits ; aucun contrôle PWM.</sub>
 
 ## 📦 Télécharger & installer
 
@@ -96,7 +96,7 @@ Le gestionnaire détecte les **versions installées et disponibles**. Il peut sy
 
 ## 🚦 Statut
 
-Projet en développement. La compatibilité des overlays Wayland/Bazzite et le comportement exact des sondes doivent être validés sur les machines réelles. **Pas de contrôle Turbo/PWM actif**, pas de fenêtres Holo dédiées pour tous les modules, ni de garantie d'accès à toutes les sondes GPU. Les builds CI vérifient des systèmes de compilation, pas toutes les configurations matérielles.
+Projet en développement. La compatibilité des overlays Wayland/Bazzite et le comportement exact des sondes doivent être validés sur les machines réelles. **Turbo Linux via sysfs uniquement si le noyau et les droits le permettent** ; aucun contrôle PWM. Les panneaux Holo restent dépendants des sondes disponibles. Les builds CI vérifient des systèmes de compilation, pas toutes les configurations matérielles.
 
 ---
 
@@ -105,3 +105,14 @@ Projet en développement. La compatibilité des overlays Wayland/Bazzite et le c
 ## Nouvelle génération 0.4
 
 Voir [CHANGELOG](CHANGELOG.md). Les sources de développement et les exécutables publiés peuvent avoir des versions différentes ; le manifeste des exécutables reste la référence pour les téléchargements.
+
+## NovaBar Next · sources 0.5.0
+
+Les deux updates sont décrites dans le [changelog](CHANGELOG.md).
+
+- **Update 1 / 0.4.0** : Blue Neon / Green Matrix / Red Blood, routing PCB bord à bord, puce NovaBar, minimisation et onglet Wiki. **Le logo en haut à droite de chaque plugin est le seul déclencheur du Holo** ; un second clic ferme le panneau.
+- **Update 2 / 0.5.0** : CPU Mode réel sur Linux compatible, Auto 85 °C avec retour à 80 °C, downloader natif Linux/Windows avec SHA-256 et priorité d’affichage selon OS.
+
+[Downloader et packaging](docs/wiki/Downloader.md) · [CPU Mode et limitations OS](docs/wiki/CPU-Mode.md).
+
+Les exécutables du tableau ci-dessus sont les **anciens paquets 0.3.6**. Les sources 0.5.0 doivent passer la CI native et être publiées avant que le downloader puisse les proposer. Il refuse une release sans manifeste bootstrap valide.

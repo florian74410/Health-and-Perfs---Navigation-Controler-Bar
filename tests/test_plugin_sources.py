@@ -40,14 +40,14 @@ class SourceTests(unittest.TestCase):
     def test_catalog_selects_latest_version_across_git_sources(self):
         tree = {"tree":[
             {"path":"Plugins/cpu-manager-viewer-v1.0.0.zip","type":"blob","size":3000,"sha":"a"*40},
-            {"path":"Plugins/cpu-manager-viewer-v2.0.0.zip","type":"blob","size":3500,"sha":"b"*40},
+            {"path":"Plugins/cpu-manager-viewer-v2.1.0.zip","type":"blob","size":3500,"sha":"b"*40},
             {"path":"Plugins/gpu-manager-viewer-v1.0.0.zip","type":"blob","size":3000,"sha":"c"*40},
             {"path":"Plugins/subdir/ignore-v1.0.0.zip","type":"blob","size":3000,"sha":"d"*40},
         ]}
         with patch("healthbar.plugin_sources.request_bytes", return_value=json.dumps(tree).encode()):
             result, errors = fetch_catalog([DEFAULT_SOURCE])
         self.assertEqual(errors,[])
-        self.assertEqual(result["cpu-manager-viewer"]["version"],"2.0.0")
+        self.assertEqual(result["cpu-manager-viewer"]["version"],"2.1.0")
         self.assertIn("raw.githubusercontent.com",result["cpu-manager-viewer"]["url"])
         self.assertEqual(len(result),2)
 
@@ -80,7 +80,7 @@ class UIManagerTests(unittest.TestCase):
             manager.remote={"cpu-manager-viewer":{
                 "id":"cpu-manager-viewer","source":"NovaBar Official","version":"2.0.0",
                 "url":"https://raw.githubusercontent.com/org/r/main/Plugins/cpu.zip",
-                "filename":"cpu-manager-viewer-v2.0.0.zip","blob_sha":"a"*40}}
+                "filename":"cpu-manager-viewer-v2.1.0.zip","blob_sha":"a"*40}}
             manager.refresh()
             self.assertEqual(manager.tabs.count(),2)
             self.assertEqual(manager.table.rowCount(),1)
@@ -95,7 +95,7 @@ class UIManagerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
             build(root/"zip")
-            archive=root/"zip"/"cpu-manager-viewer-v2.0.0.zip"
+            archive=root/"zip"/"cpu-manager-viewer-v2.1.0.zip"
             registry=PluginRegistry(root/"installed")
             manifest,digest=registry.inspect(archive)
             manager=PluginsDialog(registry,source_store=SourceStore(root/"sources.json"))
@@ -103,7 +103,7 @@ class UIManagerTests(unittest.TestCase):
             with patch("healthbar.plugin_manager.QMessageBox.question",
                        return_value=QMessageBox.StandardButton.Yes):
                 manager.confirm_install(str(archive),manifest,digest)
-            self.assertEqual(registry.installed()[0]["version"],"2.0.0")
+            self.assertEqual(registry.installed()[0]["version"],"2.1.0")
             self.assertTrue((registry.root/"cpu-manager-viewer"/"Hologram"/"holo.json").is_file())
             manager.close()
 

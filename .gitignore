@@ -13,3 +13,6 @@ core.*
 NovaBar-runtime-*.zip
 CyberNexusHUD-*.tar.xz
 CyberNexusHUD-*.dmg
+
+# Rebuilt from scripts/build_plugins.py before native packaging
+src/healthbar/assets/plugins/

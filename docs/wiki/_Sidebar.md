@@ -13,3 +13,6 @@
 - [🛠️ Dépannage](Depannage.md)
 - [❓ FAQ](FAQ.md)
 - [🤝 Contribuer](Contribuer.md)
+
+- [CPU Mode et priorité OS](CPU-Mode.md)
+- [Downloader](Downloader.md)

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — Update 2
+
+- Service `cpu_mode_controller`, backend sysfs Linux Intel/AMD et fallback explicite Windows/macOS.
+- Turbo Off / Turbo On / Auto 85 °C ; hystérésis 5 °C, coupure demandée en cas de sonde absente.
+- Aucun changement CPU au lancement ; état effectif vérifié, erreurs de permissions visibles.
+- Downloader séparé des paquets hors ligne, formats natifs et vérification SHA-256 avant exécution.
+- Configuration initiale des thèmes, position, épaisseur, repli, priorité et Holo.
+- Packaging Windows contenant le runtime, manifestes de release natifs et bootstrap multi-OS.
+- Plugins CPU 2.1.0 et autres modules 1.1.0 ; kit Holo partagé, données indisponibles affichées « — ».
+- Première installation : plugins officiels intégrés ; versions et activations existantes préservées.
+- Demande X11 ABOVE / Windows TOPMOST sans voler le focus ; limites Wayland/macOS documentées.
+
 ## 0.4.0 — Update 1
 
 - Kit Holo partagé, trois thèmes et traces PCB bord à bord.

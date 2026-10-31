@@ -48,3 +48,26 @@ class NextVisualTests(unittest.TestCase):
                 self.assertIn('Wiki',[tabs.tabText(i) for i in range(tabs.count())])
                 dialog.close()
             finally:bar.close()
+
+    def test_all_plugin_logos_toggle_holos_without_hover_or_value_activation(self):
+        from scripts.build_plugins import build
+        from PySide6.QtTest import QTest
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ,HEALTHBAR_DATA_DIR=folder):
+            bar=Bar(Settings(configured=True,auto_hide=False));bar.sensor_timer.stop()
+            build(Path(folder)/'packs')
+            for archive in (Path(folder)/'packs').glob('*.zip'):
+                manifest,digest=bar.registry.inspect(archive)
+                bar.registry.install(archive,digest);bar.registry.set_enabled(manifest['id'],True)
+            bar.show();bar.resize(1920,96);self.app.processEvents()
+            try:
+                for slot in bar.canvas.ORIGINAL:
+                    panel=bar.holo if slot=='cpu' else bar.module_holos[slot]
+                    QTest.mouseMove(bar.canvas,bar.canvas.module_icon_rect(slot).center())
+                    self.app.processEvents();self.assertFalse(panel.isVisible())
+                    QTest.mouseClick(bar.canvas,Qt.MouseButton.LeftButton,pos=bar.canvas.module_rect(slot).center())
+                    self.assertFalse(panel.isVisible())
+                    QTest.mouseClick(bar.canvas,Qt.MouseButton.LeftButton,pos=bar.canvas.module_icon_rect(slot).center())
+                    self.assertTrue(panel.isVisible(),slot)
+                    QTest.mouseClick(bar.canvas,Qt.MouseButton.LeftButton,pos=bar.canvas.module_icon_rect(slot).center())
+                    self.assertFalse(panel.isVisible(),slot)
+            finally:bar.close()

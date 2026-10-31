@@ -26,12 +26,12 @@ class CPUHoloTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             self.assertEqual(build(path / "archives"), 7)
-            archive = path / "archives" / "cpu-manager-viewer-v2.0.0.zip"
+            archive = path / "archives" / "cpu-manager-viewer-v2.1.0.zip"
             self.assertTrue(archive.exists())
             registry = PluginRegistry(path / "installed")
             manifest, digest = registry.inspect(archive)
             self.assertEqual(manifest["holo_view"], "cpu-core-matrix")
-            self.assertEqual(manifest["version"], "2.0.0")
+            self.assertEqual(manifest["version"], "2.1.0")
             registry.install(archive, digest)
             registry.set_enabled(manifest["id"], True)
             self.assertTrue(registry.installed()[0]["enabled"])
@@ -46,7 +46,7 @@ class CPUHoloTests(unittest.TestCase):
                 bar.open_module_holo("cpu")
                 self.assertFalse(bar.holo.isVisible())
                 build(Path(directory)/"packs")
-                archive=Path(directory)/"packs"/"cpu-manager-viewer-v2.0.0.zip"
+                archive=Path(directory)/"packs"/"cpu-manager-viewer-v2.1.0.zip"
                 manifest, digest=bar.registry.inspect(archive)
                 bar.registry.install(archive,digest)
                 bar.registry.set_enabled(manifest["id"],True)

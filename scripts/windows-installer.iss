@@ -1,7 +1,7 @@
 [Setup]
 AppId=CyberNexusHUD
 AppName=CYBER NEXUS HUD
-AppVersion=0.3.6
+AppVersion=0.5.0
 CloseApplications=yes
 RestartApplications=no
 UsePreviousAppDir=yes
@@ -23,9 +23,12 @@ Type: files; Name: "{app}\\CyberNexusInstaller-old.exe"
 [Files]
 Source: "..\dist\CyberNexusInstaller\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+Source: "..\dist\HealthPerfsBar\*"; DestDir: "{app}\NovaBar"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "native-install.json"; DestDir: "{app}\NovaBar"
+
 [Icons]
-Name: "{group}\Installer ou reconfigurer NovaBar"; Filename: "{app}\CyberNexusInstaller.exe"
+Name: "{group}\NovaBar"; Filename: "{app}\NovaBar\HealthPerfsBar.exe"
 Name: "{group}\Désinstaller le lanceur"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\CyberNexusInstaller.exe"; Description: "Configurer et installer NovaBar"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\NovaBar\HealthPerfsBar.exe"; Description: "Ouvrir NovaBar"; Flags: nowait postinstall skipifsilent

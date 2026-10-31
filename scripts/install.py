@@ -1,4 +1,4 @@
-"""Source bootstrap: prepare the GUI, then let the wizard compile and install NovaBar."""
+"""Source bootstrap: prepare the downloader GUI; --offline keeps the build wizard."""
 import os
 import subprocess
 import sys
@@ -15,7 +15,8 @@ def main():
     print("Préparation du lanceur CYBER NEXUS HUD…",flush=True)
     subprocess.run([str(python),"-m","pip","install",str(source)],check=True)
     env=dict(os.environ,HEALTHBAR_SOURCE_ROOT=str(source))
-    raise SystemExit(subprocess.call([str(python),"-c","from healthbar.installer import main; raise SystemExit(main())"],env=env))
+    module="healthbar.installer" if "--offline" in sys.argv or sys.platform=="darwin" else "healthbar.bootstrapper"
+    raise SystemExit(subprocess.call([str(python),"-c",f"from {module} import main; raise SystemExit(main())"],env=env))
 
 
 if __name__=="__main__":main()

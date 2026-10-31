@@ -273,7 +273,12 @@ class SensorHoloPanel(CpuHoloPanel):
         self.note.setText("— = capteur indisponible · données système locales")
         self.setWindowTitle("NovaBar · " + slot.upper())
     def set_telemetry(self, data):
-        rows = [key.replace("_", " ") + " : " + readout(data.get(key), unit)
+        labels = {"gpu_percent":"Charge GPU", "gpu_temperature_c":"Température GPU",
+                  "gpu_clock_mhz":"Fréquence GPU", "vram_used_gb":"VRAM utilisée", "gpu_power_w":"Puissance GPU",
+                  "ram_percent":"Charge mémoire", "ram_used_gb":"RAM utilisée", "ram_available_gb":"RAM disponible",
+                  "disk_used_gb":"Stockage utilisé", "disk_free_gb":"Stockage libre", "disk_read_mbs":"Lecture disque",
+                  "disk_write_mbs":"Écriture disque", "net_down_mbs":"Réception réseau", "net_up_mbs":"Envoi réseau"}
+        rows = [labels[key] + " : " + readout(data.get(key), unit)
                 for key, unit in self.FIELDS[self.slot]]
         if self.slot == "fans":
             rows = [str(f.get("name", "Fan")) + " : " + readout(f.get("rpm"), "RPM", 0)

@@ -27,7 +27,7 @@ TERMS = """<h3>Votre PC. Votre cockpit.</h3>
 les informations disponibles sur le processeur, la carte graphique, la mémoire, le stockage,
 les ventilateurs et le réseau. Son interface transparente accueille des modules et des thèmes
 évolutifs ; les fonctionnalités dépendent du système, du matériel et des plugins activés.
-Le contrôle Turbo reste réservé aux futures extensions compatibles.</p>
+Le contrôle Turbo Linux dépend du noyau et des permissions ; les autres systèmes affichent une indisponibilité explicite.</p>
 <h3>Conditions d’utilisation · édition de développement</h3>
 <p>Installez uniquement sur un compte que vous êtes autorisé à utiliser. Les mesures sont
 indicatives : certaines sondes peuvent être absentes ou indisponibles. Les modifications
@@ -208,7 +208,18 @@ class InstallerWizard(QDialog):
         self.length=QSpinBox();self.length.setRange(25,100);self.length.setValue(self.settings.length_percent);self.length.setSuffix(" %")
         form.addRow("Épaisseur",self.thickness);form.addRow("Longueur",self.length)
         self.auto_hide=QCheckBox("Rétracter après 15 secondes sans survol");self.auto_hide.setChecked(self.settings.auto_hide)
-        form.addRow("Rétractation",self.auto_hide);box.addLayout(form)
+        from .ui_kit import THEMES
+        self.theme=QComboBox()
+        for key,label in THEMES.items():self.theme.addItem(label,key)
+        self.theme.setCurrentIndex(max(0,self.theme.findData(self.settings.theme)))
+        form.addRow("Thème",self.theme)
+        self.retract_mode=QComboBox()
+        for label,key in (("Always visible","always"),("Auto retract","auto"),("Manual retract only","manual")):self.retract_mode.addItem(label,key)
+        self.retract_mode.setCurrentIndex(max(0,self.retract_mode.findData(self.settings.retract_mode or ("auto" if self.settings.auto_hide else "manual"))))
+        form.addRow("Rétractation",self.retract_mode)
+        self.always_on_top=QCheckBox("Always-on-top");self.always_on_top.setChecked(self.settings.always_on_top);form.addRow(self.always_on_top)
+        self.holo_enabled=QCheckBox("Activer les Holo des plugins");self.holo_enabled.setChecked(self.settings.holo_enabled);form.addRow(self.holo_enabled)
+        box.addLayout(form)
         explanation=QLabel("Le fond général reste transparent. Les plugins compatibles peuvent ensuite être installés ou mis à jour sans réinstaller NovaBar, depuis Extensions → Plugin Manager → Sources. La source officielle GitHub est ajoutée au premier lancement ; vous pourrez en configurer d’autres.")
         explanation.setWordWrap(True);box.addWidget(explanation)
         box.addWidget(QLabel("RACCOURCIS · globaux selon le système et ses permissions"))
@@ -279,7 +290,9 @@ class InstallerWizard(QDialog):
         elif self.stack.currentIndex()==1:
             try:
                 settings=replace(self.settings,position=self.position.currentData(),thickness=self.thickness.value(),
-                    length_percent=self.length.value(),opacity=self.opacity.value(),auto_hide=self.auto_hide.isChecked(),
+                    length_percent=self.length.value(),opacity=self.opacity.value(),auto_hide=self.retract_mode.currentData()=="auto",
+                    retract_mode=self.retract_mode.currentData(),theme=self.theme.currentData(),
+                    always_on_top=self.always_on_top.isChecked(),holo_enabled=self.holo_enabled.isChecked(),
                     autostart=self.autostart.isChecked(),shortcuts=self.bindings()).validate()
             except ValueError as error:QMessageBox.warning(self,"Configuration",str(error));return
             self.stack.setCurrentIndex(2);self.step.setText("03 / INSTALLATION & VÉRIFICATION")
@@ -288,6 +301,8 @@ class InstallerWizard(QDialog):
             self.worker.progress.connect(self.report_progress);self.worker.failed.connect(self.failed)
             self.worker.completed.connect(self.completed);self.worker.start()
         elif self.state:
+            if os.getenv("NOVABAR_BOOTSTRAP"):
+                self.accept();return
             subprocess.Popen([self.state["executable"],"--wait-for-pid",str(os.getpid())],stdin=subprocess.DEVNULL)
             self.accept()
 
@@ -360,11 +375,16 @@ def main():
             self_test(executable,Path(temporary)/"verify.log")
         return 0
     source=os.getenv("HEALTHBAR_SOURCE_ROOT") or str(Path(__file__).resolve().parents[2])
-    wizard=InstallerWizard(source_root=source,payload=payload if payload_executable_available(payload) else None)
+    initial=None
+    if os.getenv("NOVABAR_BOOTSTRAP_SETTINGS"):
+        import json
+        initial=Settings(**json.loads(os.environ["NOVABAR_BOOTSTRAP_SETTINGS"])).validate()
+    wizard=InstallerWizard(settings=initial,source_root=source,payload=payload if payload_executable_available(payload) else None)
     wizard.show()
     if args.preview:
         app.processEvents();wizard.grab().save(args.preview);wizard.header.timer.stop();return 0
-    return app.exec()
+    result=app.exec()
+    return (0 if wizard.state else 1) if os.getenv("NOVABAR_BOOTSTRAP") else result
 
 
 def payload_executable_available(path):
