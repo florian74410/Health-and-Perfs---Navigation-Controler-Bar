@@ -13,4 +13,4 @@ class TrackTests(unittest.TestCase):
         for pts in routes(520,240):
             self.assertTrue(all(15<x<505 and 15<y<225 for x,y in pts))
     def test_route_count(self):
-        self.assertEqual(len(routes(520,240)), 8)
+        self.assertEqual(len(routes(520,240)), 12)
