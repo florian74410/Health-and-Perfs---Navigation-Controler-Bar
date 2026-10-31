@@ -124,7 +124,10 @@ class XFCEPanelCircuitEffects(QWidget):
         theme = PALETTES.get(self.settings.theme, PALETTES["blue-neon"])
         accent = QColor(theme[0])
         soft = QColor(theme[1])
-        strength = max(0.1, min(1.0, self.settings.xfce_skin_fx_intensity/100.0))
+        strength = max(0.0, min(1.0, self.settings.xfce_skin_fx_intensity/100.0))
+        if strength == 0:
+            p.end()
+            return
         alpha = round(170 * strength)
         accent.setAlpha(alpha)
         soft.setAlpha(round(125 * strength))
