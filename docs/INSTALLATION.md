@@ -1,12 +1,12 @@
 # Installation et exploitation
 
-## NovaBar 0.6.10 — paquet Linux Mint XFCE recommandé
+## NovaBar 0.6.11 — paquet Linux Mint XFCE recommandé
 
-Le paquet autonome [`NovaBar_0.6.10_amd64.deb`](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.10/NovaBar_0.6.10_amd64.deb) remplace 0.6.0 sans désinstaller les plugins ou réinitialiser les préférences :
+Le paquet autonome [`NovaBar_0.6.11_amd64.deb`](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/NovaBar_0.6.11_amd64.deb) remplace 0.6.0 sans désinstaller les plugins ou réinitialiser les préférences :
 
 ```sh
 cd "$(xdg-user-dir DOWNLOAD)"
-sudo apt install ./NovaBar_0.6.10_amd64.deb
+sudo apt install ./NovaBar_0.6.11_amd64.deb
 novabar
 ```
 

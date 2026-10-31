@@ -1,3 +1,5 @@
+> **0.6.11 :** la refonte du cockpit conserve le moteur Upgrade de la 0.6.10. Depuis la 0.6.10, utiliser **Paramètres → Upgrade**.
+
 # 🔄 Mises à jour et sauvegardes
 
 > La priorité est de ne pas détruire une installation saine ni les plugins locaux.

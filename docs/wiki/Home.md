@@ -1,3 +1,5 @@
+> **0.6.11 :** [cockpit à grandes icônes, NEXUS organisé et icônes système](../UPDATE_V0611.md). Mise à jour via **Paramètres → Upgrade**.
+
 > **0.6.10 :** [barre inférieure autonome et bords invisibles](Docks.md) · [Upgrade intégré](Mises-a-jour.md).
 
 <p align="center"><img src="assets/banner.svg" alt="NovaBar — Wiki CYBER NEXUS HUD" width="100%"></p>
