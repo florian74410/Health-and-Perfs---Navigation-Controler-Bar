@@ -1,7 +1,5 @@
-# Plugins NovaBar — archives ZIP natives
+# Extensions officielles NOVA NEXUS HD
 
-Cette collection contient 7 archives importables via NovaBar > Extensions > Plugin Manager.
-La version CPU 2.0.0 nécessite le runtime CYBER NEXUS HUD / NovaBar **0.3.2 ou supérieur**, car elle fournit CPU CORE MATRIX Holographic Details.
-Les six autres plugins version 1.0.0 sont compatibles avec NovaBar 0.3.1+.
-Les paquets sont déclaratifs : le code source inclus est documentaire, aucun install.sh n'est exécuté par le gestionnaire pour des raisons de sécurité.
-Installateurs 0.3.1 (dans main/Executable/) : ils ne contiennent pas le nouveau runtime 0.3.2. Le source de ce runtime est sur feature/cyber-nexus-installer-v03.
+Le pack 0.7.0 embarque huit extensions de capteurs et leurs versions actuelles : CPU Manager/Viewer 2.1.0, Power Viewer 1.0.0 ; CPU Temperature, GPU, RAM, stockage, ventilateurs et réseau 1.1.0.
+
+Les ZIP sont des déclarations de capteurs et des ressources ; aucun script externe n'est exécuté lors de l'import. Le Plugin Manager peut installer les versions de ce dossier sans remplacer le lanceur. Les versions historiques peuvent rester dans le dépôt ; le gestionnaire sélectionne la version compatible la plus récente.

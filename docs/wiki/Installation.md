@@ -1,5 +1,9 @@
 # 📦 Installation
 
+
+**0.7.1 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
+
+
 > Le format dépend du système ; la configuration et les plugins doivent rester indépendants des binaires.
 
 [🏠 Accueil](Home.md) · [🚀 Démarrage](Premiers-pas.md) · [📦 Installation](Installation.md) · [🎛️ Interface](Interface.md) · [🔌 Plugins](Plugins.md) · [🛠️ Dépannage](Depannage.md)
@@ -10,22 +14,18 @@
 
 **Paquet Debian natif — recommandé pour le monitoring matériel :**
 
-1. Téléchargez [NovaBar_0.5.3_amd64.deb](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_amd64.deb) dans Téléchargements.
-2. Fermez la barre en cours.
-3. Exécutez :
-
 ```bash
-cd "$(xdg-user-dir DOWNLOAD)" &&
-sudo apt install ./NovaBar_0.5.3_amd64.deb &&
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.3.6_amd64.deb
 novabar
 ```
 
 Vous pouvez aussi double-cliquer le `.deb` pour passer par le gestionnaire de paquets local. Le nom exact peut changer après une nouvelle version.
 
-**Flatpak — plus isolé :** téléchargez le [bundle 0.5.3](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.5.3/NovaBar_0.5.3_x86_64.flatpak) avant les commandes suivantes.
+**Flatpak — plus isolé :**
 
 ```bash
-flatpak install --user ./NovaBar_0.5.3_x86_64.flatpak
+flatpak install --user ./NovaBar_0.3.6_x86_64.flatpak
 flatpak run io.github.florian74410.NovaBar
 ```
 
