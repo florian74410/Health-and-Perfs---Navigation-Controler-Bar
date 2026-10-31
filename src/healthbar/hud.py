@@ -1,7 +1,7 @@
 """Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
-from PySide6.QtCore import Qt, QPointF, QRectF
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
@@ -143,6 +143,9 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
 
 
 class HudCanvas(QWidget):
+    layout_changed = Signal(list)
+    ORIGINAL = ["cpu", "gpu", "ram", "storage", "fans", "network"]
+    WIDTHS = {"cpu":380, "gpu":350, "ram":210, "storage":235, "fans":240, "network":165}
     def __init__(self, registry, vertical=False, parent=None):
         super().__init__(parent)
         self.registry = registry
@@ -150,6 +153,8 @@ class HudCanvas(QWidget):
         self.module_opacity = 88
         self.labels = {}
         self.readings = None
+        self.slot_order = self.ORIGINAL.copy()
+        self._drag_origin = None
         self.refresh_plugins()
         self.setToolTip("Mesures réelles si sonde disponible • tiret = indisponible")
 
@@ -194,7 +199,7 @@ class HudCanvas(QWidget):
         return self.readings.get("fans") or []
 
     def refresh_plugins(self):
-        self.labels = {item["slot"]: item["name"] for item in self.registry.installed() if item["enabled"]}
+        self.labels = {item["slot"]: item["name"] for item in self.registry.installed() if item["enabled"] and item["api_version"] == 1}
         self.update()
 
     def paintEvent(self, event):
@@ -206,8 +211,55 @@ class HudCanvas(QWidget):
             self.paint_compact(p)
         else:
             p.scale(self.width()/1580, self.height()/200)
-            self.paint_horizontal(p)
+            if self.slot_order == self.ORIGINAL:
+                self.paint_horizontal(p)
+            else:
+                self.paint_reordered(p)
         p.end()
+
+    def paint_reordered(self, painter):
+        layer = QImage(1580, 200, QImage.Format.Format_ARGB32_Premultiplied)
+        layer.fill(Qt.GlobalColor.transparent)
+        source = QPainter(layer)
+        source.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.paint_horizontal(source)
+        source.end()
+        old = {}
+        offset = 0
+        for kind in self.ORIGINAL:
+            old[kind] = offset
+            offset += self.WIDTHS[kind]
+        offset = 0
+        for kind in self.slot_order:
+            width = self.WIDTHS[kind]
+            painter.drawImage(QRectF(offset, 0, width, 200), layer,
+                              QRectF(old[kind], 0, width, 200))
+            offset += width
+
+    def module_at(self, pos):
+        x = max(0, min(1580, pos*1580/max(1, self.width())))
+        width = 0
+        for i, kind in enumerate(self.slot_order):
+            width += self.WIDTHS[kind]
+            if x < width:
+                return i
+        return len(self.slot_order)-1
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_origin = self.module_at(event.position().x())
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._drag_origin is not None:
+            index = self.module_at(event.position().x())
+            if index != self._drag_origin:
+                slot = self.slot_order.pop(self._drag_origin)
+                self.slot_order.insert(index, slot)
+                self.layout_changed.emit(self.slot_order.copy())
+                self.update()
+        self._drag_origin = None
+        super().mouseReleaseEvent(event)
 
     def paint_horizontal(self, p):
         line(p, [(2, 44), (29, 11), (150, 11), (164, 4), (211, 4), (223, 14),
@@ -276,6 +328,7 @@ class HudCanvas(QWidget):
                    ("storage", "SSD", self.used_free("disk","372 / 628 GB")),
                    ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
                    ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
+        entries.sort(key=lambda item: self.slot_order.index(item[0]))
         for i, (kind, label, value) in enumerate(entries):
             x, y = (i % columns)*cell_w, (i // columns)*cell_h
             path = QPainterPath()
@@ -295,6 +348,7 @@ class HudCanvas(QWidget):
                    ("storage", "SSD NVMe", self.used_free("disk","372 / 628 GB")),
                    ("fans", "FANS", str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "RPM —"),
                    ("network", "NETWORK", "↓"+self.value("net_down_mbs",12.8,1)+" ↑"+self.value("net_up_mbs",1.6,1)+" MB/s")]
+        entries.sort(key=lambda item: self.slot_order.index(item[0]))
         cell = h/6
         for i, (kind, title, value) in enumerate(entries):
             y = i*cell
