@@ -150,6 +150,31 @@ class ShellTests(unittest.TestCase):
             self.app.processEvents()
             self.assertFalse(self.bar.grab().isNull())
 
+    def test_background_is_clear_and_only_module_fills_follow_opacity(self):
+        from PySide6.QtCore import QPoint
+        for opacity in (0, 35, 100):
+            self.settings.opacity = opacity
+            self.bar.apply_settings()
+            self.bar.resize(2048, 200)
+            self.app.processEvents()
+            image = self.bar.grab().toImage()
+            canvas = self.bar.canvas
+            inside = canvas.mapTo(self.bar, QPoint(int(80*canvas.width()/1580),
+                                                   int(90*canvas.height()/200)))
+            blank = self.bar.actions.mapTo(self.bar, QPoint(10, 150))
+            button_fill = self.bar.turbo.mapTo(self.bar, QPoint(8, 40))
+            self.assertEqual(image.pixelColor(0, 0).alpha(), 0)
+            self.assertEqual(image.pixelColor(blank).alpha(), 0)
+            self.assertAlmostEqual(image.pixelColor(inside).alpha(), round(255*opacity/100), delta=1)
+            self.assertAlmostEqual(image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
+            # Text remains visible even when the module background is completely clear.
+            text_rect = QRect(int(100*canvas.width()/1580), int(98*canvas.height()/200),
+                              int(48*canvas.width()/1580), int(26*canvas.height()/200))
+            opaque_text = sum(image.pixelColor(canvas.mapTo(self.bar, QPoint(x, y))).alpha() == 255
+                              for x in range(text_rect.left(), text_rect.right())
+                              for y in range(text_rect.top(), text_rect.bottom()))
+            self.assertGreater(opaque_text, 50)
+
     def test_retract_and_reveal_geometry(self):
         self.settings.auto_hide = True
         with patch('healthbar.app.QCursor.pos', return_value=self.bar.full_rect.bottomRight() * 10):

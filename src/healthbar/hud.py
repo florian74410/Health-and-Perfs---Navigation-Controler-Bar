@@ -37,14 +37,20 @@ def outline(p, path, fill=None):
         p.setBrush(Qt.BrushStyle.NoBrush)
 
 
-def panel(p, x, w):
+def module_background(opacity):
+    color = QColor("#061020")
+    color.setAlpha(round(255*opacity/100))
+    return color
+
+
+def panel(p, x, w, background):
     path = QPainterPath()
     path.addPolygon(QPolygonF([QPointF(x+20, 27), QPointF(x+65, 27),
         QPointF(x+76, 18), QPointF(x+w-26, 18), QPointF(x+w-8, 35),
         QPointF(x+w-8, 162), QPointF(x+w-28, 183), QPointF(x+24, 183),
         QPointF(x+8, 166), QPointF(x+8, 45)]))
     path.closeSubpath()
-    outline(p, path, "#30061020")
+    outline(p, path, background)
     line(p, [(x+21, 38), (x+35, 27), (x+58, 27)], BLUE, 2)
     line(p, [(x+25, 174), (x+55, 174), (x+63, 182), (x+w-28, 182)], BLUE, 2)
     for i in range(3):
@@ -111,7 +117,7 @@ def meter(p, x, y, w, ratio):
 
 
 def gauge(p, cx, cy, radius, value, unit, warm=False):
-    p.setBrush(QColor("#80050e20"))
+    p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
     p.drawEllipse(QPointF(cx, cy), radius+9, radius+9)
     for j in range(39):
@@ -137,6 +143,7 @@ class HudCanvas(QWidget):
         super().__init__(parent)
         self.registry = registry
         self.vertical = vertical
+        self.module_opacity = 88
         self.labels = {}
         self.refresh_plugins()
         self.setToolTip("Aperçu statique du prototype — aucune mesure matérielle active")
@@ -170,7 +177,7 @@ class HudCanvas(QWidget):
                     (730, 210, "ram", "RAM"), (940, 235, "storage", "SSD NVMe"),
                     (1175, 240, "fans", "FANS"), (1415, 165, "network", "NETWORK")]
         for x, w, kind, title in sections:
-            panel(p, x, w)
+            panel(p, x, w, module_background(self.module_opacity))
             icon(p, kind, x+23, 45, 45 if kind != "network" else 34)
             text(p, x+(67 if kind == "network" else 81), 68,
                  self.labels.get(kind, title)[:13], 12 if kind == "network" else 23)
@@ -212,7 +219,7 @@ class HudCanvas(QWidget):
             x, y = (i % columns)*cell_w, (i // columns)*cell_h
             path = QPainterPath()
             path.addRoundedRect(QRectF(x+3, y+3, cell_w-7, cell_h-7), 8, 8)
-            outline(p, path, "#30061020")
+            outline(p, path, module_background(self.module_opacity))
             icon(p, kind, x+12, y+10, 21)
             text(p, x+42, y+26, self.labels.get(kind, label)[:12], 12)
             text(p, x+12, y+cell_h-15, value, 12 if cell_w < 210 else 16)
@@ -232,7 +239,7 @@ class HudCanvas(QWidget):
                 QPointF(234, y+16), QPointF(234, y+cell-16), QPointF(222, y+cell-4),
                 QPointF(16, y+cell-4), QPointF(6, y+cell-16), QPointF(6, y+16)]))
             path.closeSubpath()
-            outline(p, path, "#30061020")
+            outline(p, path, module_background(self.module_opacity))
             icon_size = 25 if cell < 95 else 34
             icon(p, kind, 20, y+13, icon_size)
             text(p, 62, y+33, self.labels.get(kind, title)[:13], 18)

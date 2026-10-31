@@ -160,6 +160,13 @@ class Bar(QWidget):
                         g.width() if vertical else g.height())
         thickness = int(thickness)
         self.canvas.vertical = vertical
+        self.canvas.module_opacity = self.settings.opacity
+        self.canvas.update()
+        alpha = round(255*self.settings.opacity/100)
+        self.actions.setStyleSheet(f"""
+            QPushButton#nav {{ background: rgba(2,15,34,{alpha}); }}
+            QPushButton#nav:hover {{ background: rgba(11,52,90,{alpha}); }}
+        """)
         self.root.setDirection(QHBoxLayout.Direction.TopToBottom if vertical else QHBoxLayout.Direction.LeftToRight)
         self.actions.setFixedWidth(thickness-12 if vertical else min(400, max(290, g.width()//5)))
         if vertical:
@@ -187,12 +194,9 @@ class Bar(QWidget):
 
     def paintEvent(self, event):
         p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        bg = QColor("#020b1c")
-        bg.setAlpha(round(255*self.settings.opacity/100))
-        p.fillRect(self.rect(), bg)
-        p.setPen(QPen(QColor("#008dff"), 1))
-        p.drawRoundedRect(self.rect().adjusted(1, 1, -2, -2), 14, 14)
+        # Clear every pixel outside the modules; no shared panel or outer rectangle.
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        p.fillRect(self.rect(), Qt.GlobalColor.transparent)
         p.end()
 
     def arm_hide(self):

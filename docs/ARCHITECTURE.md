@@ -25,7 +25,8 @@ scripts/
 
 Le shell connaît les emplacements et leur présentation. Il n’accède pas au matériel.
 HudCanvas dessine les éléments du prototype avec QPainter ; aucune image de bureau n’est embarquée
-comme fond de fenêtre. Le fond du HUD est translucide et l’opacité n’affaiblit pas le texte.
+comme fond de fenêtre. Le fond général est entièrement transparent. Seuls les fonds des modules et boutons
+ont une opacité réglable de 0 à 100 % ; les textes, icônes et contours gardent leur lisibilité.
 Les valeurs dessinées sont volontairement constantes et signalées comme telles.
 Les six slots sont cpu, gpu, ram, storage, fans, network ; Turbo et la console sont réservés.
 

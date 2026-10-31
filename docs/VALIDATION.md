@@ -22,3 +22,6 @@ Les avertissements Qt « propagateSizeHints / raise » sont propres au plugin de
 Restent à vérifier sur machines réelles : composition transparente, multiécran avec DPI différents,
 interaction avec les bureaux/panneaux, autostart à la reconnexion, installateurs Windows/macOS,
 Bazzite/Wayland et plein écran. Le pipeline de builds n’équivaut pas à ces tests manuels.
+
+Correction de transparence : test pixel alpha du fond général à 0 et des fonds de modules/boutons
+à 0 %, 35 % et 100 %, avec maintien des textes opaques. 11 tests locaux passent.

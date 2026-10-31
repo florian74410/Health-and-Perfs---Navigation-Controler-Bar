@@ -11,7 +11,7 @@ Une barre de bureau transparente, sur toute la longueur de l’écran, avec ses 
 - Fenêtre sans bordure, au-dessus des autres fenêtres ; dessin vectoriel haute résolution.
 - Cadres CPU / GPU / RAM / SSD / ventilateurs / réseau et jauges **statiques de démonstration**.
 - Boutons à droite : Turbo (menu réservé), console (réservée), dossier, extensions, réglages.
-- Première ouverture guidée : écran, position haut / bas / droite, épaisseur, opacité du fond,
+- Première ouverture guidée : écran, position haut / bas / droite, épaisseur, opacité des modules,
   rétractation et lancement à l’ouverture de session.
 - Rétractation après 15 secondes sans survol ; bord de rappel de 4 px ; retour au survol.
 - Bouton carré avec flèche pour agrandir la barre. Affichage compact aux petites résolutions.

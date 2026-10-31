@@ -31,7 +31,7 @@ class Settings:
     def validate(self):
         if self.position not in ("top", "bottom", "right"):
             raise ValueError("Position invalide")
-        for name, lo, hi in (("thickness", 120, 360), ("opacity", 20, 100),
+        for name, lo, hi in (("thickness", 120, 360), ("opacity", 0, 100),
                              ("hide_seconds", 3, 120), ("screen", 0, 64)):
             value = getattr(self, name)
             if type(value) is not int or not lo <= value <= hi:
