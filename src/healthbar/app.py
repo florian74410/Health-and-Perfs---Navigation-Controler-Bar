@@ -3,6 +3,8 @@ import argparse
 import os
 import sys
 import time
+import subprocess
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from PySide6.QtCore import Qt, QTimer, QRect, QPropertyAnimation, QEasingCurve, QLockFile
@@ -306,10 +308,58 @@ class Bar(QWidget):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
 
     def console_info(self):
-        box = QMessageBox(self)
-        box.setWindowTitle("Console • emplacement réservé")
-        box.setText("La console sera apportée par une future extension.\nAucune commande système n’est exécutée par cette maquette.")
-        self.run_dialog(box)
+        folder = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
+            Path.home() / "Scripts" / "HardwareHealth")
+        folder.mkdir(parents=True, exist_ok=True)
+        allowed = {".py", ".sh", ".command"} if os.name != "nt" else {
+            ".py", ".bat", ".cmd", ".ps1"}
+        files = [p for p in sorted(folder.iterdir()) if p.is_file() and p.suffix.lower() in allowed]
+        menu = QMenu(self)
+        if not files:
+            menu.addAction("Aucun script • sélectionnez un dossier dans Générale").setEnabled(False)
+        for script in files[:40]:
+            menu.addAction(script.name, lambda checked=False, p=script: self.run_script(p))
+        menu.addSeparator()
+        menu.addAction("Ouvrir le dossier", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))))
+        self.busy = True
+        self.hide_timer.stop()
+        try:
+            menu.exec(self.sender().mapToGlobal(self.sender().rect().bottomLeft())
+                      if isinstance(self.sender(), QWidget) else QCursor.pos())
+        finally:
+            self.busy = False
+            self.arm_hide()
+
+    def run_script(self, path):
+        root = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
+            Path.home() / "Scripts" / "HardwareHealth")
+        path = Path(path).resolve()
+        if root.resolve() != path.parent or not path.is_file():
+            QMessageBox.warning(self, "Script refusé", "Le script doit être directement dans le dossier autorisé.")
+            return
+        confirm = QMessageBox.question(self, "Exécuter le script local ?", 
+            f"Fichier : {path.name}\n\nCe script s'exécutera avec les droits de votre compte.\nContinuer ?")
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        if path.suffix.lower() == ".py":
+            args = [sys.executable, str(path)]
+        elif os.name == "nt":
+            if path.suffix.lower() == ".ps1":
+                args = ["powershell", "-NoProfile", "-File", str(path)]
+            else:
+                args = ["cmd", "/c", str(path)]
+        else:
+            args = ["/bin/sh", str(path)]
+        folder = data_dir() / "Repports" / "NovaBar"
+        folder.mkdir(parents=True, exist_ok=True)
+        log = folder / ("shell-" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".log")
+        try:
+            with log.open("wb") as output:
+                subprocess.Popen(args, cwd=path.parent, stdin=subprocess.DEVNULL,
+                                 stdout=output, stderr=subprocess.STDOUT,
+                                 start_new_session=(os.name != "nt"))
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Exécution impossible", str(error))
 
     def turbo_menu(self):
         self.busy = True
