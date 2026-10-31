@@ -155,6 +155,23 @@ class ShellTests(unittest.TestCase):
                 self.assertTrue(self.bar.buttons.rect().contains(button.geometry()), (position, button.geometry(), self.bar.buttons.rect()))
             self.assertFalse(self.bar.grab().isNull())
 
+    def test_wiki_button_opens_official_docs_and_preserves_bar_height(self):
+        from unittest.mock import patch
+        from PySide6.QtCore import QUrl
+        from healthbar.help_links import WIKI_URL
+        for height in (50,72,150):
+            self.settings.thickness=height
+            self.bar.apply_settings()
+            self.app.processEvents()
+            self.assertTrue(self.bar.wiki_button.isVisible())
+            self.assertEqual(self.bar.height(),height)
+            pos=self.bar.wiki_button.mapTo(self.bar,self.bar.wiki_button.rect().center())
+            self.assertTrue(self.bar.rect().contains(pos))
+        with patch('healthbar.app.QDesktopServices.openUrl',return_value=True) as opening:
+            self.bar.wiki_button.click()
+            opening.assert_called_once()
+            self.assertEqual(opening.call_args.args[0],QUrl(WIKI_URL))
+
     def test_top_anchor_covers_selected_screen_and_has_zero_outer_margins(self):
         from types import SimpleNamespace
         cases = [QRect(0,0,1366,768),QRect(-1920,0,1920,1080),

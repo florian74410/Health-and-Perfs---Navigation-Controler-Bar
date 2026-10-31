@@ -5,8 +5,8 @@ Ils **contiennent NovaBar et ses dépendances** : aucun clone du dépôt, Python
 
 | Système | Téléchargement | Lancement |
 | --- | --- | --- |
-| Linux Mint XFCE / Ubuntu x64 | [NovaBar_0.3.5_amd64.deb](Linux/NovaBar_0.3.5_amd64.deb) | Double-clic ou `sudo apt install ./NovaBar_0.3.5_amd64.deb` |
-| Linux x64 avec Flatpak | [NovaBar_0.3.5_x86_64.flatpak](Linux/NovaBar_0.3.5_x86_64.flatpak) | `flatpak install --user ./NovaBar_0.3.5_x86_64.flatpak` |
+| Linux Mint XFCE / Ubuntu x64 | [NovaBar_0.3.6_amd64.deb](Linux/NovaBar_0.3.6_amd64.deb) | Double-clic ou `sudo apt install ./NovaBar_0.3.6_amd64.deb` |
+| Linux x64 avec Flatpak | [NovaBar_0.3.6_x86_64.flatpak](Linux/NovaBar_0.3.6_x86_64.flatpak) | `flatpak install --user ./NovaBar_0.3.6_x86_64.flatpak` |
 | Linux x64 autonome | [CyberNexusHUD-Linux-x86_64.run](Linux/CyberNexusHUD-Linux-x86_64.run) | `sh CyberNexusHUD-Linux-x86_64.run` |
 | Windows 10/11 x64 | [CyberNexusHUD-Setup-Windows.exe](Windows/CyberNexusHUD-Setup-Windows.exe) | Double-cliquer |
 | macOS 12+ Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](MacOS/CyberNexusHUD-macOS-arm64.dmg) | Ouvrir le DMG puis CyberNexusInstaller.app |

@@ -111,6 +111,13 @@ class SettingsDialog(QDialog):
         update_button = QPushButton("Mises à jour…")
         update_button.clicked.connect(self.open_updates)
         general_form.addRow("CYBER NEXUS HUD", update_button)
+        from .help_links import WIKI_URL
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtCore import QUrl
+        wiki_button = QPushButton("📖 Ouvrir le Wiki NovaBar")
+        wiki_button.setToolTip("Guide : installation, interface, capteurs, plugins, dépannage")
+        wiki_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(WIKI_URL)))
+        general_form.addRow("Documentation", wiki_button)
         installer_button = QPushButton("Profil, confidentialité et raccourcis…")
         installer_button.clicked.connect(self.open_installer)
         if __import__("os").environ.get("NOVABAR_PACKAGED") in ("deb", "flatpak"):

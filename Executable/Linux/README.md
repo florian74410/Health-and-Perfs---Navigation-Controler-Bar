@@ -1,11 +1,11 @@
 # Linux — Mint XFCE / Ubuntu / Bazzite Desktop
 
 ### Nouveau — formats natifs (.deb et .flatpak)
-- `NovaBar_0.3.5_amd64.deb` : installation Mint/Ubuntu directement par gestionnaire de paquets.
-  Double-cliquer le .deb ou `sudo apt install ./NovaBar_0.3.5_amd64.deb`.
+- `NovaBar_0.3.6_amd64.deb` : installation Mint/Ubuntu directement par gestionnaire de paquets.
+  Double-cliquer le .deb ou `sudo apt install ./NovaBar_0.3.6_amd64.deb`.
   Lancer ensuite « NovaBar » depuis le menu, ou exécuter `novabar`.
-- `NovaBar_0.3.5_x86_64.flatpak` : bundle Flatpak installable avec
-  `flatpak install --user ./NovaBar_0.3.5_x86_64.flatpak`,
+- `NovaBar_0.3.6_x86_64.flatpak` : bundle Flatpak installable avec
+  `flatpak install --user ./NovaBar_0.3.6_x86_64.flatpak`,
   puis `flatpak run io.github.florian74410.NovaBar`.
   Nécessite Flatpak et le runtime Freedesktop 25.08 (téléchargement séparé possible).
 

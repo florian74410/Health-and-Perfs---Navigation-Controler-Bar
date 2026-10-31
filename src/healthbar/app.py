@@ -19,6 +19,7 @@ from .plugins import PluginRegistry
 from .hud import HudCanvas
 from .holo import CpuHoloPanel
 from .telemetry import Telemetry
+from .help_links import WIKI_URL
 
 
 def button_icon(kind):
@@ -49,6 +50,10 @@ def button_icon(kind):
             p.rotate(i*45)
             p.drawRect(QRectF(-2, -15, 4, 6))
             p.restore()
+    elif kind == "wiki":
+        p.drawRoundedRect(QRectF(8, 6, 24, 29), 4, 4)
+        p.drawArc(QRectF(15, 9, 13, 14), 5*16, 265*16)
+        p.drawPoint(21, 28)
     elif kind == "quit":
         p.setPen(QPen(QColor("#ff8197"),3))
         p.drawLine(11,11,29,29)
@@ -149,6 +154,8 @@ class Bar(QWidget):
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
+        self.wiki_button = self.make_button("wiki", "Ouvrir le Wiki NovaBar", self.open_wiki)
+        self.wiki_button.setAccessibleName("Ouvrir le Wiki NovaBar")
         self.action_layout.addWidget(self.buttons)
         self.expand_button = NeonButton()
         self.expand_button.setObjectName("nav")
@@ -180,6 +187,7 @@ class Bar(QWidget):
         tray_menu.addAction("Afficher", self.reveal)
         tray_menu.addAction("Préférences", self.preferences)
         tray_menu.addAction("Extensions", self.plugins)
+        tray_menu.addAction("📖 Wiki NovaBar", self.open_wiki)
         tray_menu.addSeparator()
         tray_menu.addAction("Quitter", QApplication.instance().quit)
         self.tray.setContextMenu(tray_menu)
@@ -328,10 +336,11 @@ class Bar(QWidget):
             width = self.actions.width()
             turbo_width = 96 if width >= 350 else 76
             utility_width = 28
-            size = max(22,min(55,(width-10-30-turbo_width-2*utility_width)//4))
+            count = self.button_layout.count() - 3  # turbo, expand, quit
+            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("TURBO")
-            for index in range(1,5):
+            for index in range(1, 1+count):
                 self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
             self.expand_button.setFixedSize(utility_width,button_height)
             self.quit_button.setFixedSize(utility_width,button_height)
@@ -434,6 +443,11 @@ class Bar(QWidget):
                 for item in self.registry.installed()):
             self.holo.close_panel()
 
+    def open_wiki(self):
+        if not QDesktopServices.openUrl(QUrl(WIKI_URL)):
+            QMessageBox.warning(self, "Wiki NovaBar",
+                "Impossible d\u0027ouvrir le navigateur.\nAccès direct :\n" + WIKI_URL)
+
     def open_folder(self):
         data_dir().mkdir(parents=True, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
@@ -512,6 +526,7 @@ class Bar(QWidget):
         menu = QMenu(self)
         menu.addAction("Préférences", self.preferences)
         menu.addAction("Extensions", self.plugins)
+        menu.addAction("📖 Wiki NovaBar", self.open_wiki)
         menu.addAction("Quitter", QApplication.instance().quit)
         self.busy = True
         try:
