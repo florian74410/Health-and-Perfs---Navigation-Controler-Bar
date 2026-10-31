@@ -12,7 +12,7 @@ import sys
 import time
 
 from PySide6.QtCore import QPointF, Qt, QTimer, QRect
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QApplication, QWidget
 
 from .overlay import apply_all_workspaces, apply_priority
@@ -157,7 +157,7 @@ class XFCEPanelCircuitEffects(QWidget):
             trail.setColorAt(0, dark)
             trail.setColorAt(.65, bright)
             trail.setColorAt(1, dark)
-            p.setPen(QPen(trail, 2.8))
+            p.setPen(QPen(QBrush(trail), 2.8))
             p.drawLine(QPointF(cx-27*direction, y), QPointF(cx+14*direction, y))
             p.setPen(QPen(bright, 1.4))
             p.drawEllipse(QPointF(cx, y), 2.1, 2.1)
