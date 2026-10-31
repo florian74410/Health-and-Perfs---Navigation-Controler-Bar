@@ -1,0 +1,57 @@
+name: Native installers
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: ['src/**', 'scripts/**', 'tests/**', 'pyproject.toml', '.github/workflows/build.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Linux Qt runtime libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0
+      - run: python -m pip install . pyinstaller==6.16.0
+      - run: python -m unittest discover -s tests -v
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - run: python scripts/build.py
+      - name: Package first-party ZIP plugins
+        run: python scripts/build_plugins.py
+      - name: Linux installer archive
+        if: runner.os == 'Linux'
+        run: |
+          cp scripts/install-binary-linux.sh dist/Install.sh
+          cp docs/INSTALLATION.md dist/INSTALLATION.md
+          tar -C dist -cJf HealthPerfsBar-Linux-x86_64.tar.xz HealthPerfsBar Install.sh INSTALLATION.md
+      - name: Windows setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" scripts\windows-installer.iss'
+      - name: macOS disk image
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dmg
+          cp -R dist/HealthPerfsBar.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname 'Health & Perfs Bar' -srcfolder dmg -ov -format UDZO HealthPerfsBar-macOS-arm64.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HealthPerfsBar-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            HealthPerfsBar-*.tar.xz
+            HealthPerfsBar-*.dmg
+            dist/*-Setup-*.exe
+            dist/plugins/*.zip
