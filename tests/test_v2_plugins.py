@@ -23,7 +23,7 @@ class PluginV2Tests(unittest.TestCase):
                     registry.install(archive, digest)
                     registry.set_enabled(manifest["id"], True)
                 self.assertEqual(len(registry.installed()), 7)
-                self.assertEqual(len(list((root/"Repports"/"Plugins").glob("REPORT-*.md"))), 7)
+                self.assertEqual(len(list((root/"App"/"Repports"/"Plugins").glob("REPORT-*.md"))), 7)
 
     def test_sample_has_stable_structure(self):
         data = Telemetry().sample()
