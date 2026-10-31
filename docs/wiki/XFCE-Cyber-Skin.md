@@ -10,12 +10,12 @@ Cette fonction est désactivée par défaut. Elle nécessite une session **XFCE 
 
 La première activation :
 1. Recherche le panneau du bas à partir de ses positions XFCE (sans supposer un numéro de panneau fixe).
-2. Sauvegarde la propriété de rétractation originale dans la configuration utilisateur de NovaBar.
+2. Sauvegarde les propriétés de rétractation **et d'épaisseur** originales dans la configuration utilisateur de NovaBar.
 3. Demande le mode de masquage natif XFCE et insère dans `~/.config/gtk-3.0/gtk.css` un bloc GTK commenté, identifié « NOVABAR CYBER NEXUS PANEL SKIN ». Le reste du CSS utilisateur est laissé intact.
-4. Relance uniquement `xfce4-panel` pour charger son style. **Les lanceurs et la taille existants ne sont jamais modifiés.**
+4. Relance uniquement `xfce4-panel` pour charger son style. **Les lanceurs, les fenêtres ouvertes et les icônes de notification ne sont jamais modifiés.** L'épaisseur du panneau est ajustée en fonction de l'originale et restaurable.
 5. Dessine, lorsqu'elle détecte le panneau visible, une couche Qt sans capture de souris : bordures, circuits, microcontacts et deux impulsions lumineuses circulant en sens inverse.
 
-Le panneau XFCE gère lui-même l'apparition au survol du bord. Le délai demandé avant le repli est de **10 secondes** grâce à la propriété GTK `-XfcePanelWindow-popdown-delay` ; le résultat précis dépend de la version du panneau et du thème GTK.
+Le panneau XFCE gère lui-même l'apparition au survol du bord. Le délai avant le repli est **réglable de 1 à 120 secondes** (10 s par défaut), via la propriété GTK `-XfcePanelWindow-popdown-delay`. Le style demande une **zone de rappel de 1 pixel**, nécessaire au survol : le corps du panneau disparaît entièrement, mais il ne s'agit pas d'un masquage mathématique à 0 px. Le résultat précis dépend de la version du panneau et du thème GTK.
 
 ## Apparence
 
@@ -23,7 +23,7 @@ Le panneau XFCE gère lui-même l'apparition au survol du bord. Le délai demand
 - **Green Matrix** : vert phosphorescent.
 - **Red Blood** : rouge/rose néon.
 - Intensité de la couche animée : 0 à 100 % dans **Préférences > XFCE Cyber**.
-- Le panneau conserve **strictement son épaisseur d'origine** : ni sa taille ni celle des icônes ne sont modifiées.
+- Épaisseur native réglable de **100 à 200 %** de la hauteur d'origine (175 % par défaut), sans jamais dépasser le double ; réglage sauvegardé et réversible. Les icônes et applications d'origine sont préservées.
 - Seules des bordures de quelques pixels accueillent les effets, sans recouvrir les icônes.
 
 ### Ajouter des icônes
@@ -32,13 +32,13 @@ Utiliser l'outil **Gérer les icônes et raccourcis…** dans le menu NovaBar (q
 
 ## Restauration
 
-Désactiver « Habillage CYBER NEXUS » depuis la zone de notification ou les préférences : NovaBar enlève **uniquement son bloc CSS**, remet la valeur de rétractation sauvegardée, supprime sa couche d'animation et relance le panneau pour recharger le style. Les modifications GTK antérieures de l'utilisateur restent en place.
+Désactiver « Habillage CYBER NEXUS » depuis la zone de notification ou les préférences : NovaBar enlève **uniquement son bloc CSS**, remet les valeurs de rétractation et d'épaisseur sauvegardées, supprime sa couche d'animation et relance le panneau pour recharger le style. Les modifications GTK antérieures de l'utilisateur restent en place.
 
 **Limites connues :** le sélecteur GTK `.xfce4-panel.background` peut aussi teinter d'autres panneaux XFCE existants ; seule la préférence d'automasquage du panneau inférieur détecté est changée. Les effets par-dessus le panneau dépendent de la gestion des fenêtres X11/compositeur. **Wayland, Windows et macOS ne sont pas pris en charge pour cette couche XFCE.** Le panneau peut clignoter brièvement lors d'une activation/désactivation car son processus redémarre.
 
 ## Vérification avant diffusion
 
-- Rétractation à 10 s, rappel au bord inférieur, pas d'interception du Wi-Fi/horloge.
-- Test des trois couleurs et du réglage d'intensité sur Linux Mint XFCE X11.
+- Rétractation réglable (1–120 s), rappel au bord inférieur via zone native de 1 px, pas d'interception du Wi-Fi/horloge.
+- Test des trois couleurs, de l'épaisseur 100–200 %, et du réglage d'intensité sur Linux Mint XFCE X11.
 - Test d'une session avec deux panneaux pour vérifier que le sélecteur GTK global reste acceptable.
 - Après désactivation, vérifier les styles GTK préexistants et le retour de l'ancien comportement du panneau.
