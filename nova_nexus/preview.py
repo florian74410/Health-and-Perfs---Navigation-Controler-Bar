@@ -16,9 +16,9 @@ def main() -> int:
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     theme = get_default_theme()
-    toast = make_notification("NOVA / NOTIFICATION", "Notification frontale — Electric Blue PCB", theme)
+    toast = make_notification("NOVA / NOTIFICATION", "Notification frontale — Electric Blue PCB", theme, actions=[("FERMER", lambda: toast.close())])
     toast.setWindowTitle("NOVA Notification Preview")
-    toast.setWindowFlag(QtCore.Qt.Window, True)
+    toast.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.FramelessWindowHint)
     toast.show()
     dialog = make_dialog("NOVA Dialog Preview", "Voulez-vous confirmer cette opération de démonstration ?", theme)
     dialog.show()
