@@ -56,7 +56,15 @@ def version_tuple(value):
 
 class PluginRegistry:
     def __init__(self, root=None):
-        self.root = Path(root) if root else data_dir() / "plugins"
+        if root:
+            self.root = Path(root)
+        else:
+            modern = data_dir() / "App" / "Plugins"
+            legacy = data_dir() / "plugins"
+            if legacy.exists() and not modern.exists():
+                modern.parent.mkdir(parents=True, exist_ok=True)
+                legacy.rename(modern)
+            self.root = modern
 
     def installed(self):
         if not self.root.exists():
@@ -151,7 +159,7 @@ class PluginRegistry:
         return manifest
 
     def _report(self, manifest, digest):
-        folder = data_dir() / "Repports" / "Plugins"
+        folder = data_dir() / "App" / "Repports" / "Plugins"
         folder.mkdir(parents=True, exist_ok=True)
         indexes = [int(m.group(1)) for f in folder.glob("REPORT-*.md")
                    if (m := re.match(r"REPORT-(\d+)-", f.name))]
