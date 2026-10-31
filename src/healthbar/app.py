@@ -17,7 +17,9 @@ from .config import Settings, data_dir
 from .dialogs import SettingsDialog, PluginsDialog, STYLE
 from .plugins import PluginRegistry
 from .hud import HudCanvas
+from .holo import CpuHoloPanel
 from .telemetry import Telemetry
+from .help_links import WIKI_URL
 
 
 def button_icon(kind):
@@ -48,6 +50,14 @@ def button_icon(kind):
             p.rotate(i*45)
             p.drawRect(QRectF(-2, -15, 4, 6))
             p.restore()
+    elif kind == "wiki":
+        p.drawRoundedRect(QRectF(8, 6, 24, 29), 4, 4)
+        p.drawArc(QRectF(15, 9, 13, 14), 5*16, 265*16)
+        p.drawPoint(21, 28)
+    elif kind == "quit":
+        p.setPen(QPen(QColor("#ff8197"),3))
+        p.drawLine(11,11,29,29)
+        p.drawLine(29,11,11,29)
     elif kind == "expand":
         p.drawRect(8, 7, 24, 25)
         p.drawLine(20, 12, 20, 26)
@@ -79,6 +89,15 @@ class NeonButton(QPushButton):
         p.setPen(QPen(edge, 1.6))
         panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
         p.drawRoundedRect(panel, 9, 9)
+        from PySide6.QtGui import QLinearGradient
+        glass=QLinearGradient(0,2,0,22)
+        glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
+        glass.setColorAt(1,QColor(0,0,0,0))
+        shine=QPainterPath();shine.addRoundedRect(panel,9,9)
+        p.fillPath(shine,glass)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
+        p.setPen(QPen(light,.65));p.drawRoundedRect(panel.adjusted(1,1,-1,-1),8,8)
         icon = self.icon()
         if not icon.isNull():
             size = min(32, max(18, min(self.width(), self.height()) - 14))
@@ -113,20 +132,21 @@ class Bar(QWidget):
             QMenu::item:disabled { color: #6986a3; }
         """)
         self.root = QHBoxLayout(self)
-        self.root.setContentsMargins(4, 4, 8, 4)
+        self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
         self.canvas = HudCanvas(self.registry)
         self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
         self.canvas.layout_changed.connect(self.save_layout)
+        self.canvas.module_activated.connect(self.open_module_holo)
         self.root.addWidget(self.canvas, 1)
         self.actions = QWidget()
         self.action_layout = QVBoxLayout(self.actions)
-        self.action_layout.setContentsMargins(8, 16, 4, 8)
-        self.action_layout.setSpacing(10)
+        self.action_layout.setContentsMargins(6, 4, 4, 4)
+        self.action_layout.setSpacing(0)
         self.buttons = QWidget()
         self.button_layout = QHBoxLayout(self.buttons)
         self.button_layout.setContentsMargins(0, 0, 0, 0)
-        self.button_layout.setSpacing(10)
+        self.button_layout.setSpacing(5)
         self.turbo = self.make_button("turbo", "Turbo • prévu dans une prochaine version", self.turbo_menu)
         self.turbo.setText("TURBO⌄")
         self.turbo.setFixedWidth(125)
@@ -134,6 +154,8 @@ class Bar(QWidget):
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
+        self.wiki_button = self.make_button("wiki", "Ouvrir le Wiki NovaBar", self.open_wiki)
+        self.wiki_button.setAccessibleName("Ouvrir le Wiki NovaBar")
         self.action_layout.addWidget(self.buttons)
         self.expand_button = NeonButton()
         self.expand_button.setObjectName("nav")
@@ -141,7 +163,12 @@ class Bar(QWidget):
         self.expand_button.setFixedSize(34, 29)
         self.expand_button.setToolTip("Agrandir / réduire la hauteur")
         self.expand_button.clicked.connect(self.toggle_expand)
-        self.action_layout.addWidget(self.expand_button, 0, Qt.AlignmentFlag.AlignRight)
+        self.button_layout.addWidget(self.expand_button)
+        self.quit_button = self.make_button("quit", "Quitter NovaBar (Ctrl+Q)", self.quit_app)
+        self.quit_button.setAccessibleName("Quitter NovaBar")
+        from PySide6.QtGui import QShortcut, QKeySequence
+        self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"),self)
+        self.quit_shortcut.activated.connect(self.quit_app)
         self.action_layout.addStretch()
         self.root.addWidget(self.actions)
         self.animation = QPropertyAnimation(self, b"geometry", self)
@@ -160,6 +187,7 @@ class Bar(QWidget):
         tray_menu.addAction("Afficher", self.reveal)
         tray_menu.addAction("Préférences", self.preferences)
         tray_menu.addAction("Extensions", self.plugins)
+        tray_menu.addAction("📖 Wiki NovaBar", self.open_wiki)
         tray_menu.addSeparator()
         tray_menu.addAction("Quitter", QApplication.instance().quit)
         self.tray.setContextMenu(tray_menu)
@@ -172,6 +200,7 @@ class Bar(QWidget):
         for screen in app.screens():
             screen.geometryChanged.connect(lambda rect: self.apply_settings())
         self.apply_settings()
+        self.holo = CpuHoloPanel(self)
         self.sensors = Telemetry()
         self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
         self.sensor_future = None
@@ -180,11 +209,17 @@ class Bar(QWidget):
         self.sensor_timer.setInterval(250)
         self.sensor_timer.timeout.connect(self.poll_sensors)
         self.sensor_timer.start()
+        from .hotkeys import HotkeyController
+        self.hotkeys = HotkeyController(self)
+        self.hotkeys.configure(self.settings.shortcuts)
 
     def poll_sensors(self):
         if self.sensor_future is not None and self.sensor_future.done():
             try:
-                self.canvas.set_telemetry(self.sensor_future.result())
+                readings = self.sensor_future.result()
+                self.canvas.set_telemetry(readings)
+                if self.holo.isVisible():
+                    self.holo.set_telemetry(readings)
             except (OSError, RuntimeError, ValueError):
                 pass
             self.sensor_future = None
@@ -193,10 +228,39 @@ class Bar(QWidget):
             self.last_sensor_request = now
             self.sensor_future = self.sensor_worker.submit(self.sensors.sample)
 
+    def quit_app(self):
+        self.close()
+        QApplication.instance().quit()
+
     def closeEvent(self, event):
+        self.tray.hide()
+        self.holo.close_panel()
         self.sensor_timer.stop()
+        self.hotkeys.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
+
+    def open_module_holo(self, slot):
+        # The host supplies the CPU hologram; ZIP modules only declare capabilities.
+        if slot != "cpu":
+            if self.holo.isVisible() and not self.holo.pinned:
+                self.holo.close_panel()
+            return
+        enabled = any(item["enabled"] and item["id"] == "cpu-manager-viewer" and
+                      item.get("holo_view") == "cpu-core-matrix"
+                      for item in self.registry.installed())
+        if not enabled:
+            # The core slot remains a read-only monitor until its Holo ZIP is installed.
+            return
+        if self.holo.isVisible():
+            self.holo.close_panel()
+            return
+        app = QApplication.instance()
+        screens = app.screens()
+        screen = screens[min(self.settings.screen, len(screens)-1)]
+        anchor = self.canvas.module_global_rect("cpu")
+        self.holo.set_telemetry(self.canvas.readings or {})
+        self.holo.show_at(anchor, screen.availableGeometry(), self.settings.position)
 
     def save_layout(self, order):
         self.settings.slot_order = order
@@ -228,8 +292,10 @@ class Bar(QWidget):
         screens = QApplication.screens()
         screen = screens[min(self.settings.screen, len(screens)-1)]
         g = screen.geometry()
-        vertical = self.settings.position == "right"
-        thickness = min(self.settings.thickness * (1.5 if self.expanded else 1),
+        vertical = self.settings.position in ("right", "left")
+        self.setMaximumWidth(150 if vertical else 16777215)
+        self.setMaximumHeight(16777215 if vertical else 150)
+        thickness = min(150, self.settings.thickness * (2 if self.expanded else 1),
                         g.width() if vertical else g.height())
         thickness = int(thickness)
         self.canvas.vertical = vertical
@@ -249,29 +315,44 @@ class Bar(QWidget):
         self.actions.setFixedWidth(thickness-12 if vertical else min(400, max(290, g.width()//5)))
         if vertical:
             self.button_layout.setDirection(QHBoxLayout.Direction.TopToBottom)
-            self.actions.setFixedHeight(410)
-            self.buttons.setFixedHeight(320)
-            self.turbo.setFixedSize(min(125, thickness-30), 48)
-            length = max(200, round(g.height()*self.settings.length_percent/100))
+            length = max(360, round(g.height()*self.settings.length_percent/100))
+            button_height = min(40,max(28,(length-120)//10))
+            total = self.button_layout.count()*button_height + (self.button_layout.count()-1)*5
+            self.actions.setFixedHeight(total+8)
+            self.buttons.setFixedHeight(total)
+            for index in range(self.button_layout.count()):
+                button=self.button_layout.itemAt(index).widget()
+                button.setFixedSize(max(28,min(56,thickness-22)),button_height)
+            self.turbo.setText("")
             shift = {"left": 0, "center": (g.height()-length)//2,
                      "right": g.height()-length}[self.settings.alignment]
-            self.full_rect = QRect(g.right()-thickness+1, g.top()+shift, thickness, length)
+            self.full_rect = QRect(g.left() if self.settings.position == "left" else g.right()-thickness+1, g.top()+shift, thickness, length)
         else:
             self.button_layout.setDirection(QHBoxLayout.Direction.LeftToRight)
-            self.buttons.setFixedHeight(58)
             self.actions.setMinimumHeight(0)
             self.actions.setMaximumHeight(16777215)
+            button_height = max(28,min(48,thickness-12))
+            self.buttons.setFixedHeight(button_height)
             width = self.actions.width()
-            turbo_width = 105 if width < 360 else 125
-            size = max(28, min(56, (width-52-turbo_width)//4))
-            for i in range(1, self.button_layout.count()):
-                self.button_layout.itemAt(i).widget().setFixedSize(size, 58)
-            self.turbo.setFixedSize(turbo_width, 58)
+            turbo_width = 96 if width >= 350 else 76
+            utility_width = 28
+            count = self.button_layout.count() - 3  # turbo, expand, quit
+            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
+            self.turbo.setFixedSize(turbo_width,button_height)
+            self.turbo.setText("TURBO")
+            for index in range(1, 1+count):
+                self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
+            self.expand_button.setFixedSize(utility_width,button_height)
+            self.quit_button.setFixedSize(utility_width,button_height)
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
-            length = max(250, round(g.width()*self.settings.length_percent/100))
+            length = max(290, round(g.width()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.width()-length)//2,
                      "right": g.width()-length}[self.settings.alignment]
             self.full_rect = QRect(g.left()+shift, y, length, thickness)
+        self.action_layout.invalidate()
+        self.action_layout.activate()
+        self.root.invalidate()
+        self.root.activate()
         self.setGeometry(self.full_rect)
         self.update()
         self.arm_hide()
@@ -308,8 +389,12 @@ class Bar(QWidget):
             rect.translate(0, -rect.height()+4)
         elif self.settings.position == "bottom":
             rect.translate(0, rect.height()-4)
+        elif self.settings.position == "left":
+            rect.translate(-rect.width()+4, 0)
         else:
             rect.translate(rect.width()-4, 0)
+        if self.holo.isVisible() and not self.holo.pinned:
+            self.holo.close_panel()
         self.retracted = True
         self.animate(rect)
 
@@ -344,12 +429,24 @@ class Bar(QWidget):
             self.arm_hide()
 
     def preferences(self):
+        if self.holo.isVisible() and not self.holo.pinned:
+            self.holo.close_panel()
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(), parent=self)) == QDialog.DialogCode.Accepted:
             self.apply_settings()
+            self.hotkeys.configure(self.settings.shortcuts)
 
     def plugins(self):
         self.run_dialog(PluginsDialog(self.registry, self))
         self.canvas.refresh_plugins()
+        if self.holo.isVisible() and not any(item["enabled"] and
+                item.get("holo_view") == "cpu-core-matrix"
+                for item in self.registry.installed()):
+            self.holo.close_panel()
+
+    def open_wiki(self):
+        if not QDesktopServices.openUrl(QUrl(WIKI_URL)):
+            QMessageBox.warning(self, "Wiki NovaBar",
+                "Impossible d\u0027ouvrir le navigateur.\nAccès direct :\n" + WIKI_URL)
 
     def open_folder(self):
         data_dir().mkdir(parents=True, exist_ok=True)
@@ -429,6 +526,7 @@ class Bar(QWidget):
         menu = QMenu(self)
         menu.addAction("Préférences", self.preferences)
         menu.addAction("Extensions", self.plugins)
+        menu.addAction("📖 Wiki NovaBar", self.open_wiki)
         menu.addAction("Quitter", QApplication.instance().quit)
         self.busy = True
         try:
@@ -440,14 +538,41 @@ class Bar(QWidget):
 
 def main():
     parser = argparse.ArgumentParser()
+    from . import __version__
+    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--expect-version")
+    parser.add_argument("--wait-for-pid", type=int)
+    parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--setup", action="store_true", help="Reopen installation preferences")
     parser.add_argument("--preview", metavar="PNG", help="Render static HUD offscreen without changing user settings")
     args = parser.parse_args()
-    if args.preview:
+    if args.wait_for_pid:
+        import psutil
+        deadline = time.monotonic() + 40
+        while psutil.pid_exists(args.wait_for_pid) and time.monotonic() < deadline:
+            time.sleep(.2)
+        if psutil.pid_exists(args.wait_for_pid):
+            return 3
+    if args.preview or args.self_test:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if not (args.preview or args.self_test) and sys.platform.startswith("linux") and os.getenv("DISPLAY"):
+        from .platforms import detected_target
+        if detected_target() == "bazzite":
+            os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
     app = QApplication(sys.argv[:1])
     app.setApplicationName("HealthPerfsBar")
     app.setOrganizationName("HealthPerfs")
+    if args.self_test:
+        if args.expect_version and args.expect_version != __version__:
+            return 4
+        widget = HudCanvas(PluginRegistry())
+        widget.resize(1400, 190)
+        widget.show()
+        app.processEvents()
+        if widget.grab().isNull():
+            return 2
+        widget.close()
+        return 0
     if args.preview:
         settings = Settings(configured=True, auto_hide=False)
     else:
@@ -457,15 +582,31 @@ def main():
             QMessageBox.information(None, "Health & Perfs", "Une instance est déjà ouverte dans cette session.")
             return 0
         settings = Settings.load()
-        if args.setup or not settings.configured:
-            dialog = SettingsDialog(settings, app.screens(), first_run=not settings.configured)
-            if dialog.exec() != QDialog.DialogCode.Accepted:
+        packaged = os.getenv("NOVABAR_PACKAGED") in ("deb", "flatpak")
+        if (args.setup or not settings.configured) and packaged:
+            # A .deb/.flatpak already contains NovaBar: configure without
+            # launching the separate runtime installer or duplicating binaries.
+            from .dialogs import SettingsDialog
+            first_run = not settings.configured
+            dialog = SettingsDialog(settings, app.screens(), first_run=first_run)
+            if dialog.exec() != QDialog.DialogCode.Accepted or args.setup:
                 return 0
+        elif args.setup or not settings.configured:
+            from .installer import InstallerWizard
+            payload = None
+            if getattr(sys, "frozen", False):
+                payload = Path(sys.executable).parents[3] if sys.platform == "darwin" else Path(sys.executable).parent.parent
+            dialog = InstallerWizard(settings, source_root=os.getenv("HEALTHBAR_SOURCE_ROOT"), payload=payload)
+            dialog.exec()
+            return 0
     bar = Bar(settings)
     bar.show()
     if args.preview:
-        bar.setGeometry(0, 0, 2048, 205)
+        bar.setGeometry(0, 0, 2048, 72)
         bar.actions.setFixedWidth(400)
+        bar.turbo.setFixedSize(96,48)
+        for index in range(1,5):
+            bar.button_layout.itemAt(index).widget().setFixedSize(49,48)
         app.processEvents()
         if not bar.grab().save(args.preview):
             raise OSError("Impossible d’enregistrer l’aperçu")

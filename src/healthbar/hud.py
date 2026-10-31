@@ -1,8 +1,8 @@
 """Resolution-independent HUD artwork. Read-only live hardware readings (missing means unavailable)."""
 import math
 import time
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage
+from PySide6.QtCore import Qt, QPointF, QRectF, QRect, Signal, QTimer
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPolygonF, QImage, QRadialGradient, QConicalGradient, QBrush, QFontMetricsF
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
@@ -24,18 +24,44 @@ def text(p, x, y, value, size=18, color=WHITE, bold=True):
     font.setPixelSize(size)
     font.setBold(bold)
     p.setFont(font)
+    glyphs=QPainterPath();glyphs.addText(QPointF(x,y),font,str(value))
+    glow=QColor(color);glow.setAlpha(45)
+    p.setBrush(Qt.BrushStyle.NoBrush);p.setPen(QPen(glow,2.3));p.drawPath(glyphs)
     p.setPen(QColor(color))
-    p.drawText(QPointF(x, y), value)
+    p.drawText(QPointF(x, y), str(value))
+
+
+def fitted_text(p,x,y,value,width,size=18,color=WHITE,bold=True):
+    font=QFont("DejaVu Sans");font.setBold(bold)
+    size=max(8,size)
+    while size>8:
+        font.setPixelSize(size)
+        if QFontMetricsF(font).horizontalAdvance(str(value))<=width:
+            break
+        size-=1
+    font.setPixelSize(size)
+    visible=QFontMetricsF(font).elidedText(str(value),Qt.TextElideMode.ElideRight,max(1,int(width)))
+    text(p,x,y,visible,size,color,bold)
 
 
 def outline(p, path, fill=None):
-    p.setBrush(QColor(fill) if fill else Qt.BrushStyle.NoBrush)
-    for width, alpha in ((10, 13), (5, 30), (2, 150), (0.8, 255)):
-        color = QColor(CYAN)
-        color.setAlpha(alpha)
-        p.setPen(QPen(color, width))
-        p.drawPath(path)
-        p.setBrush(Qt.BrushStyle.NoBrush)
+    # Glass stays inside each module. The surrounding desktop is never painted.
+    if fill is not None:
+        background=QColor(fill)
+        p.fillPath(path,background)
+        bounds=path.boundingRect()
+        reflection=QLinearGradient(bounds.left(),bounds.top(),bounds.left(),bounds.top()+24)
+        strength=background.alphaF()
+        reflection.setColorAt(0,QColor(174,238,255,round(42*strength)))
+        reflection.setColorAt(.22,QColor(66,161,255,round(18*strength)))
+        reflection.setColorAt(1,QColor(0,0,0,0))
+        p.fillPath(path,reflection)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for width, color, alpha in ((22,BLUE,9),(14,BLUE,21),(8,CYAN,27),
+                                 (3.4,BLUE,190),(1.5,CYAN,255),(.55,"#dcffff",235)):
+        neon=QColor(color);neon.setAlpha(alpha)
+        pen=QPen(neon,width);pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen);p.drawPath(path)
 
 
 def module_background(opacity):
@@ -113,6 +139,7 @@ def meter(p, x, y, w, ratio):
     grad.setColorAt(1, QColor("#61f6ff"))
     p.setBrush(grad)
     p.drawRoundedRect(QRectF(x+2, y+2, max(2, (w-4)*ratio), 11), 5, 5)
+    line(p,[(x+6,y+4),(x+max(6,(w-4)*ratio-2),y+4)],"#c4ffff",.7)
     for i in range(int((w-4)*ratio/12)):
         line(p, [(x+9+i*12, y+3), (x+4+i*12, y+12)], "#b1ffff", 1)
 
@@ -121,6 +148,10 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
     p.drawEllipse(QPointF(cx, cy), radius+9, radius+9)
+    ring=QConicalGradient(QPointF(cx,cy),35)
+    for stop,shade in ((0,"#0552dc"),(.22,"#b6fcff"),(.34,"#00bbff"),(.62,"#091d51"),(.82,"#168dff"),(1,"#0552dc")):
+        ring.setColorAt(stop,QColor(shade))
+    p.setPen(QPen(QBrush(ring),2.5));p.drawEllipse(QPointF(cx,cy),radius+7,radius+7)
     for j in range(39):
         a = math.radians(140+j*6.8)
         r1, r2 = radius-10, radius
@@ -145,6 +176,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
 
 class HudCanvas(QWidget):
     layout_changed = Signal(list)
+    module_activated = Signal(str)
     ORIGINAL = ["cpu", "gpu", "ram", "storage", "fans", "network"]
     WIDTHS = {"cpu":380, "gpu":350, "ram":210, "storage":235, "fans":240, "network":165}
     def __init__(self, registry, vertical=False, parent=None):
@@ -156,8 +188,20 @@ class HudCanvas(QWidget):
         self.readings = None
         self.slot_order = self.ORIGINAL.copy()
         self._drag_origin = None
+        self._drag_start = None
+        self._hover_slot = None
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.visual_timer=QTimer(self)
+        self.visual_timer.setInterval(50)
+        self.visual_timer.timeout.connect(self.animate_neon)
+        self.visual_timer.start()
         self.refresh_plugins()
         self.setToolTip("Mesures réelles si sonde disponible • tiret = indisponible")
+
+    def animate_neon(self):
+        if self.isVisible() and not getattr(self.window(),"retracted",False):
+            self.update()
 
     def set_telemetry(self, readings):
         self.readings = readings
@@ -206,12 +250,17 @@ class HudCanvas(QWidget):
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setClipRect(self.rect().adjusted(1,1,-1,-1))
         if self.vertical:
             self.paint_vertical(p)
-        elif self.width() < 950:
+        elif self.height() <= 150:
+            self.paint_slim(p)
+        elif self.width() < 1400:
             self.paint_compact(p)
         else:
-            p.scale(self.width()/1580, self.height()/200)
+            scale=min(self.width()/1580,self.height()/200)
+            p.translate((self.width()-1580*scale)/2,0)
+            p.scale(scale,scale)
             if self.slot_order == self.ORIGINAL:
                 self.paint_horizontal(p)
             else:
@@ -240,13 +289,21 @@ class HudCanvas(QWidget):
     def module_at(self, pos):
         if self.vertical:
             return min(5, max(0, int(pos.y() * 6/max(1, self.height()))))
-        if self.width() < 950:
+        if self.height() <= 150:
+            columns=6 if self.width()>=840 else 3
+            rows=(6+columns-1)//columns
+            col=min(columns-1,max(0,int(pos.x()*columns/max(1,self.width()))))
+            row=min(rows-1,max(0,int(pos.y()*rows/max(1,self.height()))))
+            return min(5,row*columns+col)
+        if self.width() < 1400:
             columns = 2 if self.width() < 520 else 3
             rows = (6 + columns - 1)//columns
             col = min(columns-1, max(0, int(pos.x()*columns/max(1,self.width()))))
             row = min(rows-1, max(0, int(pos.y()*rows/max(1,self.height()))))
             return min(5,row*columns+col)
-        x = max(0, min(1580, pos.x()*1580/max(1, self.width())))
+        scale=min(self.width()/1580,self.height()/200)
+        left=(self.width()-1580*scale)/2
+        x=max(0,min(1580,(pos.x()-left)/max(.01,scale)))
         width = 0
         for i, kind in enumerate(self.slot_order):
             width += self.WIDTHS[kind]
@@ -254,20 +311,60 @@ class HudCanvas(QWidget):
                 return i
         return 5
 
+    def module_rect(self,kind):
+        """Single geometry contract for drawing, clicks, dragging and plugin popovers."""
+        index=self.slot_order.index(kind)
+        if self.vertical:
+            top=round(index*self.height()/6);bottom=round((index+1)*self.height()/6)
+            return QRect(0,top,self.width(),bottom-top)
+        if self.height()<=150 or self.width()<1400:
+            columns=(6 if self.width()>=840 else 3) if self.height()<=150 else (2 if self.width()<520 else 3)
+            rows=(6+columns-1)//columns
+            col,row=index%columns,index//columns
+            left,right=round(col*self.width()/columns),round((col+1)*self.width()/columns)
+            top,bottom=round(row*self.height()/rows),round((row+1)*self.height()/rows)
+            return QRect(left,top,right-left,bottom-top)
+        scale=min(self.width()/1580,self.height()/200)
+        left=(self.width()-1580*scale)/2
+        offset=sum(self.WIDTHS[slot] for slot in self.slot_order[:index])
+        return QRect(round(left+offset*scale),0,round(self.WIDTHS[kind]*scale),round(200*scale))
+
+    def module_global_rect(self, kind):
+        bounds=self.module_rect(kind)
+        return QRect(self.mapToGlobal(bounds.topLeft()),bounds.size())
+
+    def mouseMoveEvent(self, event):
+        hover = self.slot_order[self.module_at(event.position())]
+        if hover != self._hover_slot:
+            self._hover_slot = hover
+            self.update()
+        super().mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        if self._hover_slot is not None:
+            self._hover_slot = None
+            self.update()
+        super().leaveEvent(event)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_origin = self.module_at(event.position())
+            self._drag_start = event.position().toPoint()
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self._drag_origin is not None:
-            index = self.module_at(event.position().x())
-            if index != self._drag_origin:
+        if self._drag_origin is not None and self._drag_start is not None:
+            index = self.module_at(event.position())
+            moved = (event.position().toPoint() - self._drag_start).manhattanLength() > 10
+            if moved and index != self._drag_origin:
                 slot = self.slot_order.pop(self._drag_origin)
                 self.slot_order.insert(index, slot)
                 self.layout_changed.emit(self.slot_order.copy())
                 self.update()
+            elif not moved and index == self._drag_origin:
+                self.module_activated.emit(self.slot_order[index])
         self._drag_origin = None
+        self._drag_start = None
         super().mouseReleaseEvent(event)
 
     def paint_horizontal(self, p):
@@ -328,6 +425,69 @@ class HudCanvas(QWidget):
         points = [(1434+i*5, 166+math.sin(i*1.7)*3+math.cos(i*.5)*2) for i in range(25)]
         line(p, points, CYAN, 1.3)
         text(p, 26, 191, "DÉMO" if self.readings is None else "CAPTEURS LOCAUX", 8, "#78aad0", False)
+        phase=(time.monotonic()%7)/7
+        for y,offset in ((5,0),(195,.48)):
+            cx=24+((phase+offset)%1)*1516
+            center=QPointF(cx,y)
+            glow=QRadialGradient(center,11)
+            glow.setColorAt(0,QColor(210,255,255,230))
+            glow.setColorAt(.22,QColor(17,199,255,155))
+            glow.setColorAt(1,QColor(0,40,255,0))
+            p.setPen(Qt.PenStyle.NoPen);p.setBrush(glow);p.drawEllipse(center,11,9)
+            line(p,[(cx-17,y),(cx-2,y)],"#42e5ff",1.4)
+
+    def paint_slim(self,p):
+        columns=6 if self.width()>=840 else 3
+        rows=(6+columns-1)//columns
+        width,height=self.width()/columns,self.height()/rows
+        entries=[
+            ("cpu","CPU",self.value("cpu_temperature_c",52)+" °C",self.value("cpu_percent",18)+"% · "+self.value("cpu_frequency_ghz",2.4,1)+" GHz","cpu_percent"),
+            ("gpu","GPU",self.value("gpu_temperature_c",48)+" °C",self.gpu_ghz()+" GHz · "+self.value("gpu_percent",32)+"%","gpu_percent"),
+            ("ram","RAM",self.value("ram_percent",44)+"%",self.used_free("ram","14.2 / 17.8 GB"),"ram_percent"),
+            ("storage","SSD",self.value("disk_percent",62)+"%",self.used_free("disk","372 / 628 GB"),"disk_percent"),
+            ("fans","FANS",str(self.fans()[0]["rpm"])+" RPM" if self.fans() else "—", "Ventilation",None),
+            ("network","RÉSEAU","↓"+self.value("net_down_mbs",12.8,1),"↑"+self.value("net_up_mbs",1.6,1)+" MB/s",None)]
+        entries.sort(key=lambda entry:self.slot_order.index(entry[0]))
+        for index,(kind,label,value,detail,key) in enumerate(entries):
+            bounds=self.module_rect(kind)
+            x,y,width,height=bounds.x(),bounds.y(),bounds.width(),bounds.height()
+            path=QPainterPath();path.addRoundedRect(QRectF(x+3,y+3,width-7,height-6),6,6)
+            outline(p,path,module_background(self.module_opacity))
+            # Specular streak, subtle energy trace and a stronger border on hover.
+            # Paint stays inside the responsive module rectangle and never stretches text.
+            p.save()
+            p.setClipPath(path,Qt.ClipOperation.IntersectClip)
+            shine=QLinearGradient(x,y+3,x,y+min(30,height))
+            shine.setColorAt(0,QColor(170,238,255,50))
+            shine.setColorAt(1,QColor(170,238,255,0))
+            p.fillRect(QRectF(x+7,y+4,max(0,width-14),min(27,height/3)),QBrush(shine))
+            phase=(time.monotonic()*.24+index*.13)%1
+            track_width=max(0,width-30)
+            tracer_x=x+15+track_width*phase
+            p.setPen(QPen(QColor(95,245,255,185),2))
+            p.drawLine(QPointF(tracer_x-10,y+4),QPointF(tracer_x+10,y+4))
+            if self._hover_slot==kind:
+                p.setBrush(Qt.BrushStyle.NoBrush)
+                for stroke,alpha in ((7,46),(2,235)):
+                    edge=QColor(69,230,255,alpha)
+                    p.setPen(QPen(edge,stroke))
+                    p.drawPath(path)
+            p.restore()
+            p.save();p.setClipPath(path,Qt.ClipOperation.IntersectClip)
+            if height>=50:
+                icon(p,kind,x+11,y+7,17)
+                fitted_text(p,x+35,y+20,self.labels.get(kind,label),width-47,10)
+                baseline=y+max(34,min(height*.6,80))
+                fitted_text(p,x+12,baseline,value,width-24,18 if height<90 else 25)
+                if height>=62:
+                    fitted_text(p,x+12,y+height-12,detail,width-24,10,"#abdaed",False)
+            else:
+                fitted_text(p,x+10,y+12,label,width*.31,8)
+                fitted_text(p,x+width*.36,y+height-8,value,width*.64-10,12)
+            p.restore()
+            if key:
+                fraction=self.fraction(key,.44)
+                line(p,[(x+11,y+height-6),(x+11+max(0,width-24)*fraction,y+height-6)],CYAN,1.3)
 
     def paint_compact(self, p):
         columns = 2 if self.width() < 520 else 3
@@ -350,6 +510,15 @@ class HudCanvas(QWidget):
             text(p, x+12, y+cell_h-15, value, 12 if cell_w < 210 else 16)
 
     def paint_vertical(self, p):
+        if self.width()<120:
+            cell=self.height()/6
+            for index,kind in enumerate(self.slot_order):
+                y=index*cell
+                path=QPainterPath();path.addRoundedRect(QRectF(3,y+3,self.width()-6,cell-6),6,6)
+                outline(p,path,module_background(self.module_opacity))
+                icon(p,kind,(self.width()-23)/2,y+9,23)
+                text(p,8,y+min(cell-10,49),{"storage":"SSD","network":"NET"}.get(kind,kind.upper()),10)
+            return
         scale = self.width()/240
         p.scale(scale, scale)
         h = self.height()/scale

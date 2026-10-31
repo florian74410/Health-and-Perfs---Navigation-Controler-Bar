@@ -46,15 +46,15 @@ class SettingsDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(16)
         self.position = QComboBox()
-        self.position.addItems(["Haut", "Bas", "Droite • verticale"])
-        self.position.setCurrentIndex(("top", "bottom", "right").index(settings.position))
+        self.position.addItems(["Haut", "Bas", "Droite • verticale", "Gauche • verticale"])
+        self.position.setCurrentIndex(("top", "bottom", "right", "left").index(settings.position))
         form.addRow("Placement", self.position)
         self.screen = QComboBox()
         self.screen.addItems([f"Écran {i+1} • {s.name()}" for i, s in enumerate(screens)])
         self.screen.setCurrentIndex(min(settings.screen, len(screens)-1))
         form.addRow("Écran", self.screen)
         self.thickness = QSpinBox()
-        self.thickness.setRange(120, 360)
+        self.thickness.setRange(50, 150)
         self.thickness.setValue(settings.thickness)
         self.thickness.setSuffix(" px")
         form.addRow("Épaisseur", self.thickness)
@@ -72,6 +72,9 @@ class SettingsDialog(QDialog):
         form.addRow("Rétractation", self.auto_hide)
         self.autostart = QCheckBox("Lancer à l’ouverture de ma session")
         self.autostart.setChecked(settings.autostart)
+        if __import__("os").environ.get("NOVABAR_PACKAGED") == "flatpak":
+            self.autostart.setEnabled(False)
+            self.autostart.setToolTip("Démarrage automatique non géré dans cette édition Flatpak.")
         
         self.hide_seconds = QSpinBox()
         self.hide_seconds.setRange(3, 120)
@@ -105,6 +108,22 @@ class SettingsDialog(QDialog):
         folder_row.addWidget(browse)
         general_form.addRow("Dossier Shell", folder_row)
         general_form.addRow("Thème actif", QLabel("CYBER-FUTURISTE • Electric Blue"))
+        update_button = QPushButton("Mises à jour…")
+        update_button.clicked.connect(self.open_updates)
+        general_form.addRow("CYBER NEXUS HUD", update_button)
+        from .help_links import WIKI_URL
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtCore import QUrl
+        wiki_button = QPushButton("📖 Ouvrir le Wiki NovaBar")
+        wiki_button.setToolTip("Guide : installation, interface, capteurs, plugins, dépannage")
+        wiki_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(WIKI_URL)))
+        general_form.addRow("Documentation", wiki_button)
+        installer_button = QPushButton("Profil, confidentialité et raccourcis…")
+        installer_button.clicked.connect(self.open_installer)
+        if __import__("os").environ.get("NOVABAR_PACKAGED") in ("deb", "flatpak"):
+            installer_button.setEnabled(False)
+            installer_button.setToolTip("Le paquet Linux gère les fichiers du programme ; utiliser les préférences et le gestionnaire de plugins.")
+        general_form.addRow("NovaBar", installer_button)
         display = QWidget()
         display.setLayout(form)
         edit = QWidget()
@@ -144,6 +163,51 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         box.addWidget(buttons)
 
+    def open_updates(self):
+        from .updates import UpdateDialog
+        UpdateDialog(self).exec()
+
+    def open_installer(self):
+        from .installer import InstallerWizard
+        from .profiles import workspace_dir, current_profile
+        import json
+        wizard = InstallerWizard(self.settings, parent=self)
+        path = workspace_dir() / "App/Profiles" / (current_profile() + ".json")
+        if path.is_file():
+            record = json.loads(path.read_text(encoding="utf-8"))
+            identity = record.get("identity", {})
+            wizard.email.setText(identity.get("email", ""))
+            wizard.username.setText(identity.get("username", ""))
+            wizard.share.setChecked(identity.get("share_experience", False))
+        # Editing the profile uses the first page and preserves installed runtime files.
+        def save_profile_settings():
+            from .profiles import save_profile
+            from dataclasses import asdict, replace
+            if wizard.stack.currentIndex() == 0:
+                wizard.advance()
+                if wizard.stack.currentIndex() == 1:
+                    wizard.next.setText("ENREGISTRER")
+            elif wizard.stack.currentIndex() == 1:
+                try:
+                    changed = replace(self.settings, position=wizard.position.currentData(),
+                        thickness=wizard.thickness.value(), length_percent=wizard.length.value(),
+                        opacity=wizard.opacity.value(), auto_hide=wizard.auto_hide.isChecked(),
+                        autostart=wizard.autostart.isChecked(), shortcuts=wizard.bindings()).validate()
+                    set_enabled(changed.autostart)
+                    changed.save()
+                    previous = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+                    save_profile(wizard.identity, asdict(changed), previous.get("installation"))
+                    self.settings.__dict__.update(changed.__dict__)
+                    wizard.accept()
+                except (ValueError, OSError) as error:
+                    QMessageBox.warning(wizard, "Profil", str(error))
+        wizard.next.clicked.disconnect()
+        wizard.next.clicked.connect(save_profile_settings)
+        wizard.autostart.setChecked(self.settings.autostart)
+        wizard.next.setText("VALIDER")
+        if wizard.exec() == QDialog.DialogCode.Accepted:
+            self.accept()
+
     def choose_script_folder(self):
         chosen = QFileDialog.getExistingDirectory(self, "Dossier de scripts Shell", self.shell_dir.text())
         if chosen:
@@ -151,13 +215,13 @@ class SettingsDialog(QDialog):
 
     def reset_display(self):
         self.length_percent.setValue(100)
-        self.thickness.setValue(200)
+        self.thickness.setValue(72)
         self.opacity.setValue(88)
         self.hide_seconds.setValue(15)
 
     def save(self):
         from dataclasses import replace
-        updated = replace(self.settings, position=("top", "bottom", "right")[self.position.currentIndex()],
+        updated = replace(self.settings, position=("top", "bottom", "right", "left")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
             auto_hide=self.auto_hide.isChecked(), hide_seconds=self.hide_seconds.value(),
             autostart=self.autostart.isChecked(), configured=True,
@@ -174,81 +238,6 @@ class SettingsDialog(QDialog):
         self.accept()
 
 
-class PluginsDialog(QDialog):
-    def __init__(self, registry, parent=None):
-        super().__init__(parent)
-        self.registry = registry
-        self.setWindowTitle("NovaBar • Plugin Manager")
-        self.setStyleSheet(STYLE)
-        self.resize(650, 440)
-        box = QVBoxLayout(self)
-        box.setContentsMargins(26, 26, 26, 26)
-        title = QLabel("DOCK D’EXTENSIONS")
-        title.setObjectName("title")
-        box.addWidget(title)
-        note = QLabel("API v1/v2 • Importer ZIP ou .hbp\nArchives vérifiées ; scripts du plugin jamais exécutés automatiquement.")
-        note.setWordWrap(True)
-        box.addWidget(note)
-        self.list = QListWidget()
-        box.addWidget(self.list)
-        row = QHBoxLayout()
-        for label, callback in [("Importer / Mettre à jour", self.import_package),
-                                ("Activer / Désactiver", self.toggle), ("Version précédente", self.rollback)]:
-            button = QPushButton(label)
-            button.clicked.connect(callback)
-            row.addWidget(button)
-        box.addLayout(row)
-        close = QPushButton("Fermer")
-        close.clicked.connect(self.accept)
-        box.addWidget(close)
-        self.refresh()
-
-    def refresh(self):
-        self.list.clear()
-        self.items = self.registry.installed()
-        if not self.items:
-            self.list.addItem("Aucune extension installée. Les six emplacements du HUD sont réservés.")
-        for item in self.items:
-            self.list.addItem(f"{'●' if item['enabled'] else '○'}  {item['name']}  /  {item['version']}  /  {item['slot']}")
-
-    def selected(self):
-        i = self.list.currentRow()
-        return self.items[i] if 0 <= i < len(self.items) else None
-
-    def import_package(self):
-        from zipfile import BadZipFile
-        path, _ = QFileDialog.getOpenFileName(self, "Ajouter une extension", "", "HealthBar package (*.hbp *.zip)")
-        if not path:
-            return
-        try:
-            manifest, digest = self.registry.inspect(path)
-            answer = QMessageBox.question(self, "Installer cette extension ?",
-                f"{manifest['name']} • {manifest['version']}\nEmplacement : {manifest['slot']}\n"
-                f"SHA-256 : {digest}\n"
-                f"Dépendances : {', '.join(manifest.get('requires', [])) or 'aucune'}\n"
-                f"Permissions : {', '.join(manifest.get('permissions', [])) or 'aucune'}\n"
-                f"Capteurs : {', '.join(manifest.get('sensor_keys', [])) or 'aucun'}\n\n"
-                "Scripts du plugin conservés mais jamais exécutés automatiquement.")
-            if answer == QMessageBox.StandardButton.Yes:
-                self.registry.install(path, digest)
-                self.refresh()
-        except (OSError, ValueError, BadZipFile, RuntimeError) as error:
-            QMessageBox.warning(self, "Paquet refusé", str(error))
-
-    def toggle(self):
-        item = self.selected()
-        if item:
-            try:
-                self.registry.set_enabled(item["id"], not item["enabled"])
-                self.refresh()
-            except (OSError, ValueError) as error:
-                QMessageBox.warning(self, "Modification impossible", str(error))
-
-    def rollback(self):
-        item = self.selected()
-        if item:
-            try:
-                self.registry.rollback(item["id"])
-                self.refresh()
-            except (OSError, ValueError) as error:
-                QMessageBox.warning(self, "Restauration impossible", str(error))
+# Plugin Manager v0.3.3 uses one compact two-tab dialog, independent of the installer.
+# Import here keeps the existing app/settings interface stable.
+from .plugin_manager import PluginsDialog

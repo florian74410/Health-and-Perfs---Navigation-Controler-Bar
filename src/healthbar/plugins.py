@@ -32,10 +32,13 @@ def validate_manifest(raw):
     if raw.get("kind") != ("declarative" if raw["api_version"] == 1 else "builtin-sensor"):
         raise ValueError("Type d’extension non autorisé")
     v1 = {"id", "version", "name", "api_version", "slot", "kind", "description"}
-    v2 = v1 | {"sensor_keys", "min_ram_mb", "requires", "permissions", "optional_permissions"}
+    v2 = v1 | {"sensor_keys", "min_ram_mb", "requires", "permissions", "optional_permissions", "holo_view"}
     if set(raw) - (v1 if raw["api_version"] == 1 else v2):
         raise ValueError("Champs de manifeste non pris en charge")
     if raw["api_version"] == 2:
+        if "holo_view" in raw and (raw.get("id") != "cpu-manager-viewer" or
+                                   raw["slot"] != "cpu" or raw["holo_view"] != "cpu-core-matrix"):
+            raise ValueError("Hologramme non reconnu par ce runtime")
         for key in ("sensor_keys", "requires", "permissions", "optional_permissions"):
             vals = raw.get(key, [])
             if not isinstance(vals, list) or len(vals) > 32 or any(
@@ -59,11 +62,19 @@ class PluginRegistry:
         if root:
             self.root = Path(root)
         else:
-            modern = data_dir() / "App" / "Plugins"
-            legacy = data_dir() / "plugins"
-            if legacy.exists() and not modern.exists():
+            from .profiles import workspace_dir
+            modern = workspace_dir() / "Plugins"
+            legacy = data_dir() / "App/Plugins"
+            if not legacy.exists():
+                legacy = data_dir() / "plugins"
+            if legacy.exists() and (not modern.exists() or not any(modern.iterdir())):
                 modern.parent.mkdir(parents=True, exist_ok=True)
-                legacy.rename(modern)
+                with tempfile.TemporaryDirectory(dir=modern.parent, prefix=".migrate-") as temp:
+                    stage = Path(temp) / "Plugins"
+                    shutil.copytree(legacy, stage)
+                    if modern.exists():
+                        modern.rmdir()  # Only remove an empty destination created by the installer.
+                    stage.rename(modern)
             self.root = modern
 
     def installed(self):

@@ -1,80 +1,103 @@
-# Health & Perfs — Navigation Controller Bar
+<p align="center">
+  <img src="docs/wiki/assets/banner.svg" alt="CYBER NEXUS HUD — NovaBar, cockpit néon" width="100%">
+</p>
 
-Socle natif **v0.2.0**, inspirée du prototype HUD bleu électrique de Flo.
-Une barre de bureau transparente, sur toute la longueur de l’écran, avec ses commandes
-**visibles tout à droite**. Aucune mini-navbar invisible.
+<h1 align="center">⚡ NovaBar — CYBER NEXUS HUD</h1>
+<p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
-![Aperçu statique de la barre](docs/preview.png)
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.3.6-00a8c8?style=for-the-badge">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
+</p>
 
-**V0.2 livrée en branche** : télémétrie read-only, 7 packs ZIP de sondes, cinq onglets, longueur et alignement, glisser-déposer des modules, scripts Shell locaux. Les limites et éléments non finalisés sont détaillés dans [Changelog v0.2](docs/V0.2.md).
+<p align="center">
+  <a href="docs/wiki/Home.md"><strong>📚 WIKI COMPLET</strong></a> ·
+  <a href="Executable/README.md"><strong>⬇️ INSTALLATEURS</strong></a> ·
+  <a href="docs/wiki/Premiers-pas.md"><strong>🚀 DÉMARRAGE</strong></a> ·
+  <a href="docs/wiki/Architecture.md"><strong>🏗️ ARCHITECTURE</strong></a>
+</p>
 
-## Ce qui fonctionne
+---
 
-- Fenêtre sans bordure, au-dessus des autres fenêtres ; dessin vectoriel haute résolution.
-- Cadres CPU / GPU / RAM / SSD / ventilateurs / réseau et jauges **statiques de démonstration**.
-- Boutons à droite : Turbo (menu réservé), console (réservée), dossier, extensions, réglages.
-- Première ouverture guidée : écran, position haut / bas / droite, épaisseur, opacité des modules,
-  rétractation et lancement à l’ouverture de session.
-- Rétractation après 15 secondes sans survol ; bord de rappel de 4 px ; retour au survol.
-- Bouton carré avec flèche pour agrandir la barre. Affichage compact aux petites résolutions.
-- Préférences et extensions séparées pour chaque compte utilisateur ; une instance par compte.
-- Gestionnaire d’extensions locales : ajout, mise à jour, activation, désactivation, retour à la version précédente.
+## 🌌 Découvrez la NovaBar
 
-**Sept packages de plugins capteurs** sont générés via `python scripts/build_plugins.py`. Leur ZIP peut être importé par le gestionnaire API v2. L’application dispose d’un collecteur matériel en lecture seule ; la disponibilité des températures, des ventilateurs et du GPU dépend des pilotes et de l’OS. Les boutons Turbo et contrôle PWM restent sans action matérielle.
+<p align="center"><img src="docs/novabar-neon-preview.png" width="100%" alt="Aperçu de NovaBar généré par le logiciel, thème néon bleu"></p>
+<sub>📸 Aperçu de l'application, avec données d'illustration : les valeurs affichées ne sont pas celles de votre machine.</sub>
 
-Le téléchargement de plugins depuis un store VPS et la pose automatique de leurs dépendances ne sont pas encore opérationnels.
+NovaBar reste au bord de votre bureau pour exposer les informations pertinentes sans encombrer l'écran : contours PCB cyan, panneaux vitrés, reflets, halo au survol et transparence hors des modules. **72 px** par défaut, **50–150 px** réglables et **100 % de largeur** initialement.
 
-## Installer
+### 🖥️ Les six modules
 
-Les builds du workflow [Native installers](../../actions/workflows/build.yml) produisent :
+| 🌡️ CPU | 🎮 GPU | 🧠 RAM | 💾 Stockage | 🌀 Ventilation | 🌐 Réseau |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Charge, °C, GHz | °C, VRAM, charge | Utilisée / libre | Capacité, E/S | Vitesse RPM | Débits montant / descendant |
 
-| Système | Paquet | Installation |
-| --- | --- | --- |
-| Linux x86_64 | `.tar.xz` | Extraire, lancer `Install.sh` |
-| Windows 10/11 x64 | `HealthPerfsBar-Setup-Windows.exe` | Assistant sans droits administrateur |
-| macOS Apple Silicon | `.dmg` | Glisser l’app dans Applications et l’ouvrir |
+Les informations proviennent des capteurs du système : une valeur **—** signifie « indisponible », sans simulation trompeuse.
 
-Ces paquets sont des artefacts GitHub Actions, pas encore une release signée.
-Les builds Windows et macOS doivent être vérifiés sur leurs systèmes respectifs.
+## ✨ L'expérience NovaBar
 
-**Depuis les sources**, avec Python 3.10+ et Internet :
+- **🎨 Mode néon** — halos cyan, reflet de verre, opacité modulable, barre responsive et rétractable.
+- **🧠 Holo CPU CORE MATRIX** — affichage détaillé du processeur via le plugin CPU Manager / Viewer.
+- **🧩 Plugin Control Center 2-en-1** — onglets **Plugins / Sources**, ZIP versionnés, sources GitHub configurables et restauration.
+- **📐 Barre ajustable** — haut, bas, gauche, droite ; 25–100 % de longueur ; 50–150 px d'épaisseur.
+- **🔌 Monitoring local** — collecteur CPU/GPU/RAM/disques/ventilateurs/réseau en lecture seule.
+- **📁 Profils préservés** — réglages et extensions indépendants des exécutables.
+- **📖 Wiki intégré (0.3.6+)** — bouton **?** dans la barre, dans les préférences, le menu contextuel et la zone de notification.
 
-- Linux : `sh Install-Linux.sh` (installer `python3-venv` si nécessaire).
-- Windows : double-cliquer sur `Install-Windows.cmd`.
-- macOS : ouvrir `Install-macOS.command` (ou `sh Install-macOS.command` dans Terminal).
+<p align="center"><img src="docs/novabar-normal-holo-neon.svg" width="100%" alt="Comparatif illustré : barre normale et panneau CPU Holo"></p>
+<sub>Illustration vectorielle Normal/Holo. Seule la vue native Holo CPU est disponible dans cette version ; Turbo/PWM ne contrôle pas encore le matériel.</sub>
 
-Le script installe une copie de l’application dans un environnement privé persistant,
-ajoute un lanceur, puis ouvre les préférences. Aucun `sudo`, aucune modification du Python système.
-Le démarrage automatique est une option explicite, désactivée par défaut.
+## 📦 Télécharger & installer
 
-Voir [Installation, démarrage et compatibilité](docs/INSTALLATION.md).
+| Système | Installateur | Usage |
+|---|---|---|
+| 🐧 **Linux Mint XFCE / Ubuntu** | [NovaBar 0.3.6 (.deb)](Executable/Linux/NovaBar_0.3.6_amd64.deb) | Paquet natif recommandé |
+| 🧊 **Linux avec Flatpak** | [NovaBar 0.3.6 (.flatpak)](Executable/Linux/NovaBar_0.3.6_x86_64.flatpak) | Bundle isolé |
+| 🐧 **Linux autonome** | [CyberNexusHUD (.run)](Executable/Linux/CyberNexusHUD-Linux-x86_64.run) | Installeur autonome historique |
+| 🪟 **Windows 10/11** | [Setup (.exe)](Executable/Windows/CyberNexusHUD-Setup-Windows.exe) | Assistant graphique |
+| 🍎 **macOS Intel** | [DMG x86_64](Executable/MacOS/CyberNexusHUD-macOS-x86_64.dmg) | macOS 12+ |
+| 🍏 **macOS Apple Silicon** | [DMG arm64](Executable/MacOS/CyberNexusHUD-macOS-arm64.dmg) | macOS 12+ |
 
-## Développer
+> ⚠️ Le pipeline GitHub Actions publie les exécutables après les tests multi-OS. **Vérifiez la version dans [Executable/manifest.json](Executable/manifest.json)** : la documentation peut être mise à jour avant les binaires. Les paquets ne sont pas signés/notarisés.
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -e .
-.venv/bin/python -m healthbar
-.venv/bin/python -m healthbar --setup
-QT_QPA_PLATFORM=offscreen .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m healthbar --preview docs/preview.png
+**Installation sur Linux Mint :**
+
+```bash
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.3.6_amd64.deb
+novabar
 ```
 
-Sous Windows, remplacer `.venv/bin/python` par `.venv\Scripts\python.exe`.
+[📦 Procédure complète et désinstallation](docs/wiki/Installation.md) · [🔄 Mise à jour sans effacer les profils](docs/wiki/Mises-a-jour.md)
 
-- [Architecture et arborescence](docs/ARCHITECTURE.md)
-- [Contrat des futurs plugins et mises à jour](docs/PLUGINS.md)
-- [État de validation](docs/VALIDATION.md)
+## 🧩 Plugin Manager
 
-## Limites de cette première version
+<p align="center"><img src="docs/wiki/assets/plugins.svg" width="100%" alt="Source GitHub, catalogue ZIP, validation puis activation"></p>
 
-Linux X11 est la cible initiale. Sous Wayland/Bazzite, le compositeur peut refuser le
-positionnement absolu ou le maintien au premier plan ; l’intégration layer-shell reste à développer.
-Cette base Qt 6 ne prend pas en charge Windows 7. Un port legacy séparé est nécessaire.
-Les anciens Mac Intel ne sont pas couverts par le DMG arm64 ; le lancement source dépend
-de la compatibilité Python/Qt de la machine. Aucun support multiutilisateur administrateur « tous comptes »
-n’est installé : chaque utilisateur lance son propre assistant.
+Le gestionnaire détecte les **versions installées et disponibles**. Il peut synchroniser plusieurs sources GitHub publiques, installer des ZIP compatibles sans reconstruire le lanceur, activer un module et restaurer la version précédente. Un changement de contrat de capteur/API demande néanmoins une mise à jour du programme.
 
-Le dessin reprend la composition, les teintes et les modules du prototype avec des formes vectorielles ;
-ce n’est pas une reproduction photographique pixel par pixel. La lisibilité et les boutons
-s’adaptent à l’écran, avec un agencement vertical distinct à droite.
+[🧩 Tout comprendre sur les plugins](docs/wiki/Plugins.md)
+
+## 🏗️ Architecture
+
+<p align="center"><img src="docs/wiki/assets/architecture.svg" width="100%" alt="Flux système vers sondes, collecteur puis interface Qt"></p>
+
+**Python 3.10+ · PySide6 / Qt · psutil · collecteur de sondes · PyInstaller**. Le travail de collecte est dissocié des animations. Les données sont stockées localement, et les extensions utilisent des manifestes inspectés avant installation.
+
+[🏗️ Étudier l'architecture](docs/wiki/Architecture.md) · [📊 Comprendre les capteurs](docs/wiki/Capteurs.md)
+
+## 📚 Wiki et assistance
+
+**La documentation NovaBar complète est hébergée dans [`docs/wiki/`](docs/wiki/Home.md)**, avec un index, des pages détaillées, des illustrations SVG et des guides pratiques. La barre ouvre ces pages GitHub dans votre navigateur (une connexion Internet est nécessaire). Il ne s'agit pas encore du dépôt Git séparé du Wiki natif GitHub.
+
+[🚀 Premiers pas](docs/wiki/Premiers-pas.md) · [🎛️ Interface](docs/wiki/Interface.md) · [🧠 Holo CPU](docs/wiki/Holo-CPU.md) · [⚙️ Configuration](docs/wiki/Configuration.md) · [🛠️ Dépannage](docs/wiki/Depannage.md) · [❓ FAQ](docs/wiki/FAQ.md) · [🤝 Contribuer](docs/wiki/Contribuer.md)
+
+## 🚦 Statut
+
+Projet en développement. La compatibilité des overlays Wayland/Bazzite et le comportement exact des sondes doivent être validés sur les machines réelles. **Pas de contrôle Turbo/PWM actif**, pas de fenêtres Holo dédiées pour tous les modules, ni de garantie d'accès à toutes les sondes GPU. Les builds CI vérifient des systèmes de compilation, pas toutes les configurations matérielles.
+
+---
+
+<p align="center"><strong>⚡ CYBER NEXUS HUD / NOVABAR</strong><br><em>Un cockpit discret. Une lecture instantanée.</em></p>

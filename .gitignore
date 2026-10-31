@@ -9,3 +9,7 @@ dist/
 *.spec
 core
 core.*
+
+NovaBar-runtime-*.zip
+CyberNexusHUD-*.tar.xz
+CyberNexusHUD-*.dmg

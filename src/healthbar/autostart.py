@@ -7,6 +7,11 @@ from pathlib import Path
 
 
 def launch_command():
+    # Desktop package paths remain stable across system package upgrades.
+    if os.getenv("NOVABAR_PACKAGED") == "deb":
+        return ["/usr/bin/novabar"]
+    if os.getenv("NOVABAR_PACKAGED") == "flatpak":
+        return ["flatpak", "run", "io.github.florian74410.NovaBar"]
     if getattr(sys, "frozen", False):
         return [sys.executable]
     return [sys.executable, "-m", "healthbar"]
@@ -17,8 +22,8 @@ def desktop_quote(value):
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%') + '"'
 
 
-def set_enabled(enabled):
-    command = launch_command()
+def set_enabled(enabled, command=None):
+    command = command or launch_command()
     if sys.platform == "win32":
         import winreg
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,

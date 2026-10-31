@@ -1,25 +1,31 @@
 [Setup]
-AppId=HealthPerfsBar
-AppName=Health & Perfs Bar
-AppVersion=0.1.0
-DefaultDirName={localappdata}\Programs\HealthPerfsBar
-DefaultGroupName=Health & Perfs Bar
+AppId=CyberNexusHUD
+AppName=CYBER NEXUS HUD
+AppVersion=0.3.6
+CloseApplications=yes
+RestartApplications=no
+UsePreviousAppDir=yes
+DefaultDirName={localappdata}\Programs\CyberNexusHUD
+DefaultGroupName=CYBER NEXUS HUD
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=HealthPerfsBar-Setup-Windows
-Compression=lzma2
+OutputBaseFilename=CyberNexusHUD-Setup-Windows
+Compression=lzma2/fast
 SolidCompression=yes
-UninstallDisplayIcon={app}\HealthPerfsBar.exe
+UninstallDisplayIcon={app}\CyberNexusInstaller.exe
+
+[InstallDelete]
+; Remove names used by older launchers; Inno upgrades the standard same-AppId
+; CyberNexusInstaller.exe in place. Do not touch user data or NovaBar runtimes.
+Type: files; Name: "{app}\\NovaBarInstaller.exe"
+Type: files; Name: "{app}\\CyberNexusInstaller-old.exe"
 
 [Files]
-Source: "..\dist\HealthPerfsBar\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\CyberNexusInstaller\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Health & Perfs Bar"; Filename: "{app}\HealthPerfsBar.exe"
-Name: "{group}\Désinstaller"; Filename: "{uninstallexe}"
+Name: "{group}\Installer ou reconfigurer NovaBar"; Filename: "{app}\CyberNexusInstaller.exe"
+Name: "{group}\Désinstaller le lanceur"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\HealthPerfsBar.exe"; Parameters: "--setup"; Description: "Configurer et ouvrir la barre"; Flags: nowait postinstall skipifsilent
-
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "HealthPerfsBar"; Flags: uninsdeletevalue
+Filename: "{app}\CyberNexusInstaller.exe"; Description: "Configurer et installer NovaBar"; Flags: nowait postinstall skipifsilent

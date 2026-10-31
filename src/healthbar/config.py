@@ -4,7 +4,7 @@ import os
 import getpass
 import re
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -22,7 +22,8 @@ def data_dir():
 @dataclass
 class Settings:
     position: str = "top"
-    thickness: int = 200
+    thickness: int = 72
+    layout_revision: int = 1
     opacity: int = 88
     auto_hide: bool = True
     hide_seconds: int = 15
@@ -35,11 +36,12 @@ class Settings:
     shell_dir: str = ""
     theme: str = "cyber-futuriste"
     slot_order: list = None
+    shortcuts: list = field(default_factory=lambda: [{"action": "toggle", "sequence": "Ctrl+B"}])
 
     def validate(self):
-        if self.position not in ("top", "bottom", "right") or self.alignment not in ("left", "center", "right"):
+        if self.position not in ("top", "bottom", "right", "left") or self.alignment not in ("left", "center", "right"):
             raise ValueError("Position invalide")
-        for name, lo, hi in (("thickness", 120, 360), ("opacity", 0, 100),
+        for name, lo, hi in (("thickness", 50, 150), ("opacity", 0, 100), ("layout_revision", 1, 1),
                              ("hide_seconds", 3, 120), ("screen", 0, 64),
                              ("length_percent", 25, 100), ("refresh_seconds", 1, 30)):
             value = getattr(self, name)
@@ -57,12 +59,28 @@ class Settings:
             self.slot_order = expected.copy()
         if not isinstance(self.slot_order, list) or len(self.slot_order) != 6 or sorted(self.slot_order) != sorted(expected):
             raise ValueError("Disposition des modules invalide")
+        if not isinstance(self.shortcuts, list) or len(self.shortcuts) > 20:
+            raise ValueError("Liste de raccourcis invalide")
+        seen = set()
+        for binding in self.shortcuts:
+            if not isinstance(binding, dict) or binding.get("action") not in ("toggle", "expand", "preferences"):
+                raise ValueError("Action de raccourci invalide")
+            sequence = binding.get("sequence", "")
+            if not isinstance(sequence, str) or not 1 <= len(sequence) <= 80 or "," in sequence:
+                raise ValueError("Combinaison de raccourci invalide")
+            if sequence.casefold() in seen:
+                raise ValueError("Raccourci en double")
+            seen.add(sequence.casefold())
         return self
 
     @classmethod
     def load(cls):
         try:
             raw = json.loads((data_dir() / "settings.json").read_text(encoding="utf-8"))
+            if "layout_revision" not in raw and raw.get("thickness", 200) == 200:
+                raw["thickness"] = 72
+            if type(raw.get("thickness")) is int:
+                raw["thickness"] = max(50,min(150,raw["thickness"]))
             return cls(**{k: v for k, v in raw.items() if k in cls.__dataclass_fields__}).validate()
         except (OSError, ValueError, TypeError, AttributeError):
             return cls()
@@ -94,3 +112,5 @@ class Settings:
             "Le fichier settings.json est la source des préférences actives.",
         ]
         (profile / "Profile.md").write_text("\n".join(details) + "\n", encoding="utf-8")
+        from .profiles import mirror_preferences
+        mirror_preferences(asdict(self))

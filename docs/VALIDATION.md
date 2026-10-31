@@ -38,3 +38,46 @@ CI : https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar
 
 Cette validation en environnement CI n'est pas un essai matériel sur Windows 7,
 Bazzite/Wayland ou Mac Intel anciens. Les contrôles PWM/Turbo restent absents.
+
+## CYBER NEXUS HUD / NovaBar 0.3
+
+25 tests locaux après vérification des migrations et des liens internes de bundles : acceptation des conditions, profil local,
+préservation de l’e-mail lors d’un changement de préférences, refus d’une autre famille d’OS ou
+High Sierra, raccourcis en double, conservation d’une version existante, absence d’activation
+si le binaire échoue, manifeste officiel et versions, refus des chemins ZIP et des liens externes, refus d’envoi
+SMTP sans confirmation, et conservation de l’état actif en cas de mauvais SHA-256.
+Aperçus des deux pages inspectés. Les tests utilisent des répertoires temporaires.
+
+Validation native locale 0.3 : runtime et lanceur PyInstaller construits ; lanceur autonome
+ouvert en aperçu ; installation du vrai runtime dans un dossier temporaire, test de l’exécutable
+staged avec version 0.3.0 attendue, création du profil et activation testées sans enregistrer
+l’autostart ni créer de raccourci sur la machine de travail. Archive runtime créée, extraite
+avec l’extracteur de l’updater, puis vrai binaire extrait exécuté en self-test : succès.
+Les deux pages ont été inspectées à partir des captures du lanceur.
+
+Le chemin source a également été exécuté en entier : venv privé, téléchargement des dépendances,
+compilation PyInstaller sur l’hôte Linux, self-test du binaire produit et activation temporaire : succès.
+
+## NovaBar 0.3.1 — bord supérieur et exécutables
+
+- Géométrie de fenêtre vérifiée à 100 % sur 1366, 1920, 2560 et 3840 pixels logiques,
+  avec écran sélectionné, origines négatives et écran décalé en hauteur. Gauche, droite,
+  centre et bord supérieur correspondent exactement à l’écran ; aucune marge extérieure.
+- Alpha nul du fond général et alpha des fonds de modules/boutons vérifiés après ajout des reflets.
+- Fichier Linux .run : contrôle SHA-256 embarqué et refus d’un téléchargement corrompu.
+- Aucun nouveau plugin développé. Les effets sont des simulations vectorielles 2D et ne requièrent pas RTX.
+- Les tests offscreen ne remplacent pas un contrôle du placement sous XFCE/Wayland sur machine réelle.
+
+## NovaBar 0.3.3 — compacité et fermeture
+
+- Hauteur par défaut réduite de 200 à 72 px, limite stricte 50–150 px ; migration du seul ancien défaut 200 px,
+  conservation des tailles personnalisées et des profils déjà versionnés.
+- Bouton Quitter visible à droite et raccourci Ctrl+Q ; commandes sur une seule ligne.
+- Mise en page compacte avec typographie non étirée ; mise à l’échelle uniforme des cadrans détaillés.
+- Vérification des hauteurs 50/72/96/150 px et de la visibilité de Quitter, activation du bouton testée.
+- Les invariants de transparence, d’ancrage au bord et de largeur restent contrôlés.
+
+Les tailles antérieures hors plage sont bornées à 50–150 px ; l’ancien défaut 200 px devient 72 px.
+34 tests locaux passent, y compris les régressions CPU Holo déjà présentes sur le dépôt.
+Les zones de clic, drag et ancrage des hologrammes utilisent le même calcul de rectangles que
+la disposition responsive des modules, vérifié sur plusieurs largeurs et après réorganisation.
