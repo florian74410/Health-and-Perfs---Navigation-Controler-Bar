@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "health-perfs-bar"
-version = "0.1.0"
-description = "Transparent desktop HUD and declarative extension host"
+version = "0.2.0"
+description = "Transparent desktop HUD and read-only hardware telemetry and safe extension host"
 requires-python = ">=3.10"
-dependencies = ["PySide6-Essentials>=6.8,<6.9"]
+dependencies = ["PySide6-Essentials>=6.8,<6.9", "psutil>=5.9,<8"]
 
 [project.scripts]
 healthbar = "healthbar.app:main"
