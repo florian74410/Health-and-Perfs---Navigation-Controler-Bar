@@ -39,13 +39,14 @@ class DockTests(unittest.TestCase):
             not_app.write_text("[Desktop Entry]\nType=Link\nName=Unknown\nURL=https://example.org\n")
             fake = root / "danger.sh"
             fake.write_text("#!/bin/sh\n")
-            self.assertEqual(normalized_drop([folder, valid, fake], "folders"), [str(folder)])
-            self.assertEqual(normalized_drop([folder, valid, fake], "apps"), [str(valid)])
-            self.assertEqual(launcher_metadata(valid), ("Firefox", "firefox"))
-            self.assertIsNone(launcher_metadata(not_app))
-            self.assertFalse(launch_item(str(fake), "apps"))
-            with patch("healthbar.edge_docks.xdg_folder", return_value=root):
-                self.assertEqual(desktop_apps(), [str(not_app), str(valid)])
+            self.assertEqual(normalized_drop([folder, valid, fake], "folders"), [str(folder.resolve())])
+            with patch("healthbar.edge_docks.sys.platform", "linux"):
+                self.assertEqual(normalized_drop([folder, valid, fake], "apps"), [str(valid.resolve())])
+                self.assertEqual(launcher_metadata(valid), ("Firefox", "firefox"))
+                self.assertIsNone(launcher_metadata(not_app))
+                self.assertFalse(launch_item(str(fake), "apps"))
+                with patch("healthbar.edge_docks.xdg_folder", return_value=root):
+                    self.assertEqual(desktop_apps(), [str(valid)])
 
     def test_saved_lists_and_independent_panel_settings(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, HEALTHBAR_DATA_DIR=temp):
@@ -103,7 +104,7 @@ class DockTests(unittest.TestCase):
                 self.assertEqual(list(bar.sidebars), ["left"])
             finally:
                 bar.edge_timer.stop()
-                bar.quit_app()
+                bar.close()
 
     def test_settings_dialog_exposes_three_controls(self):
         settings = Settings(configured=True)
