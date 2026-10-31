@@ -48,6 +48,7 @@ class Settings:
     shell_dir: str = ""
     theme: str = "cyber-futuriste"
     slot_order: list = None
+    hidden_modules: list = field(default_factory=lambda: ["power"])
     shortcuts: list = field(default_factory=lambda: [{"action": "toggle", "sequence": "Ctrl+B"}])
 
     def validate(self):
@@ -88,10 +89,18 @@ class Settings:
         if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
+        available = expected + ["power"]
         if self.slot_order is None:
             self.slot_order = expected.copy()
-        if not isinstance(self.slot_order, list) or len(self.slot_order) != 6 or sorted(self.slot_order) != sorted(expected):
+        if (not isinstance(self.slot_order, list)
+            or sorted(self.slot_order) not in (sorted(expected), sorted(available))):
             raise ValueError("Disposition des modules invalide")
+        if (not isinstance(self.hidden_modules, list)
+            or len(set(self.hidden_modules)) != len(self.hidden_modules)
+            or any(slot not in available for slot in self.hidden_modules)):
+            raise ValueError("Liste de modules masqués invalide")
+        if not any(slot not in self.hidden_modules for slot in available):
+            raise ValueError("Au moins un plugin doit rester affiché")
         if not isinstance(self.shortcuts, list) or len(self.shortcuts) > 20:
             raise ValueError("Liste de raccourcis invalide")
         seen = set()
@@ -144,6 +153,7 @@ class Settings:
             f"- Dock droit: {self.dock_right_enabled} ({self.dock_right_kind})",
             f"- Thème: {self.theme}",
             f"- Modules: {', '.join(self.slot_order)}",
+            f"- Modules masqués: {', '.join(self.hidden_modules)}",
             "",
             "Le fichier settings.json est la source des préférences actives.",
         ]
