@@ -86,6 +86,8 @@ class Bar(QWidget):
         self.root.setContentsMargins(4, 4, 8, 4)
         self.root.setSpacing(8)
         self.canvas = HudCanvas(self.registry)
+        self.canvas.slot_order = (settings.slot_order or self.canvas.ORIGINAL).copy()
+        self.canvas.layout_changed.connect(self.save_layout)
         self.root.addWidget(self.canvas, 1)
         self.actions = QWidget()
         self.action_layout = QVBoxLayout(self.actions)
@@ -165,6 +167,17 @@ class Bar(QWidget):
         self.sensor_timer.stop()
         self.sensor_worker.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
+
+    def save_layout(self, order):
+        self.settings.slot_order = order
+        try:
+            self.settings.save()
+            folder = data_dir() / "App" / "Repports" / "NovaBar"
+            folder.mkdir(parents=True, exist_ok=True)
+            with (folder / "layout.log").open("a", encoding="utf-8") as log:
+                log.write(f"{datetime.now().isoformat()} | {', '.join(order)}\n")
+        except OSError as error:
+            QMessageBox.warning(self, "Enregistrement", str(error))
 
     def make_button(self, kind, tooltip, callback):
         button = QPushButton()
