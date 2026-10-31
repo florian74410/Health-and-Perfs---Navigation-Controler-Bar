@@ -651,8 +651,8 @@ class Bar(QWidget):
         super().showEvent(event)
         from .overlay import apply_priority
         self.overlay_status = apply_priority(self, self.settings.always_on_top)
-        from .overlay import apply_all_workspaces
-        apply_all_workspaces(self)
+        from .overlay import schedule_all_workspaces
+        schedule_all_workspaces(self)
         self.expand_button.setToolTip("Minimiser manuellement · " + self.overlay_status)
 
     def paintEvent(self, event):
@@ -729,6 +729,8 @@ class Bar(QWidget):
             self.canvas.update()
 
     def reveal(self):
+        from .overlay import schedule_all_workspaces
+        schedule_all_workspaces(self)
         if self.retracted:
             self.retracted = False
             self.canvas.update()
