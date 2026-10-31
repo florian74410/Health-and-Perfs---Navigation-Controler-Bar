@@ -445,7 +445,9 @@ class Bar(QWidget):
 
     def leaveEvent(self, event):
         if self.retracted:
-            self._edge_armed = True
+            # Rearm only once the pointer really leaves the collapsed window.
+            if not self.geometry().contains(QCursor.pos()):
+                self._edge_armed = True
         else:
             self.arm_hide()
         super().leaveEvent(event)
