@@ -24,7 +24,7 @@ Les modules conservent leur géométrie proportionnelle : à faible largeur, la 
 
 ## 🧭 Boutons
 
-**TURBO⌄** : emplacement de contrôle non encore fonctionnel ; n'effectue aucun overclocking. **Console** : menu de scripts locaux du dossier choisi ; confirmation nécessaire avant exécution. **Dossier** : configuration ; **Extensions** : Plugin Control Center ; **Préférences** : réglages ; **? Wiki** : documentation GitHub dans le navigateur (v0.3.6+) ; **⤢** : hauteur ; **✕** : quitter.
+**TURBO⌄** : modes CPU Linux lorsque le noyau et les permissions le permettent ; voir [CPU Mode et limites](CPU-Mode.md). Aucun contrôle PWM ni overclocking universel. **Console** : menu de scripts locaux du dossier choisi ; confirmation nécessaire avant exécution. **Dossier** : configuration ; **Extensions** : Plugin Control Center ; **Préférences** : réglages ; **? Wiki** : documentation GitHub dans le navigateur (v0.3.6+) ; **⤢** : hauteur ; **✕** : quitter.
 
 Un menu contextuel et l'icône système proposent les actions importantes. Les modules peuvent être réordonnés par glisser-déposer. Le clic sur le logo en haut à droite de chaque plugin actif ouvre ou ferme son Holo ; le survol et le clic sur les valeurs ne l’ouvrent pas.
 
@@ -62,3 +62,9 @@ Les Holo CPU (460 × 330 px) et capteurs (380 × 280 px) sont compacts, transpar
 ![Holo CPU transparent](../../Assets/Previews/novabar-v051-holo-cpu.png)
 
 *Les captures utilisent des mesures de démonstration ; leur transparence est conservée dans les fichiers PNG.*
+
+## Graphique réseau et contraste — 0.5.2
+
+Le texte est dessiné avec un contour sombre et un intérieur néon, sans fond opaque. Le Holo Réseau contient deux courbes, **UP verte** et **DOWN rouge**, et un **histogramme bleu de ping**. L’échelle de débit est à gauche, le ping en ms à droite. Le réseau conserve son historique de 120 secondes lorsque le Holo est fermé. Le panneau mesure 460 × 360 px ; les autres panneaux gardent leur format compact.
+
+[Guide 0.5.2](../UPDATE_V052.md)

@@ -2,9 +2,9 @@
 import math
 import time
 from PySide6.QtCore import Qt, QRect, QRectF, QPoint, QEasingCurve, QPropertyAnimation, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPen, QLinearGradient, QPainterPath, QFont, QKeyEvent
+from PySide6.QtGui import QColor, QPainter, QPen, QLinearGradient, QPainterPath, QFont, QKeyEvent, QTextLayout, QTextOption, QPalette
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea,
-                               QGridLayout, QPushButton, QGraphicsOpacityEffect, QSizePolicy)
+                               QGridLayout, QPushButton, QGraphicsOpacityEffect, QSizePolicy, QStyleOptionButton, QStyle)
 
 from .ui_kit import QColor
 
@@ -16,6 +16,51 @@ def readout(number, unit, precision=1):
     if number is None or not isinstance(number, (int, float)) or not math.isfinite(number):
         return "—"
     return f"{number:.{precision}f} {unit}"
+
+
+def outlined_text(painter, point, font, text, color):
+    path = QPainterPath(); path.addText(point, font, text)
+    # A dark, opaque glyph outline works on white and on dark desktop content.
+    painter.setPen(QPen(QColor("#010813"), 3, Qt.PenStyle.SolidLine,
+                        Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    painter.setBrush(color); painter.drawPath(path)
+    painter.setPen(Qt.PenStyle.NoPen); painter.drawPath(path)
+
+
+class HoloLabel(QLabel):
+    def paintEvent(self, event):
+        painter = QPainter(self); painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = self.contentsRect().adjusted(2, 0, -2, 0)
+        layout = QTextLayout(self.text(), self.font())
+        option = QTextOption()
+        option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere if self.wordWrap() else QTextOption.WrapMode.NoWrap)
+        layout.setTextOption(option); layout.beginLayout(); lines = []
+        while True:
+            line = layout.createLine()
+            if not line.isValid(): break
+            line.setLineWidth(max(1, rect.width())); lines.append(line)
+        layout.endLayout()
+        height = sum(line.height() for line in lines)
+        y = rect.top() + (max(0, (rect.height()-height)/2) if self.alignment() & Qt.AlignmentFlag.AlignVCenter else 0)
+        for line in lines:
+            value = self.text()[line.textStart():line.textStart()+line.textLength()]
+            outlined_text(painter, QPoint(rect.left(), round(y+line.ascent())), self.font(), value,
+                          self.palette().color(QPalette.ColorRole.WindowText))
+            y += line.height()
+        painter.end()
+
+
+class HoloButton(QPushButton):
+    def paintEvent(self, event):
+        option = QStyleOptionButton(); self.initStyleOption(option)
+        value = option.text; option.text = ""
+        painter = QPainter(self); painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.style().drawControl(QStyle.ControlElement.CE_PushButton, option, painter, self)
+        metrics = self.fontMetrics()
+        outlined_text(painter, QPoint(round((self.width()-metrics.horizontalAdvance(value))/2),
+                                      round((self.height()-metrics.height())/2+metrics.ascent())),
+                      self.font(), value, self.palette().color(QPalette.ColorRole.ButtonText))
+        painter.end()
 
 class CpuHoloPanel(QWidget):
     """Persistent, screen-bounded CPU hologram; receives readings from the host."""
@@ -48,10 +93,10 @@ class CpuHoloPanel(QWidget):
         self.base_style = """
             QLabel {color: #DBEEFF; background: transparent; border: 0;}
             QLabel#holoTitle { color: #91EEFF; font-size: 14px; font-weight: 900; letter-spacing: 2px; }
-            QLabel#holoSubtitle {color:#6CBFD9; font-size: 11px;}
-            QLabel#holoHeading {color:#5EEBFF; font-size: 11px; font-weight: 700;}
-            QLabel#holoValue {color:#EAF7FF; font-size: 11px; font-weight: 700;}
-            QLabel#holoFoot {color:#80B2CA; font-size: 10px;}
+            QLabel#holoSubtitle {color:#6CBFD9; font-size: 12px;}
+            QLabel#holoHeading {color:#5EEBFF; font-size: 12px; font-weight: 700;}
+            QLabel#holoValue {color:#EAF7FF; font-size: 12px; font-weight: 700;}
+            QLabel#holoFoot {color:#80B2CA; font-size: 11px;}
             QPushButton {background: transparent; color:#9FEAFF; border: 1px solid #1AB8EF;
                          border-radius: 6px; padding: 3px 8px;}
             QPushButton:hover {color:#FFFFFF; border: 1px solid #C8FFFF;}
@@ -64,29 +109,29 @@ class CpuHoloPanel(QWidget):
         root.setContentsMargins(20, 18, 20, 18)
         root.setSpacing(6)
         top = QHBoxLayout()
-        title = QLabel("◈ CPU CORE MATRIX")
+        title = HoloLabel("◈ CPU CORE MATRIX")
         title.setObjectName("holoTitle")
         top.addWidget(title)
         top.addStretch()
-        self.pin_button = QPushButton("◇  ÉPINGLER")
+        self.pin_button = HoloButton("◇  ÉPINGLER")
         self.pin_button.setAccessibleName("Épingler ou libérer l'hologramme CPU")
         self.pin_button.setCheckable(True)
         self.pin_button.clicked.connect(self.toggle_pin)
         top.addWidget(self.pin_button)
-        close = QPushButton("✕")
+        close = HoloButton("✕")
         close.setAccessibleName("Fermer les détails CPU")
         close.clicked.connect(self.close_panel)
         top.addWidget(close)
         root.addLayout(top)
-        self.cpu_name = QLabel("Processeur · données locales")
+        self.cpu_name = HoloLabel("Processeur · données locales")
         self.cpu_name.setObjectName("holoSubtitle")
         self.cpu_name.setWordWrap(True)
         root.addWidget(self.cpu_name)
-        self.summary = QLabel("PACKAGE   TEMP —   •   FRÉQUENCE —   •   CHARGE —   •   PUISSANCE —")
+        self.summary = HoloLabel("PACKAGE   TEMP —   •   FRÉQUENCE —   •   CHARGE —   •   PUISSANCE —")
         self.summary.setObjectName("holoHeading")
         self.summary.setWordWrap(True)
         root.addWidget(self.summary)
-        self.topology = QLabel("Topology: —")
+        self.topology = HoloLabel("Topology: —")
         self.topology.setObjectName("holoSubtitle")
         root.addWidget(self.topology)
         line = QWidget()
@@ -107,7 +152,7 @@ class CpuHoloPanel(QWidget):
         self.grid_widget.setAutoFillBackground(False)
         self.grid_widget.setStyleSheet("background: transparent;")
         root.addWidget(self.scroll, 1)
-        self.note = QLabel("W = puissance instantanée si mesurée • TDP nominal ≠ puissance par cœur.  — = capteur indisponible")
+        self.note = HoloLabel("W = puissance instantanée si mesurée • TDP nominal ≠ puissance par cœur.  — = capteur indisponible")
         self.note.setObjectName("holoFoot")
         self.note.setWordWrap(True)
         root.addWidget(self.note)
@@ -174,11 +219,12 @@ class CpuHoloPanel(QWidget):
         self.visual_timer.start()
 
     def _add_cell(self, value, row, col, header=False):
-        label = QLabel(str(value))
+        label = HoloLabel(str(value))
         label.setObjectName("holoHeading" if header else "holoValue")
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        label.setContentsMargins(2, 1, 2, 1)
         self.grid.addWidget(label, row, col)
 
     def set_telemetry(self, readings):
@@ -262,9 +308,20 @@ class SensorHoloPanel(CpuHoloPanel):
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
         self.resize(380, 280)
+        if slot == 'network':
+            from .network_chart import NetworkChart
+            self.chart = NetworkChart(self)
+            self.layout().insertWidget(5, self.chart)
+            self.resize(460, 360)
         self.note.setText("— = capteur indisponible · données système locales")
         self.setWindowTitle("NovaBar · " + slot.upper())
+    def record_sample(self, data):
+        if hasattr(self, 'chart'):
+            self.chart.record(data)
+
     def set_telemetry(self, data):
+        self.record_sample(data or {})
+        from .network_detail import format_rate, format_ping
         data = data or {}
         self._readings = data
         labels = {"gpu_percent":"Charge GPU", "gpu_temperature_c":"Température GPU",
@@ -281,12 +338,17 @@ class SensorHoloPanel(CpuHoloPanel):
             key, label = totals[self.slot]
             rows.append((label, readout(data.get(key), "GB")))
         if self.slot == "network":
+            self.cpu_name.setText('INTERFACE : ' + (data.get('net_interface') or 'en détection'))
+            rows = [("Réception", format_rate(data.get('net_down_mbs'))),
+                    ("Envoi", format_rate(data.get('net_up_mbs'))),
+                    ("Ping · " + data.get('net_ping_target', '1.1.1.1'), format_ping(data)),
+                    ("État ICMP", data.get('net_ping_status', 'En attente'))]
             for interface in data.get("net_interfaces", []):
                 name = interface.get("name", "Interface")
-                rows.extend([(name, "CONNECTÉE" if interface.get("isup") else "DÉCONNECTÉE"),
+                rows.extend([(name, "CONNECTÉE" if interface.get("isup") else "DÉCONNECTÉE" if interface.get("isup") is False else "ÉTAT INCONNU"),
                              ("  Vitesse lien", readout(interface.get("speed_mbps"), "Mbit/s", 0)),
-                             ("  Réception", readout(interface.get("down_mbs"), "MB/s", 2)),
-                             ("  Envoi", readout(interface.get("up_mbs"), "MB/s", 2))])
+                             ("  Réception", format_rate(interface.get("down_mbs"))),
+                             ("  Envoi", format_rate(interface.get("up_mbs")))])
         if self.slot == "fans":
             rows = [(str(f.get("name", "Fan")), readout(f.get("rpm"), "RPM", 0))
                     for f in data.get("fans", [])] or [("Ventilateurs", "—")]
@@ -299,5 +361,5 @@ class SensorHoloPanel(CpuHoloPanel):
             self._add_cell(value, index, 1)
         self.summary.setText("MESURES EN DIRECT · " + self.slot.upper())
         self.note.setText("— = capteur indisponible · données système locales" +
-                          (" · Débits agrégés : toutes interfaces" if self.slot == "network" else
+                          (" · Ping ICMP toutes les 10 s ; absence de réponse ≠ coupure Internet" if self.slot == "network" else
                            " · I/O : tous disques ; capacité : volume système" if self.slot == "storage" else ""))

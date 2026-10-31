@@ -61,7 +61,7 @@ jobs:
               for stem in known:
                   content=content.replace(f']({stem}.md)',f'](https://github.com/{repo}/wiki/{stem})')
               content=content.replace('../../Assets/Previews/', 'assets/Previews/')
-              content=re.sub(r'\]\(\.\./UPDATE_V051.md\)',lambda m:f'](https://github.com/{repo}/blob/main/docs/UPDATE_V051.md)',content)
+              content=re.sub(r'\]\(\.\./(UPDATE_[^/)]+\.md)\)',lambda m:f'](https://github.com/{repo}/blob/main/docs/{m.group(1)})',content)
               content=re.sub(r'\]\(\.\./\.\./([^)]*)\)',lambda m:f'](https://github.com/{repo}/blob/main/{m.group(1)})',content)
               content=content.replace('../novabar-neon-preview.png','assets/novabar-neon-preview.png')
               content=content.replace('../novabar-slim-preview.png','assets/novabar-slim-preview.png')

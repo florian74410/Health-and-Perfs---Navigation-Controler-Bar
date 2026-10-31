@@ -17,7 +17,7 @@ class TransparentHoloTests(unittest.TestCase):
         for panel in [CpuHoloPanel()] + [SensorHoloPanel(s) for s in SensorHoloPanel.FIELDS]:
             with self.subTest(panel=panel.windowTitle()):
                 self.assertLessEqual(panel.width(), 460)
-                self.assertLessEqual(panel.height(), 330)
+                self.assertLessEqual(panel.height(), 360 if getattr(panel, "slot", None) == "network" else 330)
                 panel.show(); self.app.processEvents()
                 panel._fade.setOpacity(1)
                 self.assertFalse(panel.scroll.viewport().autoFillBackground())
@@ -63,7 +63,8 @@ class TransparentHoloTests(unittest.TestCase):
         with patch('healthbar.telemetry.psutil.net_io_counters',side_effect=io), \
              patch('healthbar.telemetry.psutil.net_if_stats',return_value={'eth0':SimpleNamespace(isup=True,speed=1000)}), \
              patch('healthbar.telemetry.time.monotonic',side_effect=[10,11]), \
-             patch('healthbar.telemetry.nvidia_gpu',return_value={}):
+             patch('healthbar.telemetry.nvidia_gpu',return_value={}), \
+             patch('healthbar.telemetry.PingProbe.sample',return_value={}):
             first=telemetry.sample(); second=telemetry.sample()
         self.assertIsNone(first['net_interfaces'][0]['down_mbs'])
         self.assertEqual(second['net_interfaces'][0]['down_mbs'],1)

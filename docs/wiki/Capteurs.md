@@ -41,3 +41,9 @@ Le collecteur GPU actuel utilise notamment `nvidia-smi` : une carte AMD ou Intel
 ## Réseau détaillé — 0.5.1
 
 Le panneau Réseau liste les interfaces exposées par le système : état, vitesse de lien en Mbit/s et débits reçus/émis en MB/s. Les débits sont calculés par différence entre deux relevés ; le premier reste inconnu. Les compteurs globaux regroupent les interfaces et peuvent inclure des interfaces virtuelles ; ils ne représentent pas forcément un seul transfert Internet. Aucune adresse IP ni MAC n’est nécessaire pour ces détails.
+
+## Réseau et ping — 0.5.2
+
+Les petits débits utilisent B/s, kB/s ou MB/s. La connexion active/route par défaut passe avant Docker et les interfaces déconnectées. Le ping ICMP vise **1.1.1.1**, toutes les 10 secondes, avec un délai borné ; une absence de réponse ne signifie pas une coupure Internet.
+
+Le Holo conserve 120 secondes d’historique : **UP vert**, **DOWN rouge**, **ping bleu en histogramme**. Débits et ping ont deux échelles distinctes ; les couleurs ne changent pas avec le thème. [Guide détaillé](../UPDATE_V052.md).
