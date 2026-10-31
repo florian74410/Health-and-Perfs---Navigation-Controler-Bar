@@ -93,4 +93,4 @@ class Settings:
             "",
             "Le fichier settings.json est la source des préférences actives.",
         ]
-        (profile / "Profile.md").write_text("\\n".join(details) + "\\n", encoding="utf-8")
+        (profile / "Profile.md").write_text("\n".join(details) + "\n", encoding="utf-8")
