@@ -264,6 +264,8 @@ class ShellTests(unittest.TestCase):
 
     def test_retract_and_reveal_geometry(self):
         self.settings.auto_hide = True
+        # Zero-duration transitions avoid OS-dependent window-manager timing.
+        self.bar.animation.setDuration(0)
         with patch('healthbar.app.QCursor.pos', return_value=self.bar.full_rect.bottomRight() * 10):
             for position in ("top", "bottom", "right"):
                 self.settings.position = position
@@ -271,7 +273,7 @@ class ShellTests(unittest.TestCase):
                 full = QRect(self.bar.full_rect)
                 self.bar.retract()
                 self.assertTrue(self.bar.retracted)
-                self.bar.animation.setCurrentTime(260)
+                self.app.processEvents()
                 hidden = self.bar.geometry()
                 if position in ("top", "bottom"):
                     self.assertEqual(hidden.width(), full.width())
@@ -283,7 +285,7 @@ class ShellTests(unittest.TestCase):
                     self.assertLess(hidden.width(), full.width())
                     self.assertEqual(hidden.right(), full.right())
                 self.bar.reveal()
-                self.bar.animation.setCurrentTime(260)
+                self.app.processEvents()
                 self.assertEqual(self.bar.geometry(), full)
 
     def test_preferences_save_and_cancel(self):
