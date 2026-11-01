@@ -1,6 +1,13 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 
+## 0.7.5 — barres de défilement des terminaux
+
+- Barre verticale indépendante dans chaque terminal et panneau, historique réel limité à 2 000 lignes.
+- Molette, Maj + Page haut/bas, Ctrl + Maj + Début/Fin ; suivi automatique au bas et position de lecture conservée pendant les sorties.
+- Saisie et collage rejoignent la sortie en direct ; le défilement ne modifie pas l’écran actif du PTY.
+- Rendu limité aux lignes visibles, style conservé avec les préférences de texte ; vérification du défilement à travers le véritable runtime gelé.
+
 ## 0.7.4 — commandes de fenêtre visibles
 
 - Trois boutons partagés pour Terminal, Explorer et dialogues NOVA : minimiser, maximiser/restaurer, fermer ; bordure bleue et symboles rouges dessinés.

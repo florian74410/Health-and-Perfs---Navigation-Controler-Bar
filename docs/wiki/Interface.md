@@ -1,7 +1,7 @@
 # 🎛️ Interface et contrôles
 
 
-**0.7.4 :** [commandes de fenêtre bleu électrique et symboles rouges](../UPDATE_V074.md). Minimiser, maximiser/restaurer et fermer dans NOVA, thème XFWM4 complet et boutons GTK3. Installation via **Paramètres → Upgrade**.
+**0.7.5 :** [barres de défilement des terminaux](../UPDATE_V075.md). Historique de 2 000 lignes par panneau, molette et Maj + Page haut/bas ; disponible via **Paramètres → Upgrade**.
 
 
 **0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.
