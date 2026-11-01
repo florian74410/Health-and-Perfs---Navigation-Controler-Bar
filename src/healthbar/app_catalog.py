@@ -53,6 +53,11 @@ def catalog(roots=None):
                 result.append(Application(str(path),e.get('Name[fr]',e.get('Name',path.stem)),e.get('Icon',''),category,
                                           e.get('Keywords[fr]',e.get('Keywords',''))+' '+e.get('GenericName','')+' '+e.get('Comment','')))
             except (OSError,ValueError,configparser.Error,KeyError):continue
+    # Show one clearly named NOVA entry when the pack owns its launcher.
+    from .terminal_launchers import is_nova_terminal_shortcut
+    nova=next((app for app in result if Path(app.path).name=='nova-nexus-terminal.desktop' and is_nova_terminal_shortcut(app.path)),None)
+    if nova:
+        result=[app for app in result if app is nova or not is_nova_terminal_shortcut(app.path)]
     return sorted(result,key=lambda a:a.name.casefold())
 
 

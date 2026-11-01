@@ -15,6 +15,7 @@ from .xfce_panel_skin import PALETTES
 from .system_env import native_env
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon,cut_path,glow,lookup_icon
 from .app_catalog import ApplicationLauncher,catalog
+from .terminal_launchers import preferred_terminal_launcher
 from .system_status import DesktopStatus
 from .status_notifier import StatusNotifierHost,item_icon
 
@@ -26,7 +27,7 @@ def applications():return [(a.path,a.name,a.icon) for a in catalog()]
 
 
 def favorite_apps(settings):
-    if settings.dock_app_paths is not None:return settings.dock_app_paths
+    if settings.dock_app_paths is not None:return list(dict.fromkeys(preferred_terminal_launcher(p) for p in settings.dock_app_paths))
     root=Path(os.getenv('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'xfce4/panel'
     paths=[str(p) for p in sorted(root.glob('launcher-*/*.desktop')) if launcher_metadata(p)]
     if not paths:
@@ -38,7 +39,7 @@ def favorite_apps(settings):
     for path in paths:
         info=launcher_metadata(Path(path))
         if info and info[0] not in seen:unique.append(path);seen.add(info[0])
-    return unique
+    return list(dict.fromkeys(preferred_terminal_launcher(p) for p in unique))
 
 
 def pinned_apps(settings):return favorite_apps(settings)[:4]
