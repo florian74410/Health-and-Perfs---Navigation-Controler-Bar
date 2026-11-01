@@ -1,5 +1,28 @@
 # Installation et exploitation
 
+
+## NOVA NEXUS HD 0.7.5 — installateur complet
+
+[Guide actuel](UPDATE_V075.md) · [Installateur autonome Linux](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.5/CyberNexusHUD-Linux-x86_64.run)
+
+Depuis NovaBar 0.6.11, **Paramètres → Upgrade** installe le même runtime complet en conservant les préférences. **Paramètres → Bureau NOVA** active ou restaure le thème GTK3/XFWM4, les panneaux et le gestionnaire de dossiers. NOVA Terminal Manager est disponible dans NEXUS et depuis le dossier courant de NOVA Explorer.
+
+Pour une première installation, télécharger le fichier `.run` puis le lancer sans sudo avec `sh CyberNexusHUD-Linux-x86_64.run`. Le paquet DEB natif 0.7.5 est également disponible dans la release. Les instructions de versions précédentes ci-dessous sont conservées pour l'historique.
+
+## NovaBar 0.6.11 — paquet Linux Mint XFCE recommandé
+
+Le paquet autonome [`NovaBar_0.6.11_amd64.deb`](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/NovaBar_0.6.11_amd64.deb) remplace 0.6.0 sans désinstaller les plugins ou réinitialiser les préférences :
+
+```sh
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.6.11_amd64.deb
+novabar
+```
+
+Pour voir le HUD sur tous les espaces de travail, utiliser une session XFCE **X11** ; l'option « sticky » est demandée au gestionnaire de fenêtres et corrigée périodiquement si nécessaire. Le panneau XFCE du bas n'est **pas remplacé par un autre gestionnaire de tâches** : NovaBar habille son fond et ses bordures en conservant les icônes et notifications. Son habillage est facultatif, et l'application sauvegarde la taille et le mode de masquage d'origine.
+
+En cas d'absence de la barre du bas : menu de notification NovaBar → **Barre système XFCE → Diagnostiquer le panneau inférieur**. Pour afficher le style PCB, activer « Habillage CYBER NEXUS » dans ce menu ou les préférences. Voir [les détails du correctif](UPDATE_V069.md).
+
 ## Sources — lancement simple
 
 Télécharger puis extraire le dépôt, lancer Install-Linux.sh / Install-Windows.cmd /

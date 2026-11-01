@@ -1,4 +1,10 @@
-# Documentation CYBER NEXUS HUD / NovaBar
+# Documentation NOVA NEXUS HD / NovaBar
+
+- [Pack complet 0.7.5 — installation, activation, restauration et Terminal Manager](../docs/UPDATE_V075.md)
+- [Feuille de route NOVA NEXUS HD](../docs/NOVA_NEXUS_HD_MASTER_PLAN.md)
+
+- [⚡ Mise à jour 0.6.9 — HUD multi-workspaces, docks PCB et panneau XFCE](../docs/UPDATE_V069.md)
+- [📦 Télécharger NovaBar 0.6.9](../Executable/README.md)
 
 - [Wiki de NovaBar](../docs/wiki/Home.md)
 - [Mise à jour 0.5.3 : verre teinté, cadres et palette](../docs/UPDATE_V053.md)

@@ -1,3 +1,83 @@
+# NovaBar 0.6.11 — Cockpit inférieur et NEXUS
+
+
+## 0.7.5 — barres de défilement des terminaux
+
+- Barre verticale indépendante dans chaque terminal et panneau, historique réel limité à 2 000 lignes.
+- Molette, Maj + Page haut/bas, Ctrl + Maj + Début/Fin ; suivi automatique au bas et position de lecture conservée pendant les sorties.
+- Saisie et collage rejoignent la sortie en direct ; le défilement ne modifie pas l’écran actif du PTY.
+- Rendu limité aux lignes visibles, style conservé avec les préférences de texte ; vérification du défilement à travers le véritable runtime gelé.
+
+## 0.7.4 — commandes de fenêtre visibles
+
+- Trois boutons partagés pour Terminal, Explorer et dialogues NOVA : minimiser, maximiser/restaurer, fermer ; bordure bleue et symboles rouges dessinés.
+- Export XFWM4 complet, états de restauration/survol/appui et icônes GTK3 CSD autonomes.
+- Migration réversible de la disposition des boutons et du titre en maximisation ; rechargement du thème déjà sélectionné après Upgrade.
+- Vérifications des actions Qt, des pixels natifs XFWM4/GTK3 et des clics réels X11 ; nouveaux aperçus dans Assets.
+
+## 0.7.3 — raccourcis NOVA Terminal
+
+- Stabilise la déclaration du panneau HUD avant son premier affichage sous XFCE/X11.
+- Relie le bouton du HUD et les raccourcis simples des panneaux au terminal NOVA dans son thème.
+- Privilégie NOVA dans les favoris et le catalogue NEXUS ; préserve les commandes explicites des lanceurs personnalisés.
+- Conserve les scripts locaux dans le menu contextuel du HUD.
+- Permet au nouveau lanceur empaqueté de relayer ses commandes publiques à une version utilisateur activée plus récente.
+
+
+
+## 0.7.2 — zone de travail du HUD et commandes du terminal
+
+- Ancre les boutons Réduire et Fermer dans le bandeau graphite.
+- Agrandit les formats et F11 dans la zone disponible.
+- Réserve dynamiquement la hauteur visible du HUD supérieur aux fenêtres maximisées sous XFCE/X11.
+- Réduit le HUD horizontal replié à 10 px et libère sa réservation lorsqu’il est masqué ou fermé.
+
+
+
+## 0.7.1 — police du gestionnaire de terminaux
+
+- Applique la famille de police choisie au document terminal, en conservant la taille et les couleurs ANSI.
+- Vérifie la police effective rendue, et pas uniquement la préférence du widget.
+
+
+
+## 0.7.0 — NOVA NEXUS HD complet
+
+- Unifie le runtime 0.6.11 et la fondation NOVA NEXUS HD dans l'installateur et Upgrade.
+- Ajoute NOVA Explorer, le gestionnaire NOVA Terminal Linux et leurs lanceurs.
+- Ajoute six formats de terminal, onglets, préférences de texte et châssis partagé avec les dialogues.
+- Ajoute activation/restauration du bureau XFCE et de l'association des dossiers.
+- Réduit le cockpit à 70 px, hauteur réglable 60–112 px, et ajoute Afficher le bureau.
+- Remodèle les touches HUD et renforce les pistes PCB en zigzag.
+- Synchronise les capteurs intégrés compatibles en conservant les choix d'activation et les extensions personnalisées.
+
+
+La barre inférieure adopte une coque métallique à plusieurs niveaux, des compartiments biseautés, des rails lumineux et des circuits. Elle conserve les couleurs du thème et passe à une hauteur adaptée à de grandes icônes (88 px au réglage par défaut, au lieu de 49 px).
+
+
+- Grandes icônes, titres de fenêtres, menu NEXUS par catégories, favoris et recherche.
+- Indicateurs système réels et hôtes StatusNotifier/DBusMenu/XApp.
+- Upgrade conservé.
+
+# NovaBar 0.6.10 — barre inférieure autonome et Upgrade
+
+- Barre inférieure Linux/X11 indépendante de `xfconf-query` : applications avec recherche, lanceurs XFCE, fenêtres actives, activation/réduction, clic droit fermer, horloge et accès réseau/volume/Bluetooth/session selon les outils installés.
+- Panneau XFCE inférieur masqué après sauvegarde de ses fenêtres ; restauration à la fermeture, au redémarrage après mise à jour et via un processus de secours en cas d’arrêt brutal. La configuration XFCE n’est pas supprimée. Les icônes de notification tierces restent sur le panneau XFCE, accessible 30 s depuis le menu Système.
+- Docks latéraux repliés cachés, sans trait coloré ni fenêtre interceptant les clics. Détection du pointeur à 10 px ; fermeture après 3 s hors du module.
+- Paramètres → Upgrade : vérification de la release officielle, téléchargement du runtime correspondant à la plateforme, contrôle SHA-256, autotest isolé, activation et redémarrage automatique. Préférences, thèmes et plugins conservés.
+- Migration des raccourcis Linux : le raccourci utilisateur utilise le même identifiant que le paquet DEB pour ouvrir la version mise à jour.
+- Environnement des commandes XFCE/GIO isolé des bibliothèques embarquées PyInstaller.
+
+
+# NovaBar 0.6.9 — correctif XFCE (développement, non publié)
+
+- HUD CPU/GPU/RAM/SSD : demande EWMH `_NET_WM_DESKTOP=0xFFFFFFFF` et fenêtre « sticky » après mise en carte par XFWM4 ; vérification toutes les 2,5 secondes et réparation uniquement si nécessaire, y compris après un changement d'espace de travail.
+- Docks Dossiers/Applications : panneaux PCB à angles coupés, circuit néon animé en bordure, couleurs de l'HUD synchronisées, style du déclencheur rétracté assorti au thème. Conservation des dossiers, lanceurs et fonction glisser-déposer.
+- Panneau système inférieur natif : détection X11 améliorée y compris fenêtres reparentées ; dialogue d'activation proposé une seule fois aux profils où l'habillage XFCE était désactivé, sans masquer définitivement le panneau original.
+- Depuis l'icône de notification NovaBar : diagnostic en lecture seule du panneau inférieur (identifiant XFCE, taille, masquage, détection visuelle).
+- Garde l'habillage réversible, la barre d'origine et ses icônes, le réglage de délai 1–120 secondes, l'épaisseur 100–200 % et la palette CYBER NEXUS.
+- Tests automatisés ajoutés ; validation visuelle sur vrai Linux Mint XFCE/X11 encore nécessaire.
+
 # NovaBar 0.6.0 — développement (non publié)
 
 - Quatrième surface facultative XFCE Cyber Skin : panneau système natif conservé (icônes, Wi-Fi, fenêtres, horloge) avec habillage GTK3, microcircuits PCB et impulsions animées transparentes aux clics. Rétractation native avec bord de rappel 1 px, temporisation réglable de 1 à 120 s (10 s par défaut), épaisseur de 100 à 200 % de l'originale (175 % par défaut), et couleurs synchronisées aux thèmes. Sauvegarde et restauration du panneau d'origine, y compris lors d'un arrêt normal.

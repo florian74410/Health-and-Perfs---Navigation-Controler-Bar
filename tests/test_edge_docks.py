@@ -50,7 +50,7 @@ class DockTests(unittest.TestCase):
 
     def test_saved_lists_and_independent_panel_settings(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, HEALTHBAR_DATA_DIR=temp):
-            s = Settings(hud_enabled=False, dock_left_enabled=True, dock_right_enabled=False,
+            s = Settings(bottom_dock_enabled=False, hud_enabled=False, dock_left_enabled=True, dock_right_enabled=False,
                          dock_left_kind="apps", dock_right_kind="folders",
                          dock_folder_paths=[], dock_app_paths=[])
             s.save()

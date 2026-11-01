@@ -1,4 +1,4 @@
-"""NovaBar 0.6.1 regressions: real XFCE panel, native colors and X11 workspaces."""
+"""NovaBar 0.6.9 regression: XFCE panel, themes and X11 workspaces."""
 import os
 import tempfile
 import unittest
@@ -94,10 +94,29 @@ class CyberHotfixTests(unittest.TestCase):
         self.assertEqual(requests, [widget]*3)
         widget.close()
 
+    def test_workspace_watchdog_only_repairs_windows_not_on_all_desktops(self):
+        from healthbar import overlay
+        widget = QWidget()
+        widget.show()
+        self.app.processEvents()
+        with (patch("healthbar.overlay.sys.platform", "linux"),
+              patch.dict(os.environ, {"DISPLAY": ":1"}),
+              patch("healthbar.overlay.is_on_all_workspaces", return_value=True),
+              patch("healthbar.overlay.apply_all_workspaces") as request):
+            overlay.maintain_all_workspaces(widget)
+            request.assert_not_called()
+        with (patch("healthbar.overlay.sys.platform", "linux"),
+              patch.dict(os.environ, {"DISPLAY": ":1"}),
+              patch("healthbar.overlay.is_on_all_workspaces", return_value=False),
+              patch("healthbar.overlay.apply_all_workspaces") as request):
+            overlay.maintain_all_workspaces(widget)
+            request.assert_called_once_with(widget)
+        widget.close()
+
     def test_optional_system_skin_offer_is_one_time(self):
         from healthbar.app import Bar
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, HEALTHBAR_DATA_DIR=folder):
-            settings = Settings(configured=True, auto_hide=False, retract_mode="manual",
+            settings = Settings(bottom_dock_enabled=False, configured=True, auto_hide=False, retract_mode="manual",
                                 xfce_skin_enabled=False, dock_app_paths=[], dock_folder_paths=[])
             bar = Bar(settings)
             bar.sensor_timer.stop()

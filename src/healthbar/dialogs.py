@@ -26,6 +26,16 @@ QCheckBox { spacing: 12px; }
 
 
 class SettingsDialog(QDialog):
+    def configure_nova(self, action):
+        from .nova_components import configure_theme
+        try:
+            configure_theme(action)
+            from .config import Settings
+            self.settings.__dict__.update(Settings.load().__dict__)
+            self.accept()
+        except Exception as error:
+            QMessageBox.warning(self,"Bureau NOVA",str(error))
+
     def __init__(self, settings, screens, first_run=False, parent=None):
         super().__init__(parent)
         self.settings = settings
@@ -123,7 +133,7 @@ class SettingsDialog(QDialog):
         self.holo_enabled=QCheckBox("Ouvrir les panneaux par clic sur le logo du plugin")
         self.holo_enabled.setChecked(settings.holo_enabled)
         general_form.addRow("Holo",self.holo_enabled)
-        update_button = QPushButton("Mises à jour…")
+        update_button = QPushButton("Upgrade • mise à jour automatique")
         update_button.clicked.connect(self.open_updates)
         general_form.addRow("CYBER NEXUS HUD", update_button)
         from .help_links import WIKI_URL
@@ -142,8 +152,8 @@ class SettingsDialog(QDialog):
         # All three independent panels live in the same NovaBar executable.
         docks = QWidget()
         docks_layout = QVBoxLayout(docks)
-        docks_layout.addWidget(QLabel("NOVABAR • TROIS PANNEAUX INDÉPENDANTS"))
-        docks_layout.addWidget(QLabel("Chaque panneau peut être activé séparément. Les docks se rétractent après 3 secondes et s'ouvrent au survol du bord."))
+        docks_layout.addWidget(QLabel("NOVABAR • QUATRE PANNEAUX INDÉPENDANTS"))
+        docks_layout.addWidget(QLabel("Chaque panneau peut être activé séparément. Les colonnes se cachent après 3 secondes. Elles s’ouvrent dans les 10 px du bord, sans trait visible."))
         self.hud_enabled = QCheckBox("Barre principale • télémétrie CPU/GPU/RAM/SSD")
         self.hud_enabled.setChecked(settings.hud_enabled)
         docks_layout.addWidget(self.hud_enabled)
@@ -153,6 +163,16 @@ class SettingsDialog(QDialog):
         self.dock_right_enabled = QCheckBox("Dock droit actif")
         self.dock_right_enabled.setChecked(settings.dock_right_enabled)
         docks_layout.addWidget(self.dock_right_enabled)
+        self.bottom_dock_enabled = QCheckBox("Barre inférieure CYBER NEXUS • applications, fenêtres et système")
+        self.bottom_dock_enabled.setChecked(settings.bottom_dock_enabled)
+        self.bottom_dock_enabled.setEnabled(__import__("sys").platform.startswith("linux"))
+        docks_layout.addWidget(self.bottom_dock_enabled)
+        self.bottom_dock_height = QSpinBox()
+        self.bottom_dock_height.setRange(60, 112)
+        self.bottom_dock_height.setSuffix(" px")
+        self.bottom_dock_height.setValue(settings.bottom_dock_height)
+        docks_layout.addWidget(QLabel("Hauteur du cockpit inférieur"))
+        docks_layout.addWidget(self.bottom_dock_height)
         self.dock_left_kind = QComboBox()
         self.dock_left_kind.addItem("Dossiers personnels", "folders")
         self.dock_left_kind.addItem("Applications du Bureau", "apps")
@@ -228,6 +248,15 @@ class SettingsDialog(QDialog):
             modules_layout.addWidget(control)
         modules_layout.addStretch()
         tabs.addTab(modules_tab, "Modules")
+        nova_tab=QWidget();nova_layout=QVBoxLayout(nova_tab)
+        nova_info=QLabel("NOVA NEXUS HD\nActive le HUD, les deux panneaux latéraux et le cockpit inférieur.\nNOVA Explorer devient le gestionnaire de dossiers par défaut.\nLes applications GTK3 compatibles reçoivent le thème NOVA.\nLes notifications XFCE restent actives ; le style NOVA est disponible en aperçu.")
+        nova_info.setWordWrap(True);nova_layout.addWidget(nova_info)
+        for label,action in (("Activer le bureau NOVA NEXUS HD","apply"),("Restaurer les préférences précédentes","restore")):
+            control=QPushButton(label);control.setEnabled(__import__("sys").platform.startswith("linux"))
+            control.clicked.connect(lambda checked=False,a=action:self.configure_nova(a));nova_layout.addWidget(control)
+        explorer=QPushButton("Ouvrir NOVA Explorer")
+        explorer.clicked.connect(lambda:__import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(__import__("pathlib").Path.home()))
+        nova_layout.addWidget(explorer);nova_layout.addStretch();tabs.addTab(nova_tab,"Bureau NOVA")
         xfce_tab = QWidget()
         xfce_layout = QVBoxLayout(xfce_tab)
         info = QLabel("XFCE CYBER SKIN • Habillage du panneau natif")
@@ -292,7 +321,7 @@ class SettingsDialog(QDialog):
 
     def open_updates(self):
         from .updates import UpdateDialog
-        UpdateDialog(self).exec()
+        UpdateDialog(self, auto_upgrade=True).exec()
 
     def open_installer(self):
         from .installer import InstallerWizard
@@ -360,6 +389,8 @@ class SettingsDialog(QDialog):
             hud_enabled=self.hud_enabled.isChecked(),
             dock_left_enabled=self.dock_left_enabled.isChecked(),
             dock_right_enabled=self.dock_right_enabled.isChecked(),
+            bottom_dock_enabled=self.bottom_dock_enabled.isChecked(),
+            bottom_dock_height=self.bottom_dock_height.value(),
             dock_left_kind=self.dock_left_kind.currentData(),
             dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders",
             hidden_modules=[slot for slot, checkbox in self.module_checks.items()

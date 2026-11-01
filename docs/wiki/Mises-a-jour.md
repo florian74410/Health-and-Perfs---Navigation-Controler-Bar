@@ -1,3 +1,15 @@
+> **0.6.11 :** la refonte du cockpit conserve le moteur Upgrade de la 0.6.10. Depuis la 0.6.10, utiliser **Paramètres → Upgrade**.
+
+
+**0.7.5 :** [barres de défilement des terminaux](../UPDATE_V075.md). Historique de 2 000 lignes par panneau, molette et Maj + Page haut/bas ; disponible via **Paramètres → Upgrade**.
+
+
+**0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.
+
+
+**0.7.1 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
+
+
 # 🔄 Mises à jour et sauvegardes
 
 > La priorité est de ne pas détruire une installation saine ni les plugins locaux.
@@ -5,6 +17,14 @@
 [🏠 Accueil](Home.md) · [🚀 Démarrage](Premiers-pas.md) · [📦 Installation](Installation.md) · [🎛️ Interface](Interface.md) · [🔌 Plugins](Plugins.md) · [🛠️ Dépannage](Depannage.md)
 
 ---
+
+## Upgrade depuis NovaBar
+
+Dans la 0.6.10, cliquer **Paramètres → Upgrade • mise à jour automatique** lance la vérification, le téléchargement du runtime officiel adapté à la machine, la vérification SHA-256, son autotest isolé et l’activation. NovaBar redémarre automatiquement. Une erreur reste affichée et l’ancienne version n’est pas désinstallée.
+
+**Depuis la 0.6.9 déjà installée :** utiliser **Mises à jour… → Vérifier → Installer → Redémarrer** une première fois. Le téléchargement se fait dans NovaBar. Le nouveau bouton Upgrade apparaît après ce passage à la 0.6.10.
+
+Les profils, thèmes, raccourcis et plugins sont conservés. L’installation est par utilisateur, sans `sudo`. Les raccourcis Linux sont actualisés pour lancer le nouveau runtime. La version du paquet enregistrée par `dpkg` reste inchangée ; un ancien `/usr/bin/novabar` du DEB 0.6.9 garde sa version. Pour remplacer aussi cette copie système, installer le nouveau DEB. Pour une installation Flatpak gérée, privilégier le gestionnaire Flatpak.
 
 ## 📦 Selon votre installateur
 

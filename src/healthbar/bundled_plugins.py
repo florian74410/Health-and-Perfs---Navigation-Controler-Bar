@@ -1,19 +1,25 @@
-"""Seed first-party data-only plugins on fresh installs; never overwrite extensions."""
+"""Synchronize bundled data-only sensors without changing activation choices."""
 from pathlib import Path
-from .config import data_dir
-from .plugins import PluginRegistry
+from .plugins import PluginRegistry, version_tuple
+
+
+def bundled_archives():
+    return sorted((Path(__file__).parent/'assets/plugins').glob('*.zip'))
+
 
 def seed_bundled_plugins(settings):
-    marker=data_dir()/'bundled-plugins-v1'
-    if marker.exists():return
-    registry=PluginRegistry()
-    if registry.installed():
-        # Existing activation choices and versions remain authoritative.
-        marker.parent.mkdir(parents=True,exist_ok=True);marker.write_text('existing plugins preserved\n');return
-    archives=sorted((Path(__file__).parent/'assets/plugins').glob('*.zip'))
-    if not archives:return  # Source checkout: plugins are installed via the manager.
-    for archive in archives:
-        manifest,digest=registry.inspect(archive)
-        registry.install(archive,digest)
-        registry.set_enabled(manifest['id'],settings.holo_enabled)
-    marker.parent.mkdir(parents=True,exist_ok=True);marker.write_text('seeded\n')
+    registry = PluginRegistry()
+    installed = {item['id']: item for item in registry.installed()}
+    for archive in bundled_archives():
+        manifest, digest = registry.inspect(archive)
+        current = installed.get(manifest['id'])
+        if current:
+            # Only an identical first-party declaration may be upgraded automatically.
+            # A custom plugin with the same ID and newer versions remain authoritative.
+            before = {k: v for k, v in current.items() if k not in ('version', 'enabled')}
+            after = {k: v for k, v in manifest.items() if k != 'version'}
+            if before != after or version_tuple(current['version']) >= version_tuple(manifest['version']):
+                continue
+        registry.install(archive, digest)
+        if not current:
+            registry.set_enabled(manifest['id'], settings.holo_enabled)

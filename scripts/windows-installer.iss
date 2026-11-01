@@ -1,7 +1,7 @@
 [Setup]
 AppId=CyberNexusHUD
 AppName=CYBER NEXUS HUD
-AppVersion=0.6.0
+AppVersion=0.6.11
 CloseApplications=yes
 RestartApplications=no
 UsePreviousAppDir=yes

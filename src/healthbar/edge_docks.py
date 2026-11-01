@@ -11,15 +11,16 @@ import sys
 import math
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, QPoint, QPointF, QRectF, Signal, QFileInfo, QSize
+from PySide6.QtCore import QRect, Qt, QTimer, QUrl, QPoint, QPointF, QRectF, Signal, QFileInfo, QSize
 from PySide6.QtGui import (QCursor, QDesktopServices, QIcon, QPainter, QPen,
                             QColor, QPolygonF, QPainterPath, QLinearGradient)
-from PySide6.QtWidgets import (
+from PySide6.QtWidgets import (QMessageBox,
     QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,
     QMenu, QFileDialog, QVBoxLayout, QWidget,
 )
 
+from .system_env import native_env
 from .overlay import apply_priority, apply_all_workspaces
 from .xfce_panel_skin import PALETTES
 
@@ -29,7 +30,7 @@ def xdg_folder(name: str) -> Path:
     if sys.platform.startswith("linux"):
         try:
             result = subprocess.run(["xdg-user-dir", name], text=True,
-                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=native_env(),
                                     timeout=1, check=False)
             candidate = Path(result.stdout.strip()).expanduser()
             if result.returncode == 0 and candidate.is_dir():
@@ -111,20 +112,8 @@ def launcher_metadata(path: Path):
 def launch_item(value: str, kind: str) -> bool:
     """Use native open handlers; desktop files only via GIO, never shell=True."""
     if kind == "folders":
-        if value == "recent:///":
-            if sys.platform == "darwin":
-                return subprocess.Popen(["osascript", "-e", 'tell application "Finder" to open (home as alias)']).pid > 0
-            if sys.platform == "win32":
-                target = Path(os.getenv("APPDATA", str(Path.home()))) / "Microsoft/Windows/Recent"
-                return QDesktopServices.openUrl(QUrl.fromLocalFile(str(target)))
-            try:
-                subprocess.Popen(["gio", "open", "recent:///"], stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL, start_new_session=True)
-                return True
-            except OSError:
-                return QDesktopServices.openUrl(QUrl("recent:///"))
-        directory = Path(value)
-        return directory.is_dir() and QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
+        from .nova_components import open_explorer
+        return open_explorer(value)
     target = Path(value)
     if sys.platform == "win32":
         if not target.is_file() or target.suffix.lower() not in (".lnk", ".url"):
@@ -139,16 +128,25 @@ def launch_item(value: str, kind: str) -> bool:
             return False
         try:
             subprocess.Popen(["open", str(target)], stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL, start_new_session=True)
+                             stderr=subprocess.DEVNULL, start_new_session=True, env=native_env())
             return True
         except OSError:
             return False
     if not target.is_file() or target.suffix.lower() != ".desktop" or launcher_metadata(target) is None:
         return False
     if sys.platform.startswith("linux"):
+        from .terminal_launchers import is_nova_terminal_shortcut
+        if is_nova_terminal_shortcut(target):
+            from .nova_components import open_terminal
+            try:
+                open_terminal()
+                return True
+            except (OSError,ValueError) as error:
+                QMessageBox.warning(None,"NOVA Terminal",str(error))
+                return False
         try:
             subprocess.Popen(["gio", "launch", str(target)], stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL, start_new_session=True)
+                             stderr=subprocess.DEVNULL, start_new_session=True, env=native_env())
             return True
         except OSError:
             return False
@@ -350,7 +348,7 @@ class EdgeDock(QWidget):
         self.kind = kind
         self.settings = settings
         self.collapsed = True
-        self.edge_width = 9
+        self.edge_width = 10
         self.panel_width = 250
         self.full_rect = None
         self.setWindowTitle(f"NovaBar • {kind} • {side}")
@@ -498,6 +496,9 @@ class EdgeDock(QWidget):
         # Sidebars stay below a top HUD and above a bottom HUD when enabled.
         top = bounds.top() + (self.settings.thickness if self.settings.hud_enabled and self.settings.position == "top" else 0)
         bottom = bounds.bottom() - (self.settings.thickness if self.settings.hud_enabled and self.settings.position == "bottom" else 0)
+        if getattr(self.settings, "bottom_dock_enabled", False):
+            from .bottom_dock import bottom_height
+            bottom -= bottom_height(self.settings)
         height = max(120, bottom-top+1)
         x = bounds.left() if self.side == "left" else bounds.right()-self.panel_width+1
         self.full_rect = (x, top, self.panel_width, height)
@@ -515,11 +516,12 @@ class EdgeDock(QWidget):
         self.setMaximumWidth(16777215)
         self.setGeometry(*self.full_rect)
         self.content.show()
+        self.show()
         self.fx_timer.start()
         self.update()
 
     def collapse(self):
-        if not self.full_rect or self.collapsed and self.width() == self.edge_width: return
+        if not self.full_rect: return
         self.collapsed = True
         self.hide_timer.stop()
         x, y, width, height = self.full_rect
@@ -529,12 +531,22 @@ class EdgeDock(QWidget):
         # even after the entire body has been hidden.
         self.setFixedWidth(self.edge_width)
         self.setGeometry(x if self.side == "left" else x+width-self.edge_width, y, self.edge_width, height)
+        self.hide()
         self.update()
 
+    def edge_trigger_rect(self):
+        if not self.full_rect:
+            return QRect()
+        x, y, width, height = self.full_rect
+        return QRect(x if self.side == "left" else x+width-10, y, 10, height)
+
     def check_pointer(self):
-        if not self.isVisible() or not self.full_rect:
+        if not self.full_rect:
             return
-        inside = self.geometry().contains(QCursor.pos())
+        if QApplication.activePopupWidget() is not None:
+            self.hide_timer.stop()
+            return
+        inside = (self.edge_trigger_rect() if self.collapsed else self.geometry()).contains(QCursor.pos())
         if self.collapsed:
             if inside:
                 self.expand()
@@ -553,25 +565,14 @@ class EdgeDock(QWidget):
         super().leaveEvent(event)
 
     def paintEvent(self, event):
-        if not self.collapsed:
-            return
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        accent = QColor(dock_colors(self.settings.theme)[0])
-        mid = self.height()/2
-        painter.setBrush(QColor(4, 17, 31, 245))
-        painter.setPen(QPen(accent, 1.2))
-        painter.drawRoundedRect(self.rect().adjusted(1, 2, -1, -3), 2, 2)
-        painter.setPen(QPen(accent, 1.8))
-        x = 3 if self.side == "left" else self.width()-4
-        painter.drawLine(QPointF(x, mid-27), QPointF(x, mid+27))
-        for offset in (-27,-16,-5,6,17):
-            painter.drawLine(QPointF(x, mid+offset), QPointF(x+1 if self.side=="left" else x-1,
-                                                            mid+offset+4))
-        painter.end()
+        # A collapsed dock is hidden. No painted grip and no input-catching strip.
+        pass
 
     def showEvent(self, event):
         super().showEvent(event)
+        if self.settings.always_on_top:
+            from .overlay import mark_desktop_panel
+            mark_desktop_panel(self)
         apply_priority(self, self.settings.always_on_top)
         from .overlay import schedule_all_workspaces
         schedule_all_workspaces(self)

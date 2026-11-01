@@ -1,5 +1,15 @@
 # 🎛️ Interface et contrôles
 
+
+**0.7.5 :** [barres de défilement des terminaux](../UPDATE_V075.md). Historique de 2 000 lignes par panneau, molette et Maj + Page haut/bas ; disponible via **Paramètres → Upgrade**.
+
+
+**0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.
+
+
+**0.7.1 — NOVA NEXUS HD :** [installation complète, activation/restauration du bureau, Explorer et Terminal Manager](../UPDATE_V070.md). Depuis 0.6.11, utiliser **Paramètres → Upgrade**, puis **Bureau NOVA** pour l'activation globale. Les notifications NOVA restent un aperçu local.
+
+
 > Une barre ultra-fine sur le bureau, transparente en dehors des modules et responsive.
 
 [🏠 Accueil](Home.md) · [🚀 Démarrage](Premiers-pas.md) · [📦 Installation](Installation.md) · [🎛️ Interface](Interface.md) · [🔌 Plugins](Plugins.md) · [🛠️ Dépannage](Depannage.md)

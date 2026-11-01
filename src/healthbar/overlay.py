@@ -92,3 +92,58 @@ def schedule_all_workspaces(widget):
             pass
     for delay_ms in (0, 180, 750):
         QTimer.singleShot(delay_ms, request)
+
+
+def is_on_all_workspaces(widget):
+    """Read actual X11 _NET_WM_DESKTOP, not just Qt's requested window flags.
+
+    This allows periodic healing when xfwm4 assigns a newly mapped window
+    to the current workspace despite earlier requests.
+    """
+    if not sys.platform.startswith("linux") or not os.getenv("DISPLAY"):
+        return False
+    from PySide6.QtWidgets import QApplication
+    if QApplication.platformName() != "xcb":
+        return False
+    try:
+        from Xlib import Xatom, display
+        con = display.Display()
+        try:
+            xid = int(widget.winId())
+            window = con.create_resource_object("window", xid)
+            atom = con.intern_atom("_NET_WM_DESKTOP", only_if_exists=False)
+            prop = window.get_full_property(atom, Xatom.CARDINAL)
+            return bool(prop is not None and prop.value is not None
+                        and len(prop.value) == 1
+                        and int(prop.value[0]) == 0xFFFFFFFF)
+        finally:
+            con.close()
+    except Exception:
+        return False
+
+
+def maintain_all_workspaces(widget):
+    """Correct workspace drift without repeatedly writing on every sensor tick."""
+    if not sys.platform.startswith("linux") or not os.getenv("DISPLAY"):
+        return
+    try:
+        if widget.isVisible() and not is_on_all_workspaces(widget):
+            apply_all_workspaces(widget)
+    except RuntimeError:
+        pass
+
+
+def mark_desktop_panel(widget):
+    if not sys.platform.startswith("linux") or not os.getenv("DISPLAY"):
+        return False
+    from PySide6.QtWidgets import QApplication
+    if QApplication.platformName() != "xcb":return False
+    from Xlib import Xatom,display
+    connection=display.Display()
+    try:
+        window=connection.create_resource_object("window",int(widget.winId()))
+        window.change_property(connection.intern_atom("_NET_WM_WINDOW_TYPE"),Xatom.ATOM,32,
+                               [connection.intern_atom("_NET_WM_WINDOW_TYPE_DOCK")])
+        connection.flush()
+        return True
+    finally:connection.close()

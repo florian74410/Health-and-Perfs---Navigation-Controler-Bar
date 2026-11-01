@@ -1,45 +1,42 @@
-# CYBER NEXUS HUD — installateurs autonomes de NovaBar
+# ⚡ CYBER NEXUS HUD — NovaBar 0.6.11
 
-Les exécutables sont déposés ici par le pipeline après validation des builds natifs.
-Ils **contiennent NovaBar et ses dépendances** : aucun clone du dépôt, Python ou compilateur n’est nécessaire.
+Les exécutables autonomes sont produits par le workflow GitHub Actions **Native installers** à partir du code de la version 0.6.11. La publication synchronise les binaires dans les sous-dossiers `Executable/` et dans les **assets de la release**, qui restent le moyen de téléchargement recommandé.
 
-| Système | Téléchargement | Lancement |
+## 📦 Télécharger la dernière version
+
+| Système | Installateur direct (release v0.6.11) | Dossier du dépôt |
 | --- | --- | --- |
-| Linux Mint XFCE / Ubuntu x64 | [NovaBar_0.3.5_amd64.deb](Linux/NovaBar_0.3.5_amd64.deb) | Double-clic ou `sudo apt install ./NovaBar_0.3.5_amd64.deb` |
-| Linux x64 avec Flatpak | [NovaBar_0.3.5_x86_64.flatpak](Linux/NovaBar_0.3.5_x86_64.flatpak) | `flatpak install --user ./NovaBar_0.3.5_x86_64.flatpak` |
-| Linux x64 autonome | [CyberNexusHUD-Linux-x86_64.run](Linux/CyberNexusHUD-Linux-x86_64.run) | `sh CyberNexusHUD-Linux-x86_64.run` |
-| Windows 10/11 x64 | [CyberNexusHUD-Setup-Windows.exe](Windows/CyberNexusHUD-Setup-Windows.exe) | Double-cliquer |
-| macOS 12+ Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](MacOS/CyberNexusHUD-macOS-arm64.dmg) | Ouvrir le DMG puis CyberNexusInstaller.app |
-| macOS 12+ Intel | [CyberNexusHUD-macOS-x86_64.dmg](MacOS/CyberNexusHUD-macOS-x86_64.dmg) | Ouvrir le DMG puis CyberNexusInstaller.app |
+| Linux Mint XFCE / Ubuntu amd64 | [**NovaBar_0.6.11_amd64.deb**](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/NovaBar_0.6.11_amd64.deb) | [Executable/Linux](Linux/) |
+| Linux Flatpak x86_64 | [NovaBar_0.6.11_x86_64.flatpak](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/NovaBar_0.6.11_x86_64.flatpak) | [Executable/Linux](Linux/) |
+| Linux autonome | [CyberNexusHUD-Linux-x86_64.run](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-Linux-x86_64.run) | [Executable/Linux](Linux/) |
+| Windows 10/11 | [CyberNexusHUD-Setup-Windows.exe](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-Setup-Windows.exe) | [Executable/Windows](Windows/) |
+| macOS Apple Silicon | [CyberNexusHUD-macOS-arm64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-macOS-arm64.dmg) | [Executable/MacOS](MacOS/) |
+| macOS Intel | [CyberNexusHUD-macOS-x86_64.dmg](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.6.11/CyberNexusHUD-macOS-x86_64.dmg) | [Executable/MacOS](MacOS/) |
 
-Sur la page d’un fichier GitHub, choisir **Download raw file** pour télécharger le fichier réel.
-Le paquet Linux est aussi destiné aux essais Bazzite Desktop ; cette cible reste expérimentale.
-High Sierra 10.13 n’est pas pris en charge par ces DMG. Les paquets ne sont pas signés/notarisés.
+La page de release est [**v0.6.11**](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.6.11). Les chemins ne sont utilisables qu'après confirmation du succès de la publication. Pour les builds non publiés, utiliser temporairement [les artifacts de GitHub Actions](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions).
 
-## Mint XFCE
+## 🐧 Installer sur Linux Mint XFCE
 
-Télécharger le fichier `.run`, ouvrir un terminal dans le dossier de téléchargement, puis :
-
-```sh
-sh CyberNexusHUD-Linux-x86_64.run
+```bash
+cd "$(xdg-user-dir DOWNLOAD)"
+sudo apt install ./NovaBar_0.6.11_amd64.deb
+novabar
 ```
 
-L’assistant s’ouvre, installe la barre dans le compte utilisateur, enregistre les préférences
-et propose le démarrage automatique. Le fichier peut être vérifié sans installation :
+Inutile de supprimer NovaBar 0.6.0 ou tes préférences avant une mise à jour native. Le paquet fournit les exécutables et leurs dépendances : Python et PyInstaller ne sont pas nécessaires sur le poste utilisateur.
 
-```sh
-sh CyberNexusHUD-Linux-x86_64.run --check
-sh CyberNexusHUD-Linux-x86_64.run --verify
+## Vérifier un fichier
+
+Le workflow calcule `manifest.json` (version, commit, tailles, SHA-256) et `SHA256SUMS`. Une fois le paquet téléchargé et les sommes disponibles dans ce dossier :
+
+```bash
+sha256sum NovaBar_0.6.11_amd64.deb
 ```
 
-Le mode `--verify` utilise un dossier temporaire et teste le binaire hors écran, sans
-modifier le profil ou le démarrage automatique. Le `.run` ne nécessite que les outils
-usuels du système (sh, tail, gzip, tar, sha256sum, mktemp) pour se décompacter.
+Comparer la somme avec le manifeste généré par la **même publication**. Ne pas utiliser les empreintes d'une ancienne version.
 
-`manifest.json` indique version, commit source, tailles et empreintes ; `SHA256SUMS`
-permet de contrôler les téléchargements Windows/macOS. Ces empreintes ne remplacent
-pas une signature indépendante de l’éditeur.
+## Comportement
 
-Le code source complet est sur la branche
-[feature/cyber-nexus-installer-v03](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/tree/feature/cyber-nexus-installer-v03).
-Le dossier Executable est également publié sur main pour être accessible depuis la page principale.
+La barre supérieure, les deux docks latéraux et l'habillage facultatif du panneau système XFCE sont réunis dans le même programme. Les raccourcis, applications ouvertes et icônes de notification existants restent gérés par XFCE. Le choix des éléments visibles dans le HUD se fait dans les préférences NovaBar.
+
+**Limites :** applications non signées/non notarisées ; tester les workspaces et l'habillage sur une session XFCE X11 réelle. Pour les détails, lire [Mise à jour 0.6.11](../docs/UPDATE_V0611.md) et [Installation](../docs/INSTALLATION.md).

@@ -98,7 +98,8 @@ def run_logged(command, report, env=None, timeout=900):
 def self_test(executable, report, expected_version=__version__):
     # Real process, isolated data. No autostart, sensors, tray or startup UI in self-test.
     with tempfile.TemporaryDirectory(prefix="novabar-test-") as temp:
-        env=dict(os.environ, QT_QPA_PLATFORM="offscreen", HEALTHBAR_DATA_DIR=temp)
+        from .system_env import native_env
+        env=dict(native_env(), QT_QPA_PLATFORM="offscreen", HEALTHBAR_DATA_DIR=temp,PYINSTALLER_RESET_ENVIRONMENT="1")
         run_logged([executable, "--self-test", "--expect-version", expected_version], report, env=env, timeout=35)
 
 
@@ -137,7 +138,7 @@ def write_shortcuts(executable, desktop=False, root=None):
                 creationflags=subprocess.CREATE_NO_WINDOW)
     else:
         applications=Path(os.getenv("XDG_DATA_HOME",str(Path.home()/".local/share")))/"applications"
-        paths=[applications/"novabar.desktop"]
+        paths=[applications/"io.github.florian74410.NovaBar.desktop"]
         if desktop:
             from PySide6.QtCore import QStandardPaths
             paths.append(Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation))/"NovaBar.desktop")
@@ -146,7 +147,20 @@ def write_shortcuts(executable, desktop=False, root=None):
             link.write_text("[Desktop Entry]\nType=Application\nName=NovaBar\nExec="+desktop_quote(command[0])+
                             "\nTerminal=false\nCategories=System;Monitor;\n",encoding="utf-8")
             link.chmod(0o755)
+    if sys.platform.startswith("linux"):
+        # Preserve pinned legacy launchers, but show only the official desktop ID.
+        legacy=applications/"novabar.desktop"
+        legacy.write_text("[Desktop Entry]\nType=Application\nName=NovaBar\nNoDisplay=true\nExec="+
+                          desktop_quote(command[0])+"\nTerminal=false\n",encoding="utf-8")
     return command
+
+
+def refresh_active_shortcuts():
+    """Migrate shortcuts made by older updaters after their first successful launch."""
+    if not sys.platform.startswith("linux") or not getattr(sys,"frozen",False):return
+    state=read_installed_state()
+    if state and Path(state.get("executable","")).resolve()==Path(sys.executable).resolve():
+        write_shortcuts(Path(sys.executable),state.get("desktop_shortcut",False))
 
 
 def activate(executable, settings, identity, desktop, root=None, release_version=None):
@@ -246,10 +260,14 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
             python=venv_root/("Scripts/python.exe" if sys.platform=="win32" else "bin/python")
             progress(25,"Installation des dépendances dans l’environnement privé")
             run_logged([python,"-m","pip","install",source_root,"pyinstaller==6.16.0"],report)
+            progress(42,"Préparation des huit plugins intégrés")
+            run_logged([python,"-c","import sys;sys.path.insert(0,sys.argv[1]);from build_plugins import build;build(sys.argv[2])",
+                        source_root/"scripts",source_root/"src/healthbar/assets/plugins"],report)
             progress(45,"Compilation de l’application pour votre système")
             run_logged([python,"-m","PyInstaller","--noconfirm","--windowed","--name","HealthPerfsBar",
                         "--paths",source_root/"src","--distpath",stage,"--workpath",temporary/"build",
                         "--specpath",temporary,"--add-data",str(source_root/"src/healthbar/assets")+os.pathsep+"healthbar/assets","--osx-bundle-identifier","com.healthperfs.bar",
+                        "--add-data",str(source_root/"src/nova_nexus/assets")+os.pathsep+"nova_nexus/assets",
                         source_root/"scripts/entrypoint.py"],report)
         executable=payload_executable(stage)
         if not executable:

@@ -101,7 +101,7 @@ class EdgeTelemetryTests(unittest.TestCase):
                     current = bar.geometry()
                     if position in ("top", "bottom"):
                         self.assertLess(current.height(), full.height())
-                        self.assertGreaterEqual(current.height(), 26)
+                        self.assertEqual(current.height(), 10)
                         self.assertEqual(current.top() if position == "top" else current.bottom(),
                                          full.top() if position == "top" else full.bottom())
                     else:

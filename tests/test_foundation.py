@@ -237,7 +237,7 @@ class ShellTests(unittest.TestCase):
             self.assertFalse(self.bar.grab().isNull())
 
     def test_background_is_clear_and_only_module_fills_follow_opacity(self):
-        from PySide6.QtCore import QPoint
+        from PySide6.QtCore import QPoint, Qt
         for opacity in (0, 35, 100):
             self.settings.opacity = opacity
             self.bar.apply_settings()
@@ -248,11 +248,20 @@ class ShellTests(unittest.TestCase):
             first=canvas.module_rect(canvas.slot_order[0])
             inside=canvas.mapTo(self.bar,first.topRight()+QPoint(-16,canvas.height()//2))
             blank=self.bar.actions.mapTo(self.bar,QPoint(10,self.bar.height()-10))
-            button_fill = self.bar.turbo.mapTo(self.bar, QPoint(8, 40))
+            from PySide6.QtGui import QImage
+            from healthbar.app import NeonButton
+            button=NeonButton()
+            button.panel_opacity=opacity
+            button.resize(44,44)
+            button_image=QImage(button.size(),QImage.Format.Format_ARGB32)
+            button_image.fill(Qt.GlobalColor.transparent)
+            button.render(button_image)
+            button_fill=QPoint(button.width()//2,button.height()//2)
+            button.close()
             self.assertLess(image.pixelColor(0, 0).alpha(), 64)  # PCB traces now span the window
             # The action area now contains PCB routes and the chip identity.
             self.assertAlmostEqual(image.pixelColor(inside).alpha(), round(255*opacity/100), delta=1)
-            self.assertAlmostEqual(image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
+            self.assertAlmostEqual(button_image.pixelColor(button_fill).alpha(), round(255*opacity/100), delta=1)
             # Text remains visible even when the module background is completely clear.
             baseline=max(34,min(canvas.height()*.6,80))
             dial_size=min(canvas.height()-14,first.width()*.36,92)

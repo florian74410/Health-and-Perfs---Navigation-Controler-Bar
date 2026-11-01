@@ -1,3 +1,23 @@
+## NovaBar 0.6.11 — aperçus des widgets Qt livrés
+
+Données de démonstration, avec les vraies icônes natives/Papirus. Le pack de secours est attribué dans `src/healthbar/assets/icons/README.md`.
+
+![Cockpit 1280 px](Previews/novabar-v0611-cockpit-1280.png)
+
+![Cockpit 1920 px](Previews/novabar-v0611-cockpit-1920.png)
+
+![NEXUS et catégories](Previews/novabar-v0611-nexus.png)
+
+# Aperçus NovaBar
+
+## 0.6.10
+
+![Upgrade — aperçu Qt de démonstration](Previews/novabar-v0610-upgrade.png)
+
+![Barre inférieure et docks — Qt réel, données de démonstration](Previews/novabar-v0610-bottom.png)
+
+L’aperçu est rendu avec les widgets Qt livrés. Les fenêtres et mesures sont des données de démonstration, sans capture de données personnelles. Les colonnes sont entièrement invisibles quand elles sont repliées ; ce visuel montre la barre inférieure déployée.
+
 # Visuels NovaBar / CYBER NEXUS HUD
 
 Les captures de la version 0.5.1 sont dans [`Previews/`](Previews/).
@@ -25,3 +45,18 @@ Courbes UP verte et DOWN rouge ; histogramme de ping bleu. Les mesures des captu
 - `Previews/novabar-v053-holo-glass-themes.png` : comparaison des trois thèmes sur fond clair ; textes neutres et accents colorés.
 
 Les captures Qt utilisent des données de démonstration et un fond de présentation.
+
+
+### NOVA NEXUS HD 0.7.0
+
+- `Previews/nova-v070-terminal-manager.png` : interface Qt réelle, format 2 + 2, contenu de démonstration sans commandes exécutées.
+- `Previews/nova-v070-terminal-column.png` : grande colonne gauche et deux panneaux droits.
+- `Overlays/nova_pcb_overlay.svg` : pistes PCB partagées avec le châssis.
+- `Wallpapers/nova-electric-blue-pcb.svg` : fond vectoriel embarqué.
+
+Régénérer les deux aperçus avec `PYTHONPATH=src python scripts/render_nova_terminal.py`.
+
+
+### 0.7.2
+
+`Previews/nova-v072-terminal-manager.png` et `Previews/nova-v072-terminal-column.png` montrent le Terminal Manager Qt avec ses commandes ancrées dans le bandeau graphite. Contenu de démonstration, aucune commande exécutée.
