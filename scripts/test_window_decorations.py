@@ -36,21 +36,30 @@ def main():
             target=connection.create_resource_object('window',xid)
             wait(lambda: len(backend.prop(connection,target,'_NET_FRAME_EXTENTS',[]))==4)
             time.sleep(.2);app.processEvents()
-            extents=backend.prop(connection,target,'_NET_FRAME_EXTENTS',[0]*4)
-            pos=root.translate_coords(target,0,0)
-            left,top=pos.x-extents[0],pos.y-extents[2]
-            image=app.primaryScreen().grabWindow(0,left,top,window.width()+extents[0]+extents[1],extents[2]).toImage()
-            # Detect actual red pixels in the right-hand title buttons, not file names.
-            groups=[]
-            for x in range(max(0,image.width()-130),image.width()):
-                ys=[y for y in range(image.height()) if (lambda c:c.red()>200 and c.green()<140 and c.blue()<160)(image.pixelColor(x,y))]
-                if ys:
-                    if not groups or x>groups[-1][-1][0]+1:groups.append([])
-                    groups[-1].extend((x,y) for y in ys)
-            assert len(groups)==3, ('Missing native red minimize/maximize/close symbols',len(groups),extents)
-            centers=[(left+sum(x for x,y in group)//len(group),top+sum(y for x,y in group)//len(group)) for group in groups]
+            def native_centers():
+                extents=backend.prop(connection,target,'_NET_FRAME_EXTENTS',[0]*4)
+                pos=root.translate_coords(target,0,0)
+                left,top=pos.x-extents[0],pos.y-extents[2]
+                image=app.primaryScreen().grabWindow(0,left,top,window.width()+extents[0]+extents[1],extents[2]).toImage()
+                # Detect actual red pixels in the right-hand title buttons, not file names.
+                groups=[]
+                for x in range(max(0,image.width()-130),image.width()):
+                    ys=[y for y in range(image.height()) if (lambda c:c.red()>200 and c.green()<140 and c.blue()<160)(image.pixelColor(x,y))]
+                    if ys:
+                        if not groups or x>groups[-1][-1][0]+1:groups.append([])
+                        groups[-1].extend((x,y) for y in ys)
+                if len(groups)!=3:
+                    import base64
+                    from collections import Counter
+                    image.save(temp+'/native-title.png')
+                    print('NATIVE_TITLE_PNG='+base64.b64encode(Path(temp+'/native-title.png').read_bytes()).decode(),flush=True)
+                    print('NATIVE_TITLE_DIAGNOSTICS',pos,left,top,image.size(),
+                        Counter(image.pixelColor(x,y).name() for x in range(image.width()) for y in range(image.height())).most_common(8),
+                        backend.prop(connection,target,'_MOTIF_WM_HINTS',[]),flush=True)
+                assert len(groups)==3, ('Missing native red minimize/maximize/close symbols',len(groups),extents)
+                return [(left+sum(x for x,y in group)//len(group),top+sum(y for x,y in group)//len(group)) for group in groups]
             def click(index):
-                x,y=centers[index]
+                x,y=native_centers()[index]
                 xtest.fake_input(connection,X.MotionNotify,x=x,y=y)
                 xtest.fake_input(connection,X.ButtonPress,1)
                 xtest.fake_input(connection,X.ButtonRelease,1)
@@ -58,9 +67,9 @@ def main():
             click(0);wait(lambda:window.isMinimized())
             window.showNormal();wait(lambda:not window.isMinimized())
             click(1);wait(window.isMaximized)
-            # The restore button moves when maximized: invoke normal state before
-            # checking close at its original position (Qt test covers restore click).
-            window.showNormal();wait(lambda:not window.isMaximized())
+            time.sleep(.15);app.processEvents()
+            click(1);wait(lambda:not window.isMaximized())
+            time.sleep(.15);app.processEvents()
             click(2);wait(lambda:not window.isVisible())
             gtk_code = """
 import gi
@@ -93,7 +102,7 @@ Gtk.main()
                 assert 'Theme parsing error' not in diagnostics, diagnostics
             print('PASS: actual GTK3 CSD has three red symbols and parses NOVA CSS without errors')
             theme_main(['--restore'])
-            print('PASS: real XFWM title pixmaps and X11 clicks: minimize, maximize, close; reversible theme')
+            print('PASS: real XFWM title pixmaps and X11 clicks: minimize, maximize/restore, close; reversible theme')
         finally:
             if gtk:
                 gtk.terminate()

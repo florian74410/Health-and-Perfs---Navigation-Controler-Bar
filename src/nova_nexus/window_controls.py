@@ -77,6 +77,9 @@ class WindowControls(C.QObject):
         button.setAccessibleName(label)
 
     def eventFilter(self, watched, event):
+        if event.type() in (C.QEvent.Resize, C.QEvent.Move):
+            if not (self.window.isMaximized() or self.window.isFullScreen() or self.window.isMinimized()):
+                self.normal_geometry = self.window.geometry()
         if event.type() == C.QEvent.WindowStateChange:
             self.sync()
         return False
