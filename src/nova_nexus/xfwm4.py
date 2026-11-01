@@ -39,7 +39,13 @@ def _button(symbol, active):
         for i in range(8, 16):
             p[i][i] = 's'
             p[i][23-i] = 's'
-    elif symbol in ("maximize", "restore"):
+    elif symbol == "restore":
+        for left, top in ((10, 7), (7, 10)):
+            for x in range(left, left + 7):
+                p[top][x] = p[top + 6][x] = "s"
+            for y in range(top, top + 7):
+                p[y][left] = p[y][left + 6] = "s"
+    elif symbol == "maximize":
         for x in range(8, 16):
             p[8][x] = 's'
             p[15][x] = 's'
@@ -67,23 +73,35 @@ def export_xfwm4_theme(destination, theme=None):
     target = Path(destination).expanduser() / "xfwm4"
     target.mkdir(parents=True, exist_ok=True)
     colors = {".": "None", "b": c["primary"], "d": c["text_muted"],
-              "f": c["surface"], "s": c["text"], "r": c["secondary"]}
-    for state in ("active", "inactive", "pressed"):
+              "f": c["surface"], "s": c["danger"], "r": c["secondary"]}
+    for state in ("active", "inactive", "pressed", "prelight"):
+        palette = dict(colors)
+        if state in ("pressed", "prelight"):
+            palette["f"] = c["secondary"]
         for name in ("close", "maximize", "hide", "menu", "shade", "stick"):
-            _xpm(target / f"{name}-{state}.xpm", _button(name, state != "inactive"), colors)
+            _xpm(target / f"{name}-{state}.xpm", _button(name, True), palette)
+            if name in ("maximize", "shade", "stick"):
+                symbol = "restore" if name == "maximize" else name
+                _xpm(target / f"{name}-toggled-{state}.xpm", _button(symbol, True), palette)
     # Edges and title strip: actual XFWM4 theme parts, not perspective illustrations.
     for state in ("active", "inactive"):
         border = "b" if state == "active" else "d"
-        _xpm(target / f"title-1-{state}.xpm", ["f" * 32 for _ in range(24)], colors)
-        _xpm(target / f"top-left-{state}.xpm", [border * 4 for _ in range(24)], colors)
-        _xpm(target / f"top-right-{state}.xpm", [border * 4 for _ in range(24)], colors)
+        # XFWM assembles five separate title segments. Missing parts can leave
+        # an empty/invalid title rail even though individual button pixmaps exist.
+        for number in range(1, 6):
+            pixels = [border * 32] + ["f" * 32 for _ in range(28)] + [border * 32]
+            _xpm(target / f"title-{number}-{state}.xpm", pixels, colors)
+            _xpm(target / f"top-{number}-{state}.xpm", [border * 32], colors)
+        _xpm(target / f"top-left-{state}.xpm", [border * 4 for _ in range(30)], colors)
+        _xpm(target / f"top-right-{state}.xpm", [border * 4 for _ in range(30)], colors)
         _xpm(target / f"left-{state}.xpm", [border * 3 for _ in range(8)], colors)
         _xpm(target / f"right-{state}.xpm", [border * 3 for _ in range(8)], colors)
         _xpm(target / f"bottom-{state}.xpm", [border * 24 for _ in range(3)], colors)
         _xpm(target / f"bottom-left-{state}.xpm", [border * 4 for _ in range(4)], colors)
         _xpm(target / f"bottom-right-{state}.xpm", [border * 4 for _ in range(4)], colors)
     (target / "themerc").write_text(
-        "button_offset=4\nbutton_spacing=4\n"
+        "button_offset=3\nbutton_spacing=4\nbutton_layout=O|HMC\n"
+        "maximized_offset=0\n"
         "title_vertical_offset_active=2\n"
         "title_vertical_offset_inactive=2\n"
         "title_horizontal_offset=8\n"

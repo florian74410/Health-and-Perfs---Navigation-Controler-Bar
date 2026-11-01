@@ -40,7 +40,7 @@ class WorkareaTests(unittest.TestCase):
             def assert_header():
                 self.app.processEvents()
                 band=QRect(6,6,window.width()-12,39)
-                for button in (window.minbtn,window.closebtn):
+                for button in (window.minbtn,window.maxbtn,window.closebtn):
                     rect=QRect(button.mapTo(window,QPoint(0,0)),button.size())
                     self.assertTrue(band.contains(rect),(band,rect))
                     self.assertIs(button.parentWidget(),window.bar)

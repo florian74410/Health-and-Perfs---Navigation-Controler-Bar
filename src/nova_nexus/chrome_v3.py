@@ -39,7 +39,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             root.setContentsMargins(23,14,23,20)
             root.setSpacing(5)
             self.bar=W.QWidget()
-            self.bar.setFixedHeight(28)
+            self.bar.setFixedHeight(30)
             self.bar.setObjectName('novaTitleBar')
             self.bar.setStyleSheet('QWidget#novaTitleBar{background:transparent;border:none;}')
             top=W.QHBoxLayout(self.bar)
@@ -48,18 +48,8 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             self.caption=W.QLabel(title)
             self.caption.setStyleSheet('color:%s;font:bold 11px Arial;' % t['colors']['primary'])
             top.addWidget(self.caption,1)
-            self.minbtn=W.QPushButton('−')
-            self.minbtn.setObjectName('novaMinimize')
-            self.minbtn.setFixedSize(24,22)
-            self.minbtn.clicked.connect(self.showMinimized)
-            self.closebtn=W.QPushButton('×')
-            self.closebtn.setObjectName('novaClose')
-            self.closebtn.setFixedSize(24,22)
-            self.closebtn.clicked.connect(self.reject if dialog else self.close)
-            self.minbtn.setStyleSheet('QPushButton#novaMinimize{color:#FF526A;font:bold 17px Arial;border:1px solid #00CBF3;background:rgba(3,12,27,225);padding:0;} QPushButton#novaMinimize:hover{color:white;background:#B52D45;border-color:#FF526A;}')
-            self.closebtn.setStyleSheet('QPushButton#novaClose{color:#FF526A;font:bold 18px Arial;border:1px solid #00CBF3;background:rgba(3,12,27,225);padding:0;} QPushButton#novaClose:hover{color:white;background:#B52D45;border-color:#FF526A;}')
-            top.addWidget(self.minbtn)
-            top.addWidget(self.closebtn)
+            from .window_controls import WindowControls
+            self.window_controls=WindowControls(self,top,close=self.reject if dialog else self.close)
             root.addWidget(self.bar)
             root.addStretch()
             body=W.QLabel(message)
@@ -80,6 +70,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 area.mousePressEvent=self.drag_start
                 area.mouseMoveEvent=self.drag_move
                 area.mouseReleaseEvent=self.drag_end
+                area.mouseDoubleClickEvent=lambda event:self.window_controls.toggle_maximized()
         def position_titlebar(self):
             if getattr(self,"anchored_titlebar",False):
                 self.bar.setGeometry(23,10,max(1,self.width()-46),30)

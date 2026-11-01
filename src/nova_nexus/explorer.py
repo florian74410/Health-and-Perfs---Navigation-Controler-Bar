@@ -95,15 +95,8 @@ def run(start=None, *, embedded=False):
             header.addStretch()
             self.header_caption = W.QLabel("NOVA NEXUS HD  /  FILE SYSTEM")
             header.addWidget(self.header_caption)
-            mini = W.QPushButton("−")
-            close = W.QPushButton("×")
-            for btn in (mini, close):
-                btn.setFixedSize(26, 24)
-                btn.setStyleSheet("QPushButton{background:#253641;color:#FF526A;border:1px solid #00CBEF;padding:0;font:bold 18px Arial;} QPushButton:hover{background:#A92E43;color:white;}")
-            mini.clicked.connect(self.showMinimized)
-            close.clicked.connect(self.close)
-            header.addWidget(mini)
-            header.addWidget(close)
+            from .window_controls import WindowControls
+            self.window_controls = WindowControls(self, header)
             for item in (self.title_surface,mark,self.header_caption):
                 item.installEventFilter(self)
             outer.addWidget(self.title_surface)
