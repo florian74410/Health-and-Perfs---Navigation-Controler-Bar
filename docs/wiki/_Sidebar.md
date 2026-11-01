@@ -1,7 +1,7 @@
 # 📚 NOVABAR / WIKI
 
 - [🏠 Accueil](Home.md)
-- [NOVA NEXUS HD et Terminal Manager](../UPDATE_V072.md)
+- [NOVA NEXUS HD et Terminal Manager](../UPDATE_V073.md)
 - [🚀 Premiers pas](Premiers-pas.md)
 - [📦 Installation](Installation.md)
 - [🎛️ Interface](Interface.md)
