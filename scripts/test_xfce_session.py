@@ -82,7 +82,15 @@ def main():
                 window=con.create_resource_object('window',xid)
                 extent=backend.prop(con,window,'_NET_FRAME_EXTENTS',[0,0,0,0])
                 return root.translate_coords(window,0,0).y-int(extent[2])
-            wait_for(lambda:work_top()==70,app)
+            try:
+                wait_for(lambda:work_top()==70,app)
+            except AssertionError:
+                window=con.create_resource_object('window',int(hud.winId()))
+                print('HUD workarea diagnostics:',hud.geometry(),root.translate_coords(window,0,0),
+                    window.get_geometry(),backend.prop(con,window,'_NET_WM_WINDOW_TYPE',[]),
+                    backend.prop(con,window,'_NET_WM_STRUT_PARTIAL',[]),
+                    backend.prop(con,root,'_NET_WORKAREA',[]),flush=True)
+                raise
             root.send_event(protocol.event.ClientMessage(window=con.create_resource_object('window',row['id']),
                 client_type=con.intern_atom('_NET_WM_STATE'),data=(32,[1,
                 con.intern_atom('_NET_WM_STATE_MAXIMIZED_VERT'),con.intern_atom('_NET_WM_STATE_MAXIMIZED_HORZ'),1,0])),

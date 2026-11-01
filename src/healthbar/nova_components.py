@@ -142,3 +142,8 @@ def mark_application_window(window):
         target.change_property(connection.intern_atom('_NOVABAR_APPLICATION'),Xatom.CARDINAL,32,[1])
         connection.flush()
     finally:connection.close()
+
+
+def open_terminal(directory=None):
+    from nova_nexus.terminal_manager import open_manager
+    return open_manager(cwd=directory)

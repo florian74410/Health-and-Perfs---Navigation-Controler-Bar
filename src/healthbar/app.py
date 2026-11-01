@@ -124,6 +124,9 @@ class Bar(QWidget):
         self.setWindowTitle("NovaBar • Hardware Health Controller")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        if sys.platform.startswith("linux"):
+            # Advertise a panel before the first map, so xfwm cannot smart-place it as a tool.
+            self.setAttribute(Qt.WidgetAttribute.WA_X11NetWmWindowTypeDock)
         self.setStyleSheet(STYLE + """
             QPushButton#nav { border: 1px solid #008fff; border-radius: 9px;
                 background: rgba(2,15,34,170); padding: 3px; }
@@ -157,7 +160,7 @@ class Bar(QWidget):
         self.turbo.setText("CPU")
         self.turbo.setIcon(button_icon("turbo"))
         self.turbo.setFixedWidth(125)
-        self.make_button("terminal", "Console • emplacement réservé", self.console_info)
+        self.make_button("terminal", "Ouvrir NOVA Terminal", self.open_terminal)
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
@@ -758,6 +761,9 @@ class Bar(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.schedule_workarea()
+        # The WM may still be mapping/reparenting the first native window.
+        for delay in (180,750):
+            QTimer.singleShot(delay,self.schedule_workarea)
         if self.settings.always_on_top:
             from .overlay import mark_desktop_panel
             mark_desktop_panel(self)
@@ -904,6 +910,17 @@ class Bar(QWidget):
         data_dir().mkdir(parents=True, exist_ok=True)
         __import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(data_dir())
 
+    def open_terminal(self):
+        if not sys.platform.startswith("linux"):
+            self.console_info()
+            return
+        from .nova_components import open_terminal
+        directory=Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else Path.home()
+        try:
+            open_terminal(directory if directory.is_dir() else Path.home())
+        except (OSError,ValueError) as error:
+            QMessageBox.warning(self,"NOVA Terminal",str(error))
+
     def console_info(self):
         folder = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
             Path.home() / "Scripts" / "HardwareHealth")
@@ -985,6 +1002,7 @@ class Bar(QWidget):
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         menu.addAction("Préférences", self.preferences)
+        menu.addAction("Scripts locaux", self.console_info)
         menu.addAction("Extensions", self.plugins)
         menu.addAction("📖 Wiki NovaBar", self.open_wiki)
         menu.addAction("Quitter", QApplication.instance().quit)
@@ -997,6 +1015,9 @@ class Bar(QWidget):
 
 
 def main():
+    from .active_runtime import forward
+    forwarded=forward(sys.argv[1:])
+    if forwarded is not None:return forwarded
     parser = argparse.ArgumentParser()
     from . import __version__
     parser.add_argument("--version", action="version", version=__version__)

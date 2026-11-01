@@ -1,6 +1,16 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 
+## 0.7.3 — raccourcis NOVA Terminal
+
+- Stabilise la déclaration du panneau HUD avant son premier affichage sous XFCE/X11.
+- Relie le bouton du HUD et les raccourcis simples des panneaux au terminal NOVA dans son thème.
+- Privilégie NOVA dans les favoris et le catalogue NEXUS ; préserve les commandes explicites des lanceurs personnalisés.
+- Conserve les scripts locaux dans le menu contextuel du HUD.
+- Permet au nouveau lanceur empaqueté de relayer ses commandes publiques à une version utilisateur activée plus récente.
+
+
+
 ## 0.7.2 — zone de travail du HUD et commandes du terminal
 
 - Ancre les boutons Réduire et Fermer dans le bandeau graphite.

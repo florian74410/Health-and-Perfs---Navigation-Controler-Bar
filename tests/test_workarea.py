@@ -26,6 +26,8 @@ class WorkareaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp,patch.dict(os.environ,HEALTHBAR_DATA_DIR=temp):
             bar=Bar(Settings(configured=True,thickness=70,auto_hide=False,retract_mode='manual',dock_left_enabled=False,dock_right_enabled=False,bottom_dock_enabled=False))
             try:
+                if __import__("sys").platform.startswith("linux"):
+                    self.assertTrue(bar.testAttribute(Qt.WidgetAttribute.WA_X11NetWmWindowTypeDock))
                 bar.animation.setDuration(0);bar.show();self.app.processEvents()
                 bar.retract(manual=True);self.app.processEvents()
                 self.assertEqual(bar.height(),10)

@@ -35,10 +35,14 @@ def reserve_top(widget, enabled):
             bounds=root.get_geometry()
             values=top_strut(QRect(point.x,point.y,geometry.width,geometry.height),QRect(0,0,bounds.width,bounds.height))
             if any(values):
-                window.change_property(connection.intern_atom('_NET_WM_WINDOW_TYPE'),Xatom.ATOM,32,
-                                       [connection.intern_atom('_NET_WM_WINDOW_TYPE_DOCK')])
-                window.change_property(partial,Xatom.CARDINAL,32,values)
-                window.change_property(legacy,Xatom.CARDINAL,32,values[:4])
+                # Do not reclassify the window after mapping or emit redundant changes.
+                # Both can cause unnecessary WM workarea/reconfigure cycles.
+                previous=window.get_full_property(partial,Xatom.CARDINAL)
+                old=window.get_full_property(legacy,Xatom.CARDINAL)
+                if previous is None or list(previous.value)!=values:
+                    window.change_property(partial,Xatom.CARDINAL,32,values)
+                if old is None or list(old.value)!=values[:4]:
+                    window.change_property(legacy,Xatom.CARDINAL,32,values[:4])
             else:
                 window.delete_property(partial);window.delete_property(legacy)
         else:
