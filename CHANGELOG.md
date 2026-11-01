@@ -1,6 +1,13 @@
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 
+## 0.7.4 — commandes de fenêtre visibles
+
+- Trois boutons partagés pour Terminal, Explorer et dialogues NOVA : minimiser, maximiser/restaurer, fermer ; bordure bleue et symboles rouges dessinés.
+- Export XFWM4 complet, états de restauration/survol/appui et icônes GTK3 CSD autonomes.
+- Migration réversible de la disposition des boutons et du titre en maximisation ; rechargement du thème déjà sélectionné après Upgrade.
+- Vérifications des actions Qt, des pixels natifs XFWM4/GTK3 et des clics réels X11 ; nouveaux aperçus dans Assets.
+
 ## 0.7.3 — raccourcis NOVA Terminal
 
 - Stabilise la déclaration du panneau HUD avant son premier affichage sous XFCE/X11.

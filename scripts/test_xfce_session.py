@@ -106,7 +106,7 @@ def main():
             from nova_nexus.terminal_manager import open_manager
             terminal=open_manager(start=False);terminal.set_format('grid')
             wait_for(lambda:terminal.window.isMaximized() and outer_top(int(terminal.window.winId()))==90,app)
-            for button in (terminal.window.minbtn,terminal.window.closebtn):
+            for button in (terminal.window.minbtn,terminal.window.maxbtn,terminal.window.closebtn):
                 assert button.mapTo(terminal.window,button.rect().topLeft()).y()>=6
                 assert button.mapTo(terminal.window,button.rect().bottomRight()).y()<=45
             terminal.window.close();terminal=None

@@ -103,6 +103,8 @@ def install_components(settings):
             shutil.copytree(theme, backup, symlinks=True)
         install_user_pack(python=sys.executable, root=Path(sys.executable).parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1],
                           frozen=getattr(sys, 'frozen', False))
+        from nova_nexus.install_theme import refresh_selected_theme
+        refresh_selected_theme()
         marker.parent.mkdir(parents=True, exist_ok=True)
         temporary = marker.with_suffix('.tmp')
         temporary.write_text(json.dumps(component_manifest(), ensure_ascii=False, indent=2)+'\n')

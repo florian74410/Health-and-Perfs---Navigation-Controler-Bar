@@ -1,7 +1,7 @@
 # 🎛️ Interface et contrôles
 
 
-**0.7.3 :** [ouvrir NOVA Terminal depuis le HUD et les panneaux](../UPDATE_V073.md). Le bouton du HUD ouvre maintenant le terminal dans son thème ; les scripts restent dans le menu contextuel.
+**0.7.4 :** [commandes de fenêtre bleu électrique et symboles rouges](../UPDATE_V074.md). Minimiser, maximiser/restaurer et fermer dans NOVA, thème XFWM4 complet et boutons GTK3. Installation via **Paramètres → Upgrade**.
 
 
 **0.7.2 :** [HUD et fenêtres maximisées, terminal dans la zone disponible](../UPDATE_V072.md). Le HUD replié occupe 10 px ; les commandes du terminal restent dans son bandeau graphite.

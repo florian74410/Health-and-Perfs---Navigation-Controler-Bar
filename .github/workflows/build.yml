@@ -29,9 +29,12 @@ jobs:
       - name: Real isolated XFCE bottom dock integration
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y xvfb xfwm4 xfce4-panel dbus-x11 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0
+          sudo apt-get install -y xvfb xfwm4 xfce4-panel dbus-x11 python3-gi gir1.2-gtk-3.0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0
           python -c 'import PySide6,pathlib,subprocess; subprocess.run(["ldd",str(pathlib.Path(PySide6.__file__).parent/"Qt/plugins/platforms/libqxcb.so")],check=True)'
           xvfb-run -a -s "-screen 0 1280x720x24" dbus-run-session -- python scripts/test_xfce_session.py
+      - name: Native XFWM title controls and theme migration
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s "-screen 0 1280x720x24" dbus-run-session -- python scripts/test_window_decorations.py
       - name: Real StatusNotifier and XApp session integration
         if: runner.os == 'Linux'
         run: QT_QPA_PLATFORM=offscreen dbus-run-session -- python scripts/test_status_notifier.py
@@ -119,7 +122,7 @@ jobs:
             dist/plugins/*.zip
             dist/NovaBarDownloader-*
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'fix/novabar-v073-terminal-launchers' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'fix/novabar-v074-window-controls' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -162,7 +165,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.event.pull_request.head.sha || github.sha }}" --title "CYBER NEXUS HUD / NovaBar $NOVABAR_RELEASE_TAG" --generate-notes
   executable-folder:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/novabar-v073-terminal-launchers'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/novabar-v074-window-controls'
     needs: build
     runs-on: ubuntu-22.04
     permissions:
