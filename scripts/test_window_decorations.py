@@ -21,7 +21,7 @@ def main():
         app.setQuitOnLastWindowClosed(False)
         backend = DesktopBackend()
         connection = display.Display()
-        window = W.QWidget();window.setWindowTitle('NOVA / Native window controls');window.resize(620,300)
+        window = W.QWidget();window.setWindowTitle('NOVA / Native window controls');window.resize(620,300);window.move(200,180)
         def wait(check):
             deadline=time.monotonic()+12
             while time.monotonic()<deadline:
@@ -34,7 +34,9 @@ def main():
             window.show()
             xid=int(window.winId());root=connection.screen().root
             target=connection.create_resource_object('window',xid)
-            wait(lambda: len(backend.prop(connection,target,'_NET_FRAME_EXTENTS',[]))==4)
+            wait(lambda: target.get_attributes().map_state==X.IsViewable and
+                target.query_tree().parent.id!=root.id and
+                len(backend.prop(connection,target,'_NET_FRAME_EXTENTS',[]))==4)
             time.sleep(.2);app.processEvents()
             def native_centers():
                 extents=backend.prop(connection,target,'_NET_FRAME_EXTENTS',[0]*4)
