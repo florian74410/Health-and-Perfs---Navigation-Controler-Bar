@@ -3,6 +3,7 @@
 
 ## 0.7.3 — raccourcis NOVA Terminal
 
+- Stabilise la déclaration du panneau HUD avant son premier affichage sous XFCE/X11.
 - Relie le bouton du HUD et les raccourcis simples des panneaux au terminal NOVA dans son thème.
 - Privilégie NOVA dans les favoris et le catalogue NEXUS ; préserve les commandes explicites des lanceurs personnalisés.
 - Conserve les scripts locaux dans le menu contextuel du HUD.

@@ -13,6 +13,10 @@ Le Terminal Manager NOVA était déjà inclus, mais le bouton du HUD ouvrait le 
 
 Le terminal utilise son châssis NOVA, ses néons, ses pistes PCB et les préférences de texte du gestionnaire ; l’ouverture ne dépend pas de l’apparence du terminal XFCE.
 
+## Stabilité du HUD
+
+Le HUD est déclaré comme panneau X11 avant son premier affichage. Sa réservation est réappliquée après le placement initial par XFCE et les propriétés identiques ne sont plus réécrites à chaque synchronisation.
+
 ## Ouvrir le terminal
 
 Depuis le HUD, la barre inférieure ou **NEXUS → NOVA Terminal**. Pour les versions 0.7.1 et 0.7.2 déjà installées, l’application NOVA existe aussi et peut être ouverte avec :

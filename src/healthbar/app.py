@@ -124,6 +124,9 @@ class Bar(QWidget):
         self.setWindowTitle("NovaBar • Hardware Health Controller")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        if sys.platform.startswith("linux"):
+            # Advertise a panel before the first map, so xfwm cannot smart-place it as a tool.
+            self.setAttribute(Qt.WidgetAttribute.WA_X11NetWmWindowTypeDock)
         self.setStyleSheet(STYLE + """
             QPushButton#nav { border: 1px solid #008fff; border-radius: 9px;
                 background: rgba(2,15,34,170); padding: 3px; }
@@ -758,6 +761,9 @@ class Bar(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.schedule_workarea()
+        # The WM may still be mapping/reparenting the first native window.
+        for delay in (180,750):
+            QTimer.singleShot(delay,self.schedule_workarea)
         if self.settings.always_on_top:
             from .overlay import mark_desktop_panel
             mark_desktop_panel(self)
