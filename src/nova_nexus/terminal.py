@@ -154,6 +154,25 @@ class TerminalView(W.QTextEdit):
         self.setLineWrapMode(W.QTextEdit.NoWrap)
         self.setVerticalScrollBarPolicy(C.Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(C.Qt.ScrollBarAlwaysOff)
+        # A logical scroll bar browses the VT history without moving/mutating
+        # the live screen or rendering thousands of HTML rows on each update.
+        self.history_scrollbar=W.QScrollBar(C.Qt.Vertical,self)
+        self.history_scrollbar.setObjectName('novaTerminalHistory')
+        self.history_scrollbar.setAccessibleName('Historique du terminal')
+        self.history_scrollbar.setToolTip('Historique du terminal · 2 000 lignes')
+        self.history_scrollbar.setStyleSheet('''
+            QScrollBar:vertical{background:#071C30;border:1px solid #22657F;width:14px;margin:0;}
+            QScrollBar::handle:vertical{background:#156497;border:1px solid #00CBF3;min-height:28px;}
+            QScrollBar::handle:vertical:hover{background:#258DBB;border-color:#76EEFF;}
+            QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;border:0;}
+            QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical{background:#071C30;}
+        ''')
+        self.follow_output=True
+        self._history_anchor=None
+        self._wheel_remainder=0.0
+        self.history_scrollbar.setRange(0,0)
+        self.history_scrollbar.valueChanged.connect(self.scroll_history)
+        self.setViewportMargins(0,0,16,0)
         self.document().setDocumentMargin(0)
         self.setFont(G.QFont('DejaVu Sans Mono',11))
         self.setStyleSheet('QTextEdit{background:rgba(4,16,27,220);color:#E9F6FF;border:1px solid #22657F;padding:8px;selection-background-color:#22586F;}')
@@ -167,13 +186,27 @@ class TerminalView(W.QTextEdit):
 
     def render_screen(self):
         screen=self.session.screen;lines=[]
-        for y in range(screen.lines):
+        history=list(screen.history.top)
+        rows=history+[screen.buffer[y] for y in range(screen.lines)]
+        maximum=len(history)
+        start=maximum if self.follow_output else min(self.history_scrollbar.value(),maximum)
+        if not self.follow_output and self._history_anchor is not None:
+            start=next((i for i,row in enumerate(rows) if row is self._history_anchor),0)
+            start=min(start,maximum)
+        blocker=C.QSignalBlocker(self.history_scrollbar)
+        self.history_scrollbar.setRange(0,maximum)
+        self.history_scrollbar.setPageStep(max(1,screen.lines-1))
+        self.history_scrollbar.setSingleStep(1)
+        self.history_scrollbar.setValue(start)
+        del blocker
+        self._history_anchor=rows[start] if rows else None
+        for y,row in enumerate(rows[start:start+screen.lines]):
             spans=[];group='';previous=None
             for x in range(screen.columns):
-                char=screen.buffer[y][x]
+                char=row.get(x,screen.default_char)
                 fg=ansi_color(char.fg,getattr(self,'foreground','#E9F6FF'));bg=ansi_color(char.bg,'transparent')
                 if char.reverse:fg,bg=('#071523' if bg=='transparent' else bg),fg
-                cursor=(not screen.cursor.hidden and x==screen.cursor.x and y==screen.cursor.y)
+                cursor=(self.follow_output and not screen.cursor.hidden and x==screen.cursor.x and y==screen.cursor.y)
                 style=(fg,'#285E73' if cursor else bg,char.bold,char.italics,char.underscore)
                 if style!=previous and group:
                     spans.append(self.span(previous,group));group=''
@@ -183,6 +216,31 @@ class TerminalView(W.QTextEdit):
         family=html.escape(self.font().family().replace("'", ""),quote=True)
         self.setHtml('<pre style="margin:0;font-family:\'%s\';font-size:%dpt;">' %
                      (family,self.font().pointSize())+'\n'.join(lines)+'</pre>')
+        self.verticalScrollBar().setValue(0)
+
+    def scroll_history(self,value):
+        self.follow_output=value==self.history_scrollbar.maximum()
+        self._history_anchor=None
+        self.request_render()
+
+    def scroll_lines(self,delta):
+        bar=self.history_scrollbar
+        bar.setValue(bar.value()+delta)
+
+    def follow_live(self):
+        self.follow_output=True
+        self._history_anchor=None
+        self.history_scrollbar.setValue(self.history_scrollbar.maximum())
+        self.request_render()
+
+    def wheelEvent(self,event):
+        movement=(event.pixelDelta().y()/G.QFontMetricsF(self.font()).height()
+                  if not event.pixelDelta().isNull() else event.angleDelta().y()/120*3)
+        self._wheel_remainder+=movement
+        lines=int(self._wheel_remainder)
+        self._wheel_remainder-=lines
+        if lines:self.scroll_lines(-lines)
+        event.accept()
 
     @staticmethod
     def span(style,text):
@@ -191,6 +249,9 @@ class TerminalView(W.QTextEdit):
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
+        if hasattr(self,'history_scrollbar'):
+            self.history_scrollbar.setGeometry(self.width()-15,1,14,max(1,self.height()-2))
+            self.history_scrollbar.raise_()
         self.sync_size()
 
     def sync_size(self):
@@ -199,6 +260,7 @@ class TerminalView(W.QTextEdit):
                             int((self.viewport().height()-16)/metrics.height()))
 
     def paste_text(self):
+        self.follow_live()
         text=W.QApplication.clipboard().text().replace('\r\n','\n').replace('\r','\n')
         if 2004<<5 in self.session.screen.mode:text='\x1b[200~'+text+'\x1b[201~'
         self.session.write(text.encode('utf-8'))
@@ -211,8 +273,11 @@ class TerminalView(W.QTextEdit):
         if control and shift and event.key()==C.Qt.Key_V:
             self.paste_text();return
         if shift and event.key() in (C.Qt.Key_PageUp,C.Qt.Key_PageDown):
-            (self.session.screen.prev_page if event.key()==C.Qt.Key_PageUp else self.session.screen.next_page)()
-            self.request_render();return
+            self.scroll_lines((-1 if event.key()==C.Qt.Key_PageUp else 1)*self.history_scrollbar.pageStep())
+            return
+        if control and shift and event.key() in (C.Qt.Key_Home,C.Qt.Key_End):
+            self.history_scrollbar.setValue(0 if event.key()==C.Qt.Key_Home else self.history_scrollbar.maximum())
+            return
         keys={C.Qt.Key_Return:b'\r',C.Qt.Key_Enter:b'\r',C.Qt.Key_Backspace:b'\x7f',
               C.Qt.Key_Tab:b'\t',C.Qt.Key_Backtab:b'\x1b[Z',C.Qt.Key_Escape:b'\x1b',
               C.Qt.Key_Up:b'\x1b[A',C.Qt.Key_Down:b'\x1b[B',C.Qt.Key_Right:b'\x1b[C',C.Qt.Key_Left:b'\x1b[D',
@@ -222,6 +287,7 @@ class TerminalView(W.QTextEdit):
             data=bytes([event.key()-C.Qt.Key_A+1])
         else:data=keys.get(event.key(),event.text().encode('utf-8'))
         if event.modifiers()&C.Qt.AltModifier and event.text():data=b'\x1b'+data
+        self.follow_live()
         self.session.write(data)
 
     def contextMenuEvent(self,event):

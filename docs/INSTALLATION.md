@@ -1,13 +1,13 @@
 # Installation et exploitation
 
 
-## NOVA NEXUS HD 0.7.4 — installateur complet
+## NOVA NEXUS HD 0.7.5 — installateur complet
 
-[Guide actuel](UPDATE_V074.md) · [Installateur autonome Linux](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.4/CyberNexusHUD-Linux-x86_64.run)
+[Guide actuel](UPDATE_V075.md) · [Installateur autonome Linux](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.5/CyberNexusHUD-Linux-x86_64.run)
 
 Depuis NovaBar 0.6.11, **Paramètres → Upgrade** installe le même runtime complet en conservant les préférences. **Paramètres → Bureau NOVA** active ou restaure le thème GTK3/XFWM4, les panneaux et le gestionnaire de dossiers. NOVA Terminal Manager est disponible dans NEXUS et depuis le dossier courant de NOVA Explorer.
 
-Pour une première installation, télécharger le fichier `.run` puis le lancer sans sudo avec `sh CyberNexusHUD-Linux-x86_64.run`. Le paquet DEB natif 0.7.4 est également disponible dans la release. Les instructions de versions précédentes ci-dessous sont conservées pour l'historique.
+Pour une première installation, télécharger le fichier `.run` puis le lancer sans sudo avec `sh CyberNexusHUD-Linux-x86_64.run`. Le paquet DEB natif 0.7.5 est également disponible dans la release. Les instructions de versions précédentes ci-dessous sont conservées pour l'historique.
 
 ## NovaBar 0.6.11 — paquet Linux Mint XFCE recommandé
 

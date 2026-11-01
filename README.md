@@ -1,14 +1,14 @@
 # ⚡ NovaBar — NOVA NEXUS HD
 
-## NOVA NEXUS HD 0.7.4
+## NOVA NEXUS HD 0.7.5
 
-Boutons de fenêtre unifiés : minimiser, maximiser/restaurer et fermer, en bleu électrique avec symboles rouges. Mise à jour du thème XFWM4/GTK3 déjà activé.
+Barre de défilement bleu électrique dans chaque terminal : historique de 2 000 lignes, molette, Maj + Page haut/bas et lecture stable pendant les nouvelles sorties. Les boutons de fenêtre bleu électrique à symboles rouges restent inclus.
 
 Le pack complet réunit HUD/Holo, huit plugins, deux panneaux latéraux, cockpit inférieur réglable, NEXUS, NOVA Explorer, NOVA Terminal Manager et thème GTK3/XFWM4. Activation et restauration du bureau depuis les paramètres ; Upgrade conserve les profils.
 
-[Installation et nouveautés](docs/UPDATE_V074.md) · [Installateur Linux complet](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.4/CyberNexusHUD-Linux-x86_64.run)
+[Installation et nouveautés](docs/UPDATE_V075.md) · [Installateur Linux complet](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v0.7.5/CyberNexusHUD-Linux-x86_64.run)
 
-![Gestionnaire NOVA Terminal — aperçu de démonstration](Assets/Previews/nova-v074-terminal-manager.png)
+![Gestionnaire NOVA Terminal — aperçu de démonstration](Assets/Previews/nova-v075-terminal-scrollback.png)
 
 
 Une barre inférieure plus proche du cockpit de référence : coque métallique, compartiments à angles coupés, rails lumineux, grandes icônes colorées et fenêtres avec titres lisibles.
@@ -31,7 +31,7 @@ Une barre inférieure plus proche du cockpit de référence : coque métallique,
 <p align="center"><strong>Votre PC. Votre cockpit.</strong><br>Une barre de performances cyber-néon, compacte, transparente et extensible.</p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.7.4-00a8c8?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.7.5-00a8c8?style=for-the-badge">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-Mint%20%2F%20Ubuntu-1f7fbc?style=for-the-badge&logo=linux&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0879bd?style=for-the-badge&logo=windows&logoColor=white">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%26%20ARM-1f3455?style=for-the-badge&logo=apple&logoColor=white">
