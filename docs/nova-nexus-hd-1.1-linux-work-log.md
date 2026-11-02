@@ -20,6 +20,12 @@ Le chemin de récupération au démarrage et `NativePanelGuard.restore()` effaç
 - Conservation du journal tant que tous les panneaux sauvegardés ne sont pas retrouvés visibles.
 - Ajout de deux tests unitaires distinguant la réussite de la requête X11 de la visibilité effective.
 
+### Compléments P1 et diagnostic
+
+- Les quatre cases d'activation indépendantes étaient déjà présentes dans Paramètres; `Settings.validate()` empêchait toutefois de les désactiver toutes. Cette restriction est supprimée et un test valide le scénario bureau natif seul.
+- Une trace JSONL persistante note maintenant détection, sauvegarde, demande de masquage, arrêt du propriétaire, redémarrage, vérification de visibilité et conservation/suppression du journal.
+- Si le test XFCE échoue, il imprime la trace ainsi que le journal de récupération avant de quitter, pour distinguer panne de watchdog, de remappage et de détection.
+
 ### Validation en cours
 
 La PR brouillon #24 ajoute une exécution Linux dédiée. Le workflow historique est ignoré uniquement pour la branche de travail afin qu'aucun job Windows ou macOS ne soit lancé pour cette mission. L'intégration XFCE réelle, les tests unitaires et le build Linux doivent encore confirmer le correctif.
