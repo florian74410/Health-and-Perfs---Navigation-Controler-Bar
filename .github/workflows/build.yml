@@ -9,6 +9,9 @@ permissions:
   contents: read
 jobs:
   build:
+    # The dedicated NOVA 1.1 Linux validation workflow owns this work branch.
+    # Keep the historical OS matrix for existing release/development branches.
+    if: github.event_name != 'pull_request' || github.head_ref != 'work/nova-nexus-hd-v1.1-linux-stability'
     strategy:
       fail-fast: false
       matrix:
