@@ -167,8 +167,8 @@ class DesktopBackend:
             visible=[]
             for window in candidates.values():
                 try:
-                    if any('xfce4-panel' in cls.lower() for cls in (window.get_wm_class() or ())) and \\
-                            window.get_attributes().map_state == X.IsViewable:
+                    if (any('xfce4-panel' in cls.lower() for cls in (window.get_wm_class() or ()))
+                            and window.get_attributes().map_state == X.IsViewable):
                         geo=window.get_geometry();point=root.translate_coords(window,0,0)
                         visible.append({'id':int(window.id),
                                         'pid':int(self.prop(con,window,'_NET_WM_PID',[0])[0]),
