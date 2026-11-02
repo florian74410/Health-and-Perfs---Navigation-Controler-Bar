@@ -1,10 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
-    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea)
+    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea, QColorDialog)
 from . import __version__
 from .autostart import set_enabled
 from .plugins import PluginRegistry
+from .module_preferences import load as load_module_prefs, save as save_module_prefs, FIELDS, MODULES
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
@@ -29,6 +30,8 @@ class SettingsDialog(QDialog):
     def __init__(self, settings, screens, first_run=False, parent=None):
         super().__init__(parent)
         self.settings = settings
+        self.module_prefs = load_module_prefs()
+        self.module_controls = {}
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
         from .ui_kit import stylesheet
         self.setStyleSheet(stylesheet(STYLE))
@@ -343,7 +346,55 @@ class SettingsDialog(QDialog):
         about_layout.addWidget(wiki)
         about_layout.addWidget(help_tab)
         about_layout.addStretch()
+        # Visual settings: reuse native theme presets, preview colours without
+        # altering the active desktop until the user explicitly applies a preset.
+        colors_page = QWidget()
+        colors_box = QVBoxLayout(colors_page)
+        colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
+        colors_box.addWidget(QLabel("Choisissez une palette existante ; les couleurs ci-dessous servent de référence visuelle."))
+        from .ui_kit import PALETTES
+        self.palette_preview = QLabel()
+        self.palette_preview.setMinimumHeight(68)
+        colors_box.addWidget(self.palette_preview)
+        def update_palette_preview():
+            name=self.theme.currentData()
+            colors=PALETTES.get(name, PALETTES.get('blue-neon', ('#00d9ff','#1860ff','#061020')))
+            primary, secondary, background = colors[:3]
+            self.palette_preview.setText("   PCB   /   " + name.upper() + "   ·   " + primary + "  " + secondary)
+            self.palette_preview.setStyleSheet(
+                "color:"+primary+"; background:"+background+
+                ";border:2px solid "+secondary+";font-weight:700;")
+        self.theme.currentIndexChanged.connect(update_palette_preview)
+        update_palette_preview()
+        colors_box.addWidget(QLabel("Palettes existantes conservées : bleu, Matrix, rouge, cyber-futuriste."))
+        colors_box.addStretch()
+        # Per-plugin configuration. The shared collector provides cached
+        # values; this page does not create any additional acquisition timers.
+        for module in MODULES:
+            page = QWidget()
+            form_plugin = QVBoxLayout(page)
+            form_plugin.addWidget(QLabel(module.upper() + " / HOLOGRAMME"))
+            rate = QSpinBox()
+            rate.setRange(1,60)
+            rate.setSuffix(" s")
+            rate.setValue(self.module_prefs[module]["refresh_seconds"])
+            form_plugin.addWidget(QLabel("Fraîcheur souhaitée des données"))
+            form_plugin.addWidget(rate)
+            holo = QCheckBox("Autoriser le mode Holo")
+            holo.setChecked(self.module_prefs[module]["holo_enabled"])
+            form_plugin.addWidget(holo)
+            details={}
+            form_plugin.addWidget(QLabel("Détails à afficher dans l'Holo :"))
+            for field_name in FIELDS[module]:
+                check = QCheckBox(field_name.replace("_"," ").capitalize())
+                check.setChecked(field_name in self.module_prefs[module]["details"])
+                details[field_name]=check
+                form_plugin.addWidget(check)
+            form_plugin.addStretch()
+            self.module_controls[module]=(rate,holo,details)
+            tabs.addTab(page,module.upper())
         tabs.addTab(general_scroll, "Générale")
+        tabs.addTab(colors_page, "Thèmes & Couleurs")
         tabs.addTab(extensions, "Extensions")
         tabs.addTab(cpu_page, "CPU")
         tabs.addTab(updates_page, "Mise à jour")
@@ -352,7 +403,11 @@ class SettingsDialog(QDialog):
         nav = QListWidget()
         nav.setObjectName("settingsNavigation")
         nav.setFixedWidth(190)
-        for name in ("GÉNÉRALE", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
+        for name in ("GÉNÉRALE", "THÈMES & COULEURS", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
+            nav.addItem(name)
+        for name in MODULES:
+            nav.addItem("↳ " + name.upper())
+        for name in ():
             nav.addItem(name)
         nav.currentRowChanged.connect(tabs.setCurrentIndex)
         nav.setCurrentRow(0)
