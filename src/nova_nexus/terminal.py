@@ -294,6 +294,13 @@ class TerminalView(W.QTextEdit):
         fg,bg,bold,italic,underline=style
         return '<span style="color:%s;background-color:%s;font-weight:%s;font-style:%s;text-decoration:%s">%s</span>' % (fg,bg,'bold' if bold else 'normal','italic' if italic else 'normal','underline' if underline else 'none',html.escape(text))
 
+    def showEvent(self,event):
+        super().showEvent(event)
+        # The native QTextEdit viewport can restack its children when tabs or
+        # splitter panes are shown. Keep the dedicated history control above it.
+        self.history_scrollbar.setVisible(True)
+        self.history_scrollbar.raise_()
+
     def resizeEvent(self,event):
         super().resizeEvent(event)
         if hasattr(self,'history_scrollbar'):
