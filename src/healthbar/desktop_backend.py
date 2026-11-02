@@ -133,12 +133,56 @@ class DesktopBackend:
                     if point.y+geo.height < bounds.bottom()-6:continue
                     if point.y > bounds.bottom()+2 or point.y < bounds.center().y():continue
                     if point.x+geo.width <= bounds.left() or point.x > bounds.right():continue
-                    rows.append({'id':xid,'pid':int(self.prop(con,w,'_NET_WM_PID',[0])[0])})
+                    rows.append({'id':xid,'pid':int(self.prop(con,w,'_NET_WM_PID',[0])[0]),
+                                 'x':int(point.x),'y':int(point.y),
+                                 'width':int(geo.width),'height':int(geo.height)})
                 except Exception:continue
         except Exception:pass
         finally:
             if con:con.close()
         return rows
+
+    def panels_effectively_visible(self, rows):
+        """Confirm each saved XFCE panel is mapped, even after its XID changes."""
+        if not rows:
+            return False
+        con=None
+        try:
+            from Xlib import X
+            con=self._connect();root=con.screen().root
+            candidates={int(w.id):w for w in root.query_tree().children}
+            candidates.update({int(xid):con.create_resource_object('window',int(xid))
+                               for xid in self.prop(con,root,'_NET_CLIENT_LIST',[])})
+            visible=[]
+            for window in candidates.values():
+                try:
+                    if any('xfce4-panel' in cls.lower() for cls in (window.get_wm_class() or ())) and \\
+                            window.get_attributes().map_state == X.IsViewable:
+                        geo=window.get_geometry();point=root.translate_coords(window,0,0)
+                        visible.append({'id':int(window.id),
+                                        'pid':int(self.prop(con,window,'_NET_WM_PID',[0])[0]),
+                                        'x':int(point.x),'y':int(point.y),
+                                        'width':int(geo.width),'height':int(geo.height)})
+                except Exception:
+                    continue
+            matched=set()
+            for saved in rows:
+                match=next((row for row in visible if row['id']==int(saved['id']) and
+                            (not saved.get('pid') or row['pid']==int(saved['pid']))),None)
+                if match is None and all(k in saved for k in ('x','y','width','height')):
+                    match=next((row for row in visible if row['id'] not in matched and
+                                abs(row['x']-int(saved['x']))<=4 and
+                                abs(row['y']-int(saved['y']))<=4 and
+                                row['width']==int(saved['width']) and
+                                row['height']==int(saved['height'])),None)
+                if match is None or match['id'] in matched:
+                    return False
+                matched.add(match['id'])
+            return True
+        except Exception:
+            return False
+        finally:
+            if con:con.close()
 
     def set_panel_visible(self,rows,visible):
         con=None;ok=True
@@ -172,8 +216,13 @@ class NativePanelGuard:
                 try:alive=psutil.Process(state['owner']).create_time()==state.get('owner_started')
                 except psutil.Error:alive=False
                 if not alive and state.get('display')==os.getenv('DISPLAY'):
-                    if self.backend.set_panel_visible(state.get('panels',[]),True):self.path.unlink(missing_ok=True)
-                    else:self.rows=state.get('panels',[])
+                    self.rows=state.get('panels',[])
+                    # A successful XMapWindow call is not proof that XFCE made
+                    # the panel visible. Keep the recovery record until verified.
+                    self.backend.set_panel_visible(self.rows,True)
+                    if self.backend.panels_effectively_visible(self.rows):
+                        self.path.unlink(missing_ok=True)
+                        self.rows=[]
             except (OSError,ValueError,KeyError,TypeError):pass
 
     def hide(self,bounds):
@@ -205,7 +254,13 @@ class NativePanelGuard:
         self.backend.set_panel_visible(self.rows,True)
 
     def restore(self):
-        if self.rows and not self.backend.set_panel_visible(self.rows,True):return False
+        if self.path.exists() and not self.rows:
+            try:self.rows=json.loads(self.path.read_text()).get('panels',[])
+            except (OSError,ValueError,TypeError):return False
+        if not self.rows:
+            return not self.path.exists()
+        self.backend.set_panel_visible(self.rows,True)
+        if not self.backend.panels_effectively_visible(self.rows):return False
         self.path.unlink(missing_ok=True);self.rows=[]
         return True
 
@@ -241,34 +296,7 @@ def restore_after_exit(pid):
                                            stderr=subprocess.DEVNULL,check=False)
                         except (OSError,subprocess.TimeoutExpired):
                             pass
-                    con=None
-                    try:
-                        con=backend._connect()
-                        visible=all(con.create_resource_object('window',int(row['id']))
-                                    .get_attributes().map_state==X.IsViewable for row in panels)
-                    except Exception:
-                        visible=False
-                    finally:
-                        if con:con.close()
-                    if not visible and attempt>=12:
-                        # A restarted xfce4-panel has fresh X window IDs.
-                        try:
-                            # A panel restart may invalidate the old IDs. At
-                            # this point leave the recovery journal intact for
-                            # the next launch unless the new panel is detected.
-                            con2=backend._connect()
-                            try:
-                                root=con2.screen().root
-                                candidates=list(root.query_tree().children)
-                                candidates.extend(con2.create_resource_object('window',int(xid))
-                                                  for xid in backend.prop(con2,root,'_NET_CLIENT_LIST',[]))
-                                visible=any(
-                                    any('xfce4-panel' in cls.lower() for cls in
-                                        (window.get_wm_class() or ()))
-                                    and window.get_attributes().map_state==X.IsViewable
-                                    for window in candidates)
-                            finally:con2.close()
-                        except Exception:visible=False
+                    visible=backend.panels_effectively_visible(panels)
                     if visible:
                         path.unlink(missing_ok=True)
                         return
