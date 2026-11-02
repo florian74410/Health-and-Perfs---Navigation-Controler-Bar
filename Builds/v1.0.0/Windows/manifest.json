@@ -1,0 +1,24 @@
+{
+  "release_tag": "v1.0.0-rc.149",
+  "source_commit": "cd8462b45c34839326cb97f8461648a67cc42d93",
+  "assets": [
+    {
+      "name": "CyberNexusHUD-Setup-Windows.exe",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-Setup-Windows.exe",
+      "size": 40433408,
+      "sha256": "75552c38bb370c327564b38d89e6aa96e13083e08b297daca0fcd3536a0bbae5"
+    },
+    {
+      "name": "NovaBar-runtime-windows-x86_64.zip",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-windows-x86_64.zip",
+      "size": 44977742,
+      "sha256": "9cbd8ee9cf496dd18b18d381782f8e5e8a7f9875c31c8c450c8f442071b49abb"
+    },
+    {
+      "name": "NovaBarDownloader-windows-x86_64.exe",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBarDownloader-windows-x86_64.exe",
+      "size": 44661964,
+      "sha256": "21f03aaabba6b97a4e7586ec430afdbf425cbf451173dceb4f921df6eed3aa5a"
+    }
+  ]
+}
