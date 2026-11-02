@@ -319,9 +319,11 @@ class SensorHoloPanel(CpuHoloPanel):
         "power": (),
     }
     def __init__(self, slot, parent=None):
-        self.slot = slot; super().__init__(parent)
+        # Base constructor calls virtual set_telemetry(): initialise filters first.
         from .module_preferences import load as load_module_prefs
+        self.slot = slot
         self.detail_fields = set(load_module_prefs()[slot]['details'])
+        super().__init__(parent)
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
