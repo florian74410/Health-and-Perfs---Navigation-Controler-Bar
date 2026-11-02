@@ -315,9 +315,12 @@ class TerminalView(W.QTextEdit):
     def keyPressEvent(self,event):
         control=bool(event.modifiers()&C.Qt.ControlModifier)
         shift=bool(event.modifiers()&C.Qt.ShiftModifier)
-        if control and shift and event.key()==C.Qt.Key_C:
-            self.copy();return
-        if control and shift and event.key()==C.Qt.Key_V:
+        if control and event.key()==C.Qt.Key_C:
+            # Copy the selected terminal text; otherwise preserve the shell's
+            # Ctrl+C (ETX / SIGINT) to interrupt a running command safely.
+            if shift or self.textCursor().hasSelection():
+                self.copy();return
+        if control and event.key()==C.Qt.Key_V:
             self.paste_text();return
         if shift and event.key() in (C.Qt.Key_PageUp,C.Qt.Key_PageDown):
             self.scroll_lines((-1 if event.key()==C.Qt.Key_PageUp else 1)*self.history_scrollbar.pageStep())
@@ -339,8 +342,8 @@ class TerminalView(W.QTextEdit):
 
     def contextMenuEvent(self,event):
         menu=W.QMenu(self)
-        menu.addAction('Copier · Ctrl+Maj+C',self.copy)
-        menu.addAction('Coller · Ctrl+Maj+V',self.paste_text)
+        menu.addAction('Copier · Ctrl+C',self.copy)
+        menu.addAction('Coller · Ctrl+V',self.paste_text)
         menu.exec(event.globalPos())
 
 
@@ -351,7 +354,7 @@ def open_terminal(*,start=True,cwd=None):
     content=W.QWidget();layout=W.QVBoxLayout(content);layout.setContentsMargins(0,0,0,0)
     session=TerminalSession(content,cwd=cwd)
     view=TerminalView(session);layout.addWidget(view,1)
-    status=W.QLabel('SHELL INTERACTIF  /  Ctrl+Maj+C copier · Ctrl+Maj+V coller · Maj+Page ↑↓ historique')
+    status=W.QLabel('SHELL INTERACTIF  /  Ctrl+C sélectionner/copier (sinon interrompre) · Ctrl+V coller · Maj+Page ↑↓ historique')
     status.setStyleSheet('color:#A6BFCD;font:10px Arial;');layout.addWidget(status)
     window=make_window('NOVA / TERMINAL',content)
     window.setMinimumSize(640,380);window.resize(1024,640)
