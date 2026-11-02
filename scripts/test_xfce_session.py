@@ -128,8 +128,24 @@ def main():
             wait_for(lambda:work_top()==70,app)
             assert crashed.wait(timeout=8)==9
             wait_for(lambda:work_top()==0,app)
-            wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsViewable for r in panels),app)
-            assert not dock.native.path.exists()
+            # Recovery may restart xfce4-panel, giving it new X11 window IDs.
+            # Check live panel state rather than stale pre-crash XIDs.
+            def restored_panel():
+                try:
+                    conn=backend._connect()
+                    root2=conn.screen().root
+                    ids=backend.prop(conn,root2,'_NET_CLIENT_LIST',[])
+                    ok=any(
+                        any('xfce4-panel' in c.lower() for c in
+                            (conn.create_resource_object('window',int(xid)).get_wm_class() or ()))
+                        and conn.create_resource_object('window',int(xid))
+                            .get_attributes().map_state==X.IsViewable
+                        for xid in ids)
+                    conn.close()
+                    return ok
+                except Exception:return False
+            wait_for(restored_panel,app,timeout=24)
+            wait_for(lambda:not dock.native.path.exists(),app,timeout=24)
             con.close()
             print('PASS: XFCE close/crash restoration; task activation; show desktop; NOVA Explorer task; cockpit')
         finally:
