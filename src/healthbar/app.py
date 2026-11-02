@@ -881,6 +881,10 @@ class Bar(QWidget):
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(),
                                           parent=self if self.isVisible() else None)) == QDialog.DialogCode.Accepted:
             self.sensors.reload_preferences()
+            for slot, panel in self.module_holos.items():
+                panel.detail_fields = set(self.sensors.prefs[slot]["details"])
+                if panel.isVisible():
+                    panel.set_telemetry(self.canvas.readings or {})
             self.last_sensor_request = 0.0
             self.apply_settings()
             self.setVisible(self.settings.hud_enabled)
