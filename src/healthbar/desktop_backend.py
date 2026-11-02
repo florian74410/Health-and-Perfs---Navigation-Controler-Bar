@@ -259,13 +259,14 @@ def restore_after_exit(pid):
                             con2=backend._connect()
                             try:
                                 root=con2.screen().root
-                                candidates=backend.prop(con2,root,'_NET_CLIENT_LIST',[])
+                                candidates=list(root.query_tree().children)
+                                candidates.extend(con2.create_resource_object('window',int(xid))
+                                                  for xid in backend.prop(con2,root,'_NET_CLIENT_LIST',[]))
                                 visible=any(
                                     any('xfce4-panel' in cls.lower() for cls in
-                                        (con2.create_resource_object('window',int(xid)).get_wm_class() or ()))
-                                    and con2.create_resource_object('window',int(xid))
-                                        .get_attributes().map_state==X.IsViewable
-                                    for xid in candidates)
+                                        (window.get_wm_class() or ()))
+                                    and window.get_attributes().map_state==X.IsViewable
+                                    for window in candidates)
                             finally:con2.close()
                         except Exception:visible=False
                     if visible:
