@@ -280,10 +280,21 @@ class PCBDockFrame(QFrame):
         self.settings = settings
         self.phase = 0.0
         self.setObjectName("dockBody")
+        # Qt must not paint the default QFrame/palette rectangle behind the
+        # chamfered PCB path: its four exterior corners are real alpha=0.
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setAutoFillBackground(False)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
 
     def paintEvent(self, event):
         p = QPainter(self)
+        # Clear the entire frame (including cut corners) to transparent first;
+        # only the explicitly drawn PCB polygon receives color and opacity.
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        p.fillRect(self.rect(), QColor(0, 0, 0, 0))
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         if w < 40 or h < 30:
@@ -354,7 +365,9 @@ class EdgeDock(QWidget):
         self.setWindowTitle(f"NovaBar • {kind} • {side}")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint |
                             Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self.setAutoFillBackground(False)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
