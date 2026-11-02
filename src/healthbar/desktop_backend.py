@@ -222,7 +222,27 @@ def restore_after_exit(pid):
             except psutil.Error:alive=False
             if not alive:
                 os.environ['DISPLAY']=state.get('display') or os.environ.get('DISPLAY','')
-                if DesktopBackend().set_panel_visible(state.get('panels',[]),True):path.unlink(missing_ok=True)
+                backend=DesktopBackend()
+                panels=state.get('panels',[])
+                # Mapping a panel is asynchronous: xfce4-panel may immediately
+                # reapply its own visibility state, especially after a crash.
+                # Only discard the recovery journal once all windows are visible.
+                from Xlib import X
+                for _ in range(48):
+                    backend.set_panel_visible(panels,True)
+                    con=None
+                    try:
+                        con=backend._connect()
+                        visible=all(con.create_resource_object('window',int(row['id']))
+                                    .get_attributes().map_state==X.IsViewable for row in panels)
+                    except Exception:
+                        visible=False
+                    finally:
+                        if con:con.close()
+                    if visible:
+                        path.unlink(missing_ok=True)
+                        return
+                    time.sleep(.25)
                 return
             time.sleep(1)
     except (OSError,ValueError,TypeError):return
