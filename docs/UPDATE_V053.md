@@ -24,3 +24,7 @@ Les références de conception consultées sont [Neon Terminal](https://www.fab.
 ## Vérification
 
 77 tests locaux réussis. Vérification de l’alpha du fond (217/255), des zones extérieures transparentes, des trois teintes, de la conservation des couleurs de texte et des couleurs sémantiques du graphique. Les vues ont été rendues et inspectées sur fond clair et sombre. Les quatre builds natifs sont vérifiés par GitHub Actions avant publication des installateurs.
+
+Les quatre builds natifs (Linux, Windows, macOS Intel et Apple Silicon) ont passé leurs contrôles dans le [run 41200596827](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41200596827).
+
+Les paquets de la [release officielle 0.5.3](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.5.3) sont publiés avec leurs manifestes SHA-256.

@@ -33,3 +33,5 @@ Les petits transferts sont affichés en B/s ou kB/s au lieu d’être arrondis �
 ## Validation
 
 75 tests locaux réussis, dont : unités des faibles débits, choix de l’interface, absence de double comptage Docker, compteur réinitialisé, panne CPU indépendante, délai/cache ICMP, historique borné, données absentes, couleurs des trois thèmes et contours de texte sur fond transparent. Le rendu Qt a été inspecté sur fond blanc et sombre. La validation native multi-OS est effectuée par GitHub Actions avant publication des paquets.
+
+Les quatre builds natifs ont terminé avec succès dans le [run 41199061850](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/actions/runs/41199061850). Les paquets de la [release 0.5.2](https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/tag/v0.5.2) sont publiés avec leurs manifestes SHA-256.
