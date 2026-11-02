@@ -7,17 +7,40 @@ from PySide6.QtGui import QPainter
 
 THEMES = {"blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
 _active = "blue-neon"
+_custom = {}
 
 def set_theme(theme):
-    global _active
-    _active = theme if theme in THEMES else "blue-neon"
+    global _active, _custom
+    _active = theme if theme in ("cyber-futuriste", *THEMES) else "blue-neon"
+    from .theme_overrides import load
+    _custom = load().get(_active, {})
+    # The cockpit, docks and XFCE skin already share one native palette table.
+    from .xfce_panel_skin import PALETTES
+    if _custom:
+        original=PALETTES.get(_active, PALETTES["blue-neon"])
+        primary=_custom.get("primary", original[0])
+        secondary=_custom.get("secondary", original[1])
+        rgb=QtColor(primary)
+        PALETTES[_active]=(primary,secondary,
+            f"{rgb.red()}, {rgb.green()}, {rgb.blue()}")
 
 def QColor(*args):
-    """Retint decorative blue/cyan; preserve semantic warning colors."""
+    """Retint decorative electric blue but never semantic red warnings."""
     color = QtColor(*args)
-    h, saturation, value, alpha = color.getHsvF()
-    if _active != "blue-neon" and .46 <= h <= .70 and saturation > .12:
-        color.setHsvF(.37 if _active == "green-matrix" else .98, saturation, value, alpha)
+    if len(args)==1 and isinstance(args[0],str):
+        name=color.name().lower()
+        if name in ("#061224","#061020","#040d1b") and _custom.get("background"):
+            chosen=QtColor(_custom["background"])
+            chosen.setAlpha(color.alpha())
+            return chosen
+    h,saturation,value,alpha=color.getHsvF()
+    if .46 <= h <= .70 and saturation > .12:
+        if _custom.get("primary"):
+            chosen=QtColor(_custom["primary"])
+            chosen.setAlphaF(alpha)
+            return chosen
+        if _active not in ("blue-neon","cyber-futuriste"):
+            color.setHsvF(.37 if _active=="green-matrix" else .98,saturation,value,alpha)
     return color
 
 def holo_background():
