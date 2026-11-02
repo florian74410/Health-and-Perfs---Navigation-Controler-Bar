@@ -349,6 +349,10 @@ class Bar(QWidget):
         elif self.native_panel_guard is not None and not self.native_panel_guard.restore():
             self.settings.bottom_dock_enabled=True
             self.settings.save()
+            from .bottom_dock import BottomDock
+            self.bottom_dock=BottomDock(self.settings)
+            self.bottom_dock.settings_requested.connect(self.preferences)
+            self.bottom_dock.quit_requested.connect(self.quit_app)
             QMessageBox.warning(self,"Restauration XFCE",
                 "Le panneau XFCE d'origine n'est pas encore visible. "
                 "La désactivation est annulée et le journal de récupération est conservé.")
