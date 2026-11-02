@@ -98,7 +98,7 @@ def main():
             wait_for(lambda:outer_top(row['id'])==70,app)
             hud.retract(manual=True)
             wait_for(lambda:work_top()==30 and outer_top(row['id'])==30,app)
-            assert hud.height()==10
+            assert hud.height()==30
             hud.reveal();wait_for(lambda:work_top()==70 and outer_top(row['id'])==70,app)
             hud.settings.thickness=90;hud.apply_settings()
             wait_for(lambda:work_top()==90 and outer_top(row['id'])==90,app)
