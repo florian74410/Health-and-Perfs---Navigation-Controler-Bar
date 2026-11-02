@@ -4,6 +4,8 @@ on:
   push:
     tags: ['v*']
   pull_request:
+    # v0.7 work PR targets a frozen v0.6.11 baseline; use dedicated Linux smoke CI there.
+    branches: ['main', 'release/nova-nexus-hd-v1.0.0', 'release/nova-nexus-hd-v1.1.0']
     paths: ['src/**', 'scripts/**', 'tests/**', 'pyproject.toml', '.github/workflows/build.yml']
 permissions:
   contents: read
