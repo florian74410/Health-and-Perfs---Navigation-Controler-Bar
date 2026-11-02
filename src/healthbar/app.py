@@ -602,6 +602,7 @@ class Bar(QWidget):
     def open_module_holo(self, slot):
         # The host supplies the CPU hologram; ZIP modules only declare capabilities.
         if not self.settings.holo_enabled: return
+        if not self.sensors.prefs.get(slot, {}).get('holo_enabled', True): return
         for kind, other in self.module_holos.items():
             if kind != slot: other.close_panel()
         if slot != "cpu": self.holo.close_panel()
