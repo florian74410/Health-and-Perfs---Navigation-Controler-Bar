@@ -86,7 +86,8 @@ def install_package(path, settings=None):
     elif path.suffix=='.dmg' and sys.platform=='darwin':
         raise OSError('macOS : ouvrez le DMG hors ligne. Installation automatique non disponible pour ce format.')
     else:raise ValueError('Paquet incompatible avec cette plateforme')
-    env=os.environ.copy()
+    from .system_env import native_env
+    env=native_env()
     env['NOVABAR_BOOTSTRAP']='1'
     if settings is not None:
         from dataclasses import asdict
