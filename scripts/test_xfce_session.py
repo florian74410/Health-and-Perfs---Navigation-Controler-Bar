@@ -148,7 +148,14 @@ def main():
                 except Exception:return False
                 finally:
                     if conn:conn.close()
-            wait_for(restored_panel,app,timeout=24)
+            try:
+                wait_for(restored_panel,app,timeout=24)
+            except AssertionError:
+                trace=dock.native.path.with_suffix('.log')
+                journal=dock.native.path
+                print('XFCE recovery trace:',trace.read_text(encoding='utf-8') if trace.exists() else '<missing>')
+                print('XFCE recovery journal:',journal.read_text(encoding='utf-8') if journal.exists() else '<missing>')
+                raise
             wait_for(lambda:not dock.native.path.exists(),app,timeout=24)
             con.close()
             print('PASS: XFCE close/crash restoration; task activation; show desktop; NOVA Explorer task; cockpit')
