@@ -812,7 +812,7 @@ class Bar(QWidget):
             return
         rect = QRect(self.full_rect)
         if self.settings.position in ("top", "bottom"):
-            edge = 10
+            edge = self.settings.retracted_hud_height
             if self.settings.position == "bottom":
                 rect.setTop(rect.bottom()-edge+1)
             else:
