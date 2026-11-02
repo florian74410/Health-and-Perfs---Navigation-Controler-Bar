@@ -352,7 +352,7 @@ class SettingsDialog(QDialog):
         colors_box = QVBoxLayout(colors_page)
         colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
         colors_box.addWidget(QLabel("Choisissez une palette existante ; les couleurs ci-dessous servent de référence visuelle."))
-        from .ui_kit import PALETTES
+        from .cockpit_style import PALETTES
         self.palette_preview = QLabel()
         self.palette_preview.setMinimumHeight(68)
         colors_box.addWidget(self.palette_preview)
@@ -392,13 +392,16 @@ class SettingsDialog(QDialog):
                 form_plugin.addWidget(check)
             form_plugin.addStretch()
             self.module_controls[module]=(rate,holo,details)
-            tabs.addTab(page,module.upper())
+            self.plugin_pages = getattr(self, 'plugin_pages', {})
+            self.plugin_pages[module] = page
         tabs.addTab(general_scroll, "Générale")
         tabs.addTab(colors_page, "Thèmes & Couleurs")
         tabs.addTab(extensions, "Extensions")
         tabs.addTab(cpu_page, "CPU")
         tabs.addTab(updates_page, "Mise à jour")
         tabs.addTab(about, "À propos")
+        for module in MODULES:
+            tabs.addTab(self.plugin_pages[module], module.upper())
         tabs.tabBar().hide()
         nav = QListWidget()
         nav.setObjectName("settingsNavigation")
@@ -407,8 +410,6 @@ class SettingsDialog(QDialog):
             nav.addItem(name)
         for name in MODULES:
             nav.addItem("↳ " + name.upper())
-        for name in ():
-            nav.addItem(name)
         nav.currentRowChanged.connect(tabs.setCurrentIndex)
         nav.setCurrentRow(0)
         split = QHBoxLayout()
