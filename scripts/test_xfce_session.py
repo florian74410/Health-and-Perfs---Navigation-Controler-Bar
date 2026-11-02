@@ -97,7 +97,7 @@ def main():
                 event_mask=X.SubstructureRedirectMask|X.SubstructureNotifyMask);con.flush()
             wait_for(lambda:outer_top(row['id'])==70,app)
             hud.retract(manual=True)
-            wait_for(lambda:work_top()==10 and outer_top(row['id'])==10,app)
+            wait_for(lambda:work_top()==30 and outer_top(row['id'])==30,app)
             assert hud.height()==10
             hud.reveal();wait_for(lambda:work_top()==70 and outer_top(row['id'])==70,app)
             hud.settings.thickness=90;hud.apply_settings()
