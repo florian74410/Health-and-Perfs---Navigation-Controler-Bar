@@ -880,6 +880,8 @@ class Bar(QWidget):
             self.holo.close_panel()
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(),
                                           parent=self if self.isVisible() else None)) == QDialog.DialogCode.Accepted:
+            self.sensors.reload_preferences()
+            self.last_sensor_request = 0.0
             self.apply_settings()
             self.setVisible(self.settings.hud_enabled)
             from .ui_kit import stylesheet
