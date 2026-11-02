@@ -122,7 +122,13 @@ def main():
             assert not dock.native.path.exists()
             # Kill a separate NovaBar surface without closeEvent: its watchdog must recover XFCE.
             crash_code="from PySide6.QtWidgets import QApplication; from PySide6.QtCore import QTimer; from healthbar.bottom_dock import BottomDock; from healthbar.config import Settings; import os; a=QApplication([]); d=BottomDock(Settings(configured=True,dock_app_paths=[])); from healthbar.app import Bar; h=Bar(Settings(configured=True,thickness=70,auto_hide=False,retract_mode='manual',dock_left_enabled=False,dock_right_enabled=False,bottom_dock_enabled=False)); h.show(); QTimer.singleShot(3000,lambda:os._exit(9)); a.exec()"
-            crashed=subprocess.Popen([sys.executable,'-c',crash_code],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            # The crash simulation must not share the parent's recovery journal:
+            # an inactive parent dock can otherwise clear the child's journal.
+            crash_data=Path(temp)/'crash-data'
+            crash_data.mkdir()
+            crash_env={**os.environ,'HEALTHBAR_DATA_DIR':str(crash_data)}
+            crashed=subprocess.Popen([sys.executable,'-c',crash_code],env=crash_env,
+                                     stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             processes.append(crashed)
             wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsUnmapped for r in panels),app)
             wait_for(lambda:work_top()==70,app)
@@ -151,12 +157,12 @@ def main():
             try:
                 wait_for(restored_panel,app,timeout=24)
             except AssertionError:
-                trace=dock.native.path.with_suffix('.log')
-                journal=dock.native.path
+                journal=crash_data/'native-panel-visibility.json'
+                trace=journal.with_suffix('.log')
                 print('XFCE recovery trace:',trace.read_text(encoding='utf-8') if trace.exists() else '<missing>')
                 print('XFCE recovery journal:',journal.read_text(encoding='utf-8') if journal.exists() else '<missing>')
                 raise
-            wait_for(lambda:not dock.native.path.exists(),app,timeout=24)
+            wait_for(lambda:not (crash_data/'native-panel-visibility.json').exists(),app,timeout=24)
             con.close()
             print('PASS: XFCE close/crash restoration; task activation; show desktop; NOVA Explorer task; cockpit')
         finally:
