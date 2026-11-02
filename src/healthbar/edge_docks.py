@@ -8,6 +8,7 @@ import configparser
 import os
 import subprocess
 import sys
+import time
 import math
 from pathlib import Path
 
@@ -405,7 +406,8 @@ class EdgeDock(QWidget):
         self.hide_timer.setInterval(3000)
         self.hide_timer.timeout.connect(self.collapse)
         self.pointer_timer = QTimer(self)
-        self.pointer_timer.setInterval(120)
+        self._edge_entered_at = None
+        self.pointer_timer.setInterval(40)
         self.pointer_timer.timeout.connect(self.check_pointer)
         self.pointer_timer.start()
         self.fx_timer = QTimer(self)
@@ -526,6 +528,7 @@ class EdgeDock(QWidget):
     def collapse(self):
         if not self.full_rect: return
         self.collapsed = True
+        self._edge_entered_at = None
         self.hide_timer.stop()
         x, y, width, height = self.full_rect
         self.content.hide()
@@ -552,15 +555,20 @@ class EdgeDock(QWidget):
         inside = (self.edge_trigger_rect() if self.collapsed else self.geometry()).contains(QCursor.pos())
         if self.collapsed:
             if inside:
-                self.expand()
+                if self._edge_entered_at is None:
+                    self._edge_entered_at = time.monotonic()
+                elif time.monotonic() - self._edge_entered_at >= 1.0:
+                    self._edge_entered_at = None
+                    self.expand()
+            else:
+                self._edge_entered_at = None
         elif inside:
             self.hide_timer.stop()
         elif not self.hide_timer.isActive():
             self.hide_timer.start(3000)
 
     def enterEvent(self, event):
-        if self.collapsed: self.expand()
-        self.hide_timer.stop()
+        if not self.collapsed: self.hide_timer.stop()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
