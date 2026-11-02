@@ -88,8 +88,8 @@ class Settings:
                      "xfce_skin_enabled", "xfce_skin_offer_done", "bottom_dock_enabled"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Activation de barre invalide : {name}")
-        if not (self.hud_enabled or self.dock_left_enabled or self.dock_right_enabled or self.xfce_skin_enabled or (self.bottom_dock_enabled and sys.platform.startswith("linux"))):
-            raise ValueError("Activer au moins une barre NovaBar ou le panneau XFCE")
+        # All NOVA bars may be disabled; the tray remains available and the
+        # native desktop must be restored independently of this preference.
         if (type(self.xfce_skin_delay_seconds) is not int or
                 not 1 <= self.xfce_skin_delay_seconds <= 120 or
                 type(self.xfce_skin_scale_percent) is not int or
