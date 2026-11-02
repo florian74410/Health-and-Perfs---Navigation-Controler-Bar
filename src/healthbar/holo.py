@@ -320,6 +320,8 @@ class SensorHoloPanel(CpuHoloPanel):
     }
     def __init__(self, slot, parent=None):
         self.slot = slot; super().__init__(parent)
+        from .module_preferences import load as load_module_prefs
+        self.detail_fields = set(load_module_prefs()[slot]['details'])
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
@@ -404,6 +406,34 @@ class SensorHoloPanel(CpuHoloPanel):
             self.note.setText("— = non mesurable sans sonde ou wattmètre externe · "
                               "W secteur ≠ puissance package/batterie")
             # Keep the compact glass size; the power detail table is scrollable.
+        # Apply persisted per-module visibility without additional sensor polls.
+        allowed = self.detail_fields
+        if self.slot in ("gpu","ram","storage"):
+            label_to_field = {value:key for key,value in labels.items()}
+            label_to_field.update({
+                "VRAM totale":"vram_total_gb",
+                "RAM totale":"ram_total_gb",
+                "Capacité volume système":"disk_total_gb",
+            })
+            rows=[(name,value) for name,value in rows
+                  if name not in label_to_field or label_to_field[name] in allowed]
+        elif self.slot == "network":
+            if "net_down_mbs" not in allowed:
+                rows=[row for row in rows if row[0] not in ("Réception", "  Réception")]
+            if "net_up_mbs" not in allowed:
+                rows=[row for row in rows if row[0] not in ("Envoi", "  Envoi")]
+            if "net_interfaces" not in allowed:
+                rows=[row for row in rows if row[0] in ("Réception", "Envoi")]
+        elif self.slot == "fans" and "fans" not in allowed:
+            rows=[]
+        elif self.slot == "power":
+            restricted = {"Puissance PC à la prise":"power_total_w",
+                          "Puissance package":"cpu_power_w",
+                          "Puissance GPU (carte)":"gpu_power_w"}
+            rows=[(name,value) for name,value in rows
+                  if name not in restricted or restricted[name] in allowed]
+        if not rows:
+            rows=[("Affichage", "Aucun détail sélectionné")]
         while self.grid.count():
             widget = self.grid.takeAt(0).widget()
             if widget:
