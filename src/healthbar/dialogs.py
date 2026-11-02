@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
     QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea, QColorDialog)
@@ -24,6 +24,19 @@ QSlider::groove:horizontal { height: 4px; background: #17476c; }
 QSlider::handle:horizontal { width: 16px; margin: -6px 0; background: #14d8ff; border-radius: 8px; }
 QCheckBox { spacing: 12px; }
 """
+
+
+
+class CatalogReader(QThread):
+    finished_catalog = Signal(object, object)
+    def run(self):
+        from .plugin_sources import SourceStore, fetch_catalog
+        try:
+            rows, errors = fetch_catalog(SourceStore().load())
+            self.finished_catalog.emit(rows, errors)
+        except (OSError, ValueError, TypeError) as exc:
+            self.finished_catalog.emit({}, [str(exc)])
+
 
 
 class SettingsDialog(QDialog):
@@ -340,6 +353,15 @@ class SettingsDialog(QDialog):
             control.setParent(extensions)
             ext_layout.addWidget(control)
         ext_layout.addWidget(QLabel("Les plugins ZIP peuvent être activés ou désactivés dans le gestionnaire."))
+        ext_layout.addWidget(QLabel("EXTENSIONS DISPONIBLES / GITHUB"))
+        self.catalog_list = QListWidget()
+        self.catalog_list.setMinimumHeight(130)
+        ext_layout.addWidget(self.catalog_list)
+        refresh_catalog_button = QPushButton("↻ Actualiser le catalogue GitHub")
+        refresh_catalog_button.clicked.connect(self.reload_catalog)
+        ext_layout.addWidget(refresh_catalog_button)
+        self.catalog_worker = None
+
         about = QWidget()
         about_layout = QVBoxLayout(about)
         about_layout.addWidget(QLabel("NOVA NEXUS HD  /  WIKI ET AIDE"))
@@ -425,6 +447,26 @@ class SettingsDialog(QDialog):
         buttons.accepted.connect(self.save)
         buttons.rejected.connect(self.reject)
         box.addWidget(buttons)
+
+    def reload_catalog(self):
+        if self.catalog_worker is not None and self.catalog_worker.isRunning():
+            return
+        self.catalog_list.clear()
+        self.catalog_list.addItem("Connexion aux sources GitHub…")
+        worker = CatalogReader(self)
+        self.catalog_worker = worker
+        worker.finished_catalog.connect(self.show_catalog)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    def show_catalog(self, entries, errors):
+        self.catalog_list.clear()
+        for item in sorted(entries.values(), key=lambda obj:obj["id"]):
+            self.catalog_list.addItem(item["id"]+"  ·  v"+item["version"]+"  ·  "+item["source"])
+        for message in errors:
+            self.catalog_list.addItem("⚠ "+str(message))
+        if not entries and not errors:
+            self.catalog_list.addItem("Aucune extension disponible")
 
     def open_updates(self):
         from .updates import UpdateDialog
