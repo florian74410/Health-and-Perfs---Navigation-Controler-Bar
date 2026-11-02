@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
-    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit)
+    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea)
 from . import __version__
 from .autostart import set_enabled
 from .plugins import PluginRegistry
@@ -280,10 +280,86 @@ class SettingsDialog(QDialog):
         xfce_layout.addWidget(xfce_note)
         xfce_layout.addStretch()
         tabs.addTab(xfce_tab, "XFCE Cyber")
-        for name, widget in (("Générale", general), ("Affichage", display),
-                              ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
-            tabs.addTab(widget, name)
-        box.addWidget(tabs, 1)
+        # One logical General page; no separate legacy Édition/Docks tabs.
+        # Reparent the existing form widgets rather than recreating their controls.
+        while tabs.count():
+            tabs.removeTab(0)
+        general_all = QWidget()
+        general_all_box = QVBoxLayout(general_all)
+        general_all_box.addWidget(QLabel("GÉNÉRALE  /  COMPORTEMENT"))
+        for heading, section in (
+            ("Démarrage et actualisation", general),
+            ("Position, dimensions et affichage", display),
+            ("Édition de l'affichage", edit),
+            ("Barres, docks et rétraction", docks),
+            ("Habillage du panneau XFCE", xfce_tab)):
+            general_all_box.addWidget(QLabel("◈  " + heading))
+            general_all_box.addWidget(section)
+        general_all_box.addStretch()
+        general_scroll = QScrollArea()
+        general_scroll.setWidgetResizable(True)
+        general_scroll.setWidget(general_all)
+        # Plugin manager remains the existing secure GitHub ZIP catalogue.
+        # Existing ext_layout already owns the window; append a clear source action.
+        sources_button = QPushButton("⌁ Sources GitHub / Plugins")
+        sources_button.clicked.connect(lambda: PluginsDialog(PluginRegistry(), self).exec())
+        ext_layout.addWidget(sources_button)
+        # CPU gets its own controls without duplicating telemetry collectors.
+        cpu_page = QWidget()
+        cpu_box = QVBoxLayout(cpu_page)
+        cpu_box.addWidget(QLabel("CPU  /  HOLOGRAMME ET COLLECTE"))
+        cpu_box.addWidget(QLabel("La fréquence est partagée par les capteurs; pas de timer CPU supplémentaire."))
+        cpu_box.addWidget(QLabel("Taux de rafraîchissement CPU (secondes)"))
+        self.cpu_refresh_control = QSpinBox()
+        self.cpu_refresh_control.setRange(1, 30)
+        self.cpu_refresh_control.setSuffix(" s")
+        self.cpu_refresh_control.setValue(settings.refresh_seconds)
+        self.cpu_refresh_control.valueChanged.connect(self.refresh_seconds.setValue)
+        self.refresh_seconds.valueChanged.connect(self.cpu_refresh_control.setValue)
+        cpu_box.addWidget(self.cpu_refresh_control)
+        self.cpu_holo_control = QCheckBox("Activer le Holo Mode des modules")
+        self.cpu_holo_control.setChecked(settings.holo_enabled)
+        self.cpu_holo_control.toggled.connect(self.holo_enabled.setChecked)
+        self.holo_enabled.toggled.connect(self.cpu_holo_control.setChecked)
+        cpu_box.addWidget(self.cpu_holo_control)
+        cpu_box.addWidget(QLabel("Un clic sur toute la surface du module ouvre son Holo Mode."))
+        cpu_box.addStretch()
+        updates_page = QWidget()
+        updates_box = QVBoxLayout(updates_page)
+        updates_box.addWidget(QLabel("MISE À JOUR  /  NOVABAR"))
+        update_action = QPushButton("↻ Vérifier et installer une mise à jour")
+        update_action.clicked.connect(self.open_updates)
+        updates_box.addWidget(update_action)
+        updates_box.addStretch()
+        # Preserve the existing functional module enable/disable controls.
+        ext_layout.addWidget(QLabel("MODULES INSTALLÉS  /  VISIBILITÉ"))
+        for slot, control in self.module_checks.items():
+            control.setParent(extensions)
+            ext_layout.addWidget(control)
+        ext_layout.addWidget(QLabel("Les plugins ZIP peuvent être activés ou désactivés dans le gestionnaire."))
+        about = QWidget()
+        about_layout = QVBoxLayout(about)
+        about_layout.addWidget(QLabel("NOVA NEXUS HD  /  WIKI ET AIDE"))
+        about_layout.addWidget(wiki)
+        about_layout.addWidget(help_tab)
+        about_layout.addStretch()
+        tabs.addTab(general_scroll, "Générale")
+        tabs.addTab(extensions, "Extensions")
+        tabs.addTab(cpu_page, "CPU")
+        tabs.addTab(updates_page, "Mise à jour")
+        tabs.addTab(about, "À propos")
+        tabs.tabBar().hide()
+        nav = QListWidget()
+        nav.setObjectName("settingsNavigation")
+        nav.setFixedWidth(190)
+        for name in ("GÉNÉRALE", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
+            nav.addItem(name)
+        nav.currentRowChanged.connect(tabs.setCurrentIndex)
+        nav.setCurrentRow(0)
+        split = QHBoxLayout()
+        split.addWidget(nav)
+        split.addWidget(tabs, 1)
+        box.addLayout(split, 1)
         note = QLabel("Mesures locales : — indique un capteur indisponible.\nPriorité d’affichage limitée par le système et son compositeur.")
         note.setWordWrap(True)
         box.addWidget(note)
