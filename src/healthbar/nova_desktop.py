@@ -33,6 +33,49 @@ def _restore_mime(previous):
             with path.open('w',encoding='utf-8') as output:parser.write(output)
 
 
+TERMINAL_HOTKEY = '/commands/custom/<Primary><Alt>t'
+
+
+def _xfconf(*args):
+    try:
+        return subprocess.run(['xfconf-query', '-c', 'xfce4-keyboard-shortcuts', *args],
+                              text=True, capture_output=True, timeout=6, env=native_env())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(['xfconf-query', *args], 127, '',
+                                           'xfconf-query indisponible')
+
+
+def _install_terminal_hotkey(previous):
+    """Replace only the user's Ctrl+Alt+T binding, retaining its prior value."""
+    result=_xfconf('-p', TERMINAL_HOTKEY)
+    previous['terminal_hotkey']={'exists': result.returncode == 0,
+                                 'value': result.stdout.strip() if result.returncode == 0 else ''}
+    command='novabar --nova-terminal'
+    operation=['-p', TERMINAL_HOTKEY, '-s', command]
+    if result.returncode != 0:
+        operation=['-p', TERMINAL_HOTKEY, '-n', '-t', 'string', '-s', command]
+    changed=_xfconf(*operation)
+    if changed.returncode != 0:
+        # Non-XFCE hosts (CI, Windows, macOS) must not break activation.
+        if changed.returncode == 127:
+            previous.pop('terminal_hotkey', None)
+            return
+        raise RuntimeError('Impossible de configurer Ctrl+Alt+T : '+changed.stderr.strip())
+
+
+def _restore_terminal_hotkey(previous):
+    """Do not overwrite a keyboard binding subsequently changed by the user."""
+    saved=previous.get('terminal_hotkey')
+    if not isinstance(saved,dict):
+        return
+    current=_xfconf('-p', TERMINAL_HOTKEY)
+    if current.returncode != 0 or current.stdout.strip() != 'novabar --nova-terminal':
+        return
+    if saved.get('exists'):
+        _xfconf('-p', TERMINAL_HOTKEY, '-s', saved.get('value',''))
+    else:
+        _xfconf('-p', TERMINAL_HOTKEY, '-r')
+
 def activate(*, replace_file_manager=False):
     from .nova_components import install_components
     from nova_nexus.install_theme import main as theme_main
@@ -48,6 +91,8 @@ def activate(*, replace_file_manager=False):
         state_path.write_text(json.dumps(previous,indent=2)+'\n')
     try:
         theme_main(['--apply'])
+        _install_terminal_hotkey(previous)
+        state_path.write_text(json.dumps(previous,indent=2)+'\n')
         if replace_file_manager:
             _mime('default',DESKTOP_ID,'inode/directory')
         settings.hud_enabled=True
@@ -59,6 +104,7 @@ def activate(*, replace_file_manager=False):
         settings.save()
     except Exception:
         try:
+            _restore_terminal_hotkey(previous)
             _restore_mime(previous['file_manager'])
             theme_main(['--restore'])
         except Exception:
@@ -74,6 +120,7 @@ def restore():
         theme_main(['--restore'])
         return
     previous=json.loads(state_path.read_text())
+    _restore_terminal_hotkey(previous)
     _restore_mime(previous['file_manager'])
     theme_main(['--restore'])
     settings=Settings.load()

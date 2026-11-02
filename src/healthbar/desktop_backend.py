@@ -222,7 +222,57 @@ def restore_after_exit(pid):
             except psutil.Error:alive=False
             if not alive:
                 os.environ['DISPLAY']=state.get('display') or os.environ.get('DISPLAY','')
-                if DesktopBackend().set_panel_visible(state.get('panels',[]),True):path.unlink(missing_ok=True)
+                backend=DesktopBackend()
+                panels=state.get('panels',[])
+                # Mapping a panel is asynchronous: xfce4-panel may immediately
+                # reapply its own visibility state, especially after a crash.
+                # Only discard the recovery journal once all windows are visible.
+                from Xlib import X
+                for attempt in range(48):
+                    backend.set_panel_visible(panels,True)
+                    # X11 MapWindow may not override XFCE's panel-managed
+                    # visibility after an abrupt owner exit. Restart the panel
+                    # service once as a last-resort crash recovery; configuration
+                    # is preserved and window IDs may change.
+                    if attempt==12:
+                        try:
+                            subprocess.run(['xfce4-panel','--restart'],timeout=8,
+                                           stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL,check=False)
+                        except (OSError,subprocess.TimeoutExpired):
+                            pass
+                    con=None
+                    try:
+                        con=backend._connect()
+                        visible=all(con.create_resource_object('window',int(row['id']))
+                                    .get_attributes().map_state==X.IsViewable for row in panels)
+                    except Exception:
+                        visible=False
+                    finally:
+                        if con:con.close()
+                    if not visible and attempt>=12:
+                        # A restarted xfce4-panel has fresh X window IDs.
+                        try:
+                            # A panel restart may invalidate the old IDs. At
+                            # this point leave the recovery journal intact for
+                            # the next launch unless the new panel is detected.
+                            con2=backend._connect()
+                            try:
+                                root=con2.screen().root
+                                candidates=list(root.query_tree().children)
+                                candidates.extend(con2.create_resource_object('window',int(xid))
+                                                  for xid in backend.prop(con2,root,'_NET_CLIENT_LIST',[]))
+                                visible=any(
+                                    any('xfce4-panel' in cls.lower() for cls in
+                                        (window.get_wm_class() or ()))
+                                    and window.get_attributes().map_state==X.IsViewable
+                                    for window in candidates)
+                            finally:con2.close()
+                        except Exception:visible=False
+                    if visible:
+                        path.unlink(missing_ok=True)
+                        return
+                    time.sleep(.25)
                 return
             time.sleep(1)
     except (OSError,ValueError,TypeError):return

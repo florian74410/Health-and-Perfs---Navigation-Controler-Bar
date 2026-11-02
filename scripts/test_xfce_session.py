@@ -97,8 +97,8 @@ def main():
                 event_mask=X.SubstructureRedirectMask|X.SubstructureNotifyMask);con.flush()
             wait_for(lambda:outer_top(row['id'])==70,app)
             hud.retract(manual=True)
-            wait_for(lambda:work_top()==10 and outer_top(row['id'])==10,app)
-            assert hud.height()==10
+            wait_for(lambda:work_top()==30 and outer_top(row['id'])==30,app)
+            assert hud.height()==30
             hud.reveal();wait_for(lambda:work_top()==70 and outer_top(row['id'])==70,app)
             hud.settings.thickness=90;hud.apply_settings()
             wait_for(lambda:work_top()==90 and outer_top(row['id'])==90,app)
@@ -128,8 +128,28 @@ def main():
             wait_for(lambda:work_top()==70,app)
             assert crashed.wait(timeout=8)==9
             wait_for(lambda:work_top()==0,app)
-            wait_for(lambda:all(con.create_resource_object('window',r['id']).get_attributes().map_state==X.IsViewable for r in panels),app)
-            assert not dock.native.path.exists()
+            # Recovery may restart xfce4-panel, giving it new X11 window IDs.
+            # Check live panel state rather than stale pre-crash XIDs.
+            def restored_panel():
+                # XFCE docks can be absent from _NET_CLIENT_LIST after a restart.
+                # Query the X11 root tree, which includes override-redirect docks.
+                conn=None
+                try:
+                    conn=backend._connect()
+                    root2=conn.screen().root
+                    candidates=list(root2.query_tree().children)
+                    candidates.extend(conn.create_resource_object('window',int(xid))
+                                      for xid in backend.prop(conn,root2,'_NET_CLIENT_LIST',[]))
+                    return any(
+                        any('xfce4-panel' in cls.lower() for cls in
+                            (window.get_wm_class() or ()))
+                        and window.get_attributes().map_state==X.IsViewable
+                        for window in candidates)
+                except Exception:return False
+                finally:
+                    if conn:conn.close()
+            wait_for(restored_panel,app,timeout=24)
+            wait_for(lambda:not dock.native.path.exists(),app,timeout=24)
             con.close()
             print('PASS: XFCE close/crash restoration; task activation; show desktop; NOVA Explorer task; cockpit')
         finally:

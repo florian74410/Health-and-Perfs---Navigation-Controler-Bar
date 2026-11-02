@@ -215,6 +215,7 @@ class TerminalView(W.QTextEdit):
             QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical{background:#071C30;}
         ''')
         self.follow_output=True
+        self._selection_snapshot=False
         self._history_anchor=None
         self._wheel_remainder=0.0
         self.history_scrollbar.setRange(0,0)
@@ -229,9 +230,11 @@ class TerminalView(W.QTextEdit):
         session.changed.connect(self.request_render)
 
     def request_render(self):
+        if self._selection_snapshot:return
         if not self.render_timer.isActive():self.render_timer.start()
 
     def render_screen(self):
+        if self._selection_snapshot:return
         screen=self.session.screen;lines=[]
         history=list(screen.history.top)
         rows=history+[screen.buffer[y] for y in range(screen.lines)]
@@ -265,6 +268,47 @@ class TerminalView(W.QTextEdit):
                      (family,self.font().pointSize())+'\n'.join(lines)+'</pre>')
         self.verticalScrollBar().setValue(0)
 
+    def begin_history_selection(self):
+        """Use the native QTextEdit document while selecting across scrollback.
+
+        The live terminal normally paints only the current viewport for speed.
+        When selection begins, materialize a bounded, read-only history
+        snapshot so Qt can extend a drag selection beyond the viewport.
+        """
+        if self._selection_snapshot:return
+        screen=self.session.screen
+        rows=list(screen.history.top)+[screen.buffer[y] for y in range(screen.lines)]
+        old_top=(len(screen.history.top) if self.follow_output else
+                 self.history_scrollbar.value())
+        self._selection_snapshot=True
+        self.render_timer.stop()
+        self.setVerticalScrollBarPolicy(C.Qt.ScrollBarAlwaysOn)
+        self.history_scrollbar.hide()
+        self.setViewportMargins(0,0,0,0)
+        text='\\n'.join(''.join(row.get(x,screen.default_char).data
+                        for x in range(screen.columns)).rstrip()
+                        for row in rows)
+        self.setPlainText(text)
+        # Position the historical block at the beginning of the viewport.
+        block=self.document().findBlockByNumber(min(old_top,max(0,len(rows)-1)))
+        cursor=G.QTextCursor(block)
+        self.setTextCursor(cursor)
+        self.ensureCursorVisible()
+
+    def end_history_selection(self):
+        if not self._selection_snapshot:return
+        self._selection_snapshot=False
+        self.setVerticalScrollBarPolicy(C.Qt.ScrollBarAlwaysOff)
+        self.setViewportMargins(0,0,16,0)
+        self.history_scrollbar.show()
+        self.history_scrollbar.raise_()
+        self.request_render()
+
+    def mousePressEvent(self,event):
+        if event.button()==C.Qt.LeftButton and not self._selection_snapshot:
+            self.begin_history_selection()
+        super().mousePressEvent(event)
+
     def scroll_history(self,value):
         self.follow_output=value==self.history_scrollbar.maximum()
         self._history_anchor=None
@@ -281,6 +325,9 @@ class TerminalView(W.QTextEdit):
         self.request_render()
 
     def wheelEvent(self,event):
+        if self._selection_snapshot:
+            super().wheelEvent(event)
+            return
         movement=(event.pixelDelta().y()/G.QFontMetricsF(self.font()).height()
                   if not event.pixelDelta().isNull() else event.angleDelta().y()/120*3)
         self._wheel_remainder+=movement
@@ -293,6 +340,13 @@ class TerminalView(W.QTextEdit):
     def span(style,text):
         fg,bg,bold,italic,underline=style
         return '<span style="color:%s;background-color:%s;font-weight:%s;font-style:%s;text-decoration:%s">%s</span>' % (fg,bg,'bold' if bold else 'normal','italic' if italic else 'normal','underline' if underline else 'none',html.escape(text))
+
+    def showEvent(self,event):
+        super().showEvent(event)
+        # The native QTextEdit viewport can restack its children when tabs or
+        # splitter panes are shown. Keep the dedicated history control above it.
+        self.history_scrollbar.setVisible(True)
+        self.history_scrollbar.raise_()
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
@@ -315,10 +369,19 @@ class TerminalView(W.QTextEdit):
     def keyPressEvent(self,event):
         control=bool(event.modifiers()&C.Qt.ControlModifier)
         shift=bool(event.modifiers()&C.Qt.ShiftModifier)
-        if control and shift and event.key()==C.Qt.Key_C:
-            self.copy();return
-        if control and shift and event.key()==C.Qt.Key_V:
+        if control and event.key()==C.Qt.Key_C:
+            # Copy the selected terminal text; otherwise preserve the shell's
+            # Ctrl+C (ETX / SIGINT) to interrupt a running command safely.
+            if shift or self.textCursor().hasSelection():
+                self.copy();return
+        if control and event.key()==C.Qt.Key_V:
             self.paste_text();return
+        if self._selection_snapshot and control and event.key()==C.Qt.Key_A:
+            self.selectAll();return
+        if self._selection_snapshot and event.key()==C.Qt.Key_Escape:
+            self.end_history_selection();return
+        if self._selection_snapshot and (not control or event.key()!=C.Qt.Key_C):
+            self.end_history_selection()
         if shift and event.key() in (C.Qt.Key_PageUp,C.Qt.Key_PageDown):
             self.scroll_lines((-1 if event.key()==C.Qt.Key_PageUp else 1)*self.history_scrollbar.pageStep())
             return
@@ -337,10 +400,16 @@ class TerminalView(W.QTextEdit):
         self.follow_live()
         self.session.write(data)
 
+    def copy_full_history(self):
+        self.begin_history_selection()
+        self.selectAll()
+        self.copy()
+
     def contextMenuEvent(self,event):
         menu=W.QMenu(self)
-        menu.addAction('Copier · Ctrl+Maj+C',self.copy)
-        menu.addAction('Coller · Ctrl+Maj+V',self.paste_text)
+        menu.addAction('Copier · Ctrl+C',self.copy)
+        menu.addAction('Copier tout l’historique',self.copy_full_history)
+        menu.addAction('Coller · Ctrl+V',self.paste_text)
         menu.exec(event.globalPos())
 
 
@@ -351,7 +420,7 @@ def open_terminal(*,start=True,cwd=None):
     content=W.QWidget();layout=W.QVBoxLayout(content);layout.setContentsMargins(0,0,0,0)
     session=TerminalSession(content,cwd=cwd)
     view=TerminalView(session);layout.addWidget(view,1)
-    status=W.QLabel('SHELL INTERACTIF  /  Ctrl+Maj+C copier · Ctrl+Maj+V coller · Maj+Page ↑↓ historique')
+    status=W.QLabel('SHELL INTERACTIF  /  Ctrl+C sélectionner/copier (sinon interrompre) · Ctrl+V coller · Maj+Page ↑↓ historique')
     status.setStyleSheet('color:#A6BFCD;font:10px Arial;');layout.addWidget(status)
     window=make_window('NOVA / TERMINAL',content)
     window.setMinimumSize(640,380);window.resize(1024,640)

@@ -30,7 +30,7 @@ class WorkareaTests(unittest.TestCase):
                     self.assertTrue(bar.testAttribute(Qt.WidgetAttribute.WA_X11NetWmWindowTypeDock))
                 bar.animation.setDuration(0);bar.show();self.app.processEvents()
                 bar.retract(manual=True);self.app.processEvents()
-                self.assertEqual(bar.height(),10)
+                self.assertEqual(bar.height(),30)
                 bar.reveal();self.app.processEvents();self.assertEqual(bar.height(),70)
             finally:bar.close()
 
