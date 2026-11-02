@@ -511,6 +511,17 @@ class SettingsDialog(QDialog):
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Enregistrement impossible", str(error))
             return
+        for module,(rate,holo,fields) in self.module_controls.items():
+            self.module_prefs[module] = {
+                "refresh_seconds":rate.value(),
+                "holo_enabled":holo.isChecked(),
+                "details":[key for key,control in fields.items() if control.isChecked()]
+            }
+        try:
+            save_module_prefs(self.module_prefs)
+        except OSError as error:
+            QMessageBox.warning(self, "Préférences des modules", str(error))
+            return
         self.settings.__dict__.update(updated.__dict__)
         self.accept()
 
