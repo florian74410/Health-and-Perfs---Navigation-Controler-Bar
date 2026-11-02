@@ -1,6 +1,7 @@
 """Regression checks for NOVA NEXUS HD 1.1 on XFCE and the terminal."""
 from pathlib import Path
 import ast
+import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 def source(path):
@@ -45,3 +46,10 @@ def test_scrollback_selection_snapshot():
     assert "def mousePressEvent(self,event):" in terminal
     assert "super().wheelEvent(event)" in terminal
     assert "def copy_full_history(self):" in terminal
+
+
+def load_tests(loader, tests, pattern):
+    """Include these source regression checks in unittest discovery."""
+    return unittest.TestSuite(unittest.FunctionTestCase(test) for name, test in
+                              sorted(globals().items()) if name.startswith("test_")
+                              and callable(test))

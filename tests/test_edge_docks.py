@@ -59,8 +59,11 @@ class DockTests(unittest.TestCase):
             self.assertEqual(loaded.dock_app_paths, [])
             self.assertEqual(loaded.dock_left_kind, "apps")
             loaded.dock_left_enabled = False
-            with self.assertRaises(ValueError):
-                loaded.validate()
+            loaded.validate()
+            loaded.save()
+            disabled = Settings.load()
+            self.assertFalse(any((disabled.hud_enabled, disabled.bottom_dock_enabled,
+                                  disabled.dock_left_enabled, disabled.dock_right_enabled)))
             loaded.dock_right_enabled = True
             loaded.validate()
 

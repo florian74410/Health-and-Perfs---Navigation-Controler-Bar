@@ -334,9 +334,30 @@ class Bar(QWidget):
             self.xfce_skin_status="Barre inférieure NovaBar active · panneau XFCE masqué et restaurable"
             return
         if self.bottom_dock is not None:
+            if self.native_panel_guard is not None and not self.native_panel_guard.restore():
+                # Do not remove NOVA's replacement while XFCE is still unverified.
+                self.settings.bottom_dock_enabled=True
+                self.settings.save()
+                self.bottom_dock.show()
+                self.bottom_dock.raise_()
+                QMessageBox.warning(self,"Restauration XFCE",
+                    "Le panneau XFCE d'origine n'est pas encore visible. "
+                    "La barre NOVA reste active pour éviter une zone vide.")
+                self.xfce_skin_status="Barre NOVA conservée · restauration XFCE non confirmée"
+                return
             self.bottom_dock.close();self.bottom_dock.deleteLater();self.bottom_dock=None
-        if self.native_panel_guard is not None:
-            self.native_panel_guard.restore()
+        elif self.native_panel_guard is not None and not self.native_panel_guard.restore():
+            self.settings.bottom_dock_enabled=True
+            self.settings.save()
+            from .bottom_dock import BottomDock
+            self.bottom_dock=BottomDock(self.settings)
+            self.bottom_dock.settings_requested.connect(self.preferences)
+            self.bottom_dock.quit_requested.connect(self.quit_app)
+            QMessageBox.warning(self,"Restauration XFCE",
+                "Le panneau XFCE d'origine n'est pas encore visible. "
+                "La désactivation est annulée et le journal de récupération est conservé.")
+            self.xfce_skin_status="Restauration XFCE en attente de confirmation"
+            return
         enabled = bool(self.settings.xfce_skin_enabled)
         if enabled:
             ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,

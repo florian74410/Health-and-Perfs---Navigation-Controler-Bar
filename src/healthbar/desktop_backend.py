@@ -8,6 +8,17 @@ from pathlib import Path
 from .config import data_dir
 
 
+def _panel_recovery_event(path, stage, **details):
+    """Append small, non-sensitive breadcrumbs for crash-recovery diagnosis."""
+    try:
+        log=Path(path).with_suffix('.log')
+        log.parent.mkdir(parents=True,exist_ok=True)
+        with log.open('a',encoding='utf-8') as output:
+            output.write(json.dumps({'time':time.time(),'stage':stage,**details},sort_keys=True)+'\n')
+    except OSError:
+        pass
+
+
 def x11_ready():
     from PySide6.QtWidgets import QApplication
     return sys.platform.startswith('linux') and bool(os.getenv('DISPLAY')) and QApplication.platformName() == 'xcb'
@@ -133,12 +144,56 @@ class DesktopBackend:
                     if point.y+geo.height < bounds.bottom()-6:continue
                     if point.y > bounds.bottom()+2 or point.y < bounds.center().y():continue
                     if point.x+geo.width <= bounds.left() or point.x > bounds.right():continue
-                    rows.append({'id':xid,'pid':int(self.prop(con,w,'_NET_WM_PID',[0])[0])})
+                    rows.append({'id':xid,'pid':int(self.prop(con,w,'_NET_WM_PID',[0])[0]),
+                                 'x':int(point.x),'y':int(point.y),
+                                 'width':int(geo.width),'height':int(geo.height)})
                 except Exception:continue
         except Exception:pass
         finally:
             if con:con.close()
         return rows
+
+    def panels_effectively_visible(self, rows):
+        """Confirm each saved XFCE panel is mapped, even after its XID changes."""
+        if not rows:
+            return False
+        con=None
+        try:
+            from Xlib import X
+            con=self._connect();root=con.screen().root
+            candidates={int(w.id):w for w in root.query_tree().children}
+            candidates.update({int(xid):con.create_resource_object('window',int(xid))
+                               for xid in self.prop(con,root,'_NET_CLIENT_LIST',[])})
+            visible=[]
+            for window in candidates.values():
+                try:
+                    if (any('xfce4-panel' in cls.lower() for cls in (window.get_wm_class() or ()))
+                            and window.get_attributes().map_state == X.IsViewable):
+                        geo=window.get_geometry();point=root.translate_coords(window,0,0)
+                        visible.append({'id':int(window.id),
+                                        'pid':int(self.prop(con,window,'_NET_WM_PID',[0])[0]),
+                                        'x':int(point.x),'y':int(point.y),
+                                        'width':int(geo.width),'height':int(geo.height)})
+                except Exception:
+                    continue
+            matched=set()
+            for saved in rows:
+                match=next((row for row in visible if row['id']==int(saved['id']) and
+                            (not saved.get('pid') or row['pid']==int(saved['pid']))),None)
+                if match is None and all(k in saved for k in ('x','y','width','height')):
+                    match=next((row for row in visible if row['id'] not in matched and
+                                abs(row['x']-int(saved['x']))<=4 and
+                                abs(row['y']-int(saved['y']))<=4 and
+                                row['width']==int(saved['width']) and
+                                row['height']==int(saved['height'])),None)
+                if match is None or match['id'] in matched:
+                    return False
+                matched.add(match['id'])
+            return True
+        except Exception:
+            return False
+        finally:
+            if con:con.close()
 
     def set_panel_visible(self,rows,visible):
         con=None;ok=True
@@ -171,14 +226,24 @@ class NativePanelGuard:
                 state=json.loads(self.path.read_text())
                 try:alive=psutil.Process(state['owner']).create_time()==state.get('owner_started')
                 except psutil.Error:alive=False
+                _panel_recovery_event(self.path,'startup_journal_checked',owner_alive=alive,
+                                      saved_panels=len(state.get('panels',[])),
+                                      display_matches=state.get('display')==os.getenv('DISPLAY'))
                 if not alive and state.get('display')==os.getenv('DISPLAY'):
-                    if self.backend.set_panel_visible(state.get('panels',[]),True):self.path.unlink(missing_ok=True)
-                    else:self.rows=state.get('panels',[])
+                    self.rows=state.get('panels',[])
+                    mapped=self.backend.set_panel_visible(self.rows,True)
+                    visible=self.backend.panels_effectively_visible(self.rows)
+                    _panel_recovery_event(self.path,'startup_restore_checked',map_request=mapped,
+                                          effective_visible=visible)
+                    if visible:
+                        self.path.unlink(missing_ok=True)
+                        self.rows=[]
             except (OSError,ValueError,KeyError,TypeError):pass
 
     def hide(self,bounds):
         if not x11_ready() or time.monotonic()<self.reveal_until:return
         found=self.backend.native_bottom_panels(bounds)
+        _panel_recovery_event(self.path,'panels_detected',count=len(found))
         known={r['id'] for r in self.rows}
         added=[r for r in found if r['id'] not in known]
         if added or (self.rows and self.watchdog is None):
@@ -191,21 +256,35 @@ class NativePanelGuard:
             temp.write_text(json.dumps({'owner':os.getpid(),'owner_started':started,
                                         'display':os.getenv('DISPLAY'),'panels':rows}))
             temp.replace(self.path)  # Backup BEFORE unmapping anything.
+            _panel_recovery_event(self.path,'journal_saved',count=len(rows))
             self.rows=rows
             if self.watchdog is None:
                 command=([sys.executable] if getattr(sys,'frozen',False) else [sys.executable,'-m','healthbar'])
                 try:self.watchdog=subprocess.Popen(command+['--restore-xfce-after-pid',str(os.getpid())],
                         stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
-                except OSError:
+                except OSError as error:
+                    _panel_recovery_event(self.path,'watchdog_start_failed',error=str(error))
                     self.path.unlink(missing_ok=True);self.rows=[];return
-        if self.rows:self.backend.set_panel_visible(self.rows,False)
+        if self.rows:
+            hidden=self.backend.set_panel_visible(self.rows,False)
+            _panel_recovery_event(self.path,'hide_requested',count=len(self.rows),request_ok=hidden)
 
     def reveal(self):
         self.reveal_until=time.monotonic()+30
         self.backend.set_panel_visible(self.rows,True)
 
     def restore(self):
-        if self.rows and not self.backend.set_panel_visible(self.rows,True):return False
+        if not self.rows:
+            # Another guard may own this journal in the same application.
+            # Never consume its live crash-recovery backup: only the guard
+            # that hid those panels is allowed to restore and clear it.
+            # Stale journals are processed by __init__ / the watchdog.
+            return True
+        mapped=self.backend.set_panel_visible(self.rows,True)
+        visible=self.backend.panels_effectively_visible(self.rows)
+        _panel_recovery_event(self.path,'normal_restore_checked',map_request=mapped,
+                              effective_visible=visible,count=len(self.rows))
+        if not visible:return False
         self.path.unlink(missing_ok=True);self.rows=[]
         return True
 
@@ -221,6 +300,8 @@ def restore_after_exit(pid):
             try:alive=psutil.Process(pid).create_time()==state.get('owner_started')
             except psutil.Error:alive=False
             if not alive:
+                _panel_recovery_event(path,'watchdog_detected_owner_exit',owner=pid,
+                                      saved_panels=len(state.get('panels',[])))
                 os.environ['DISPLAY']=state.get('display') or os.environ.get('DISPLAY','')
                 backend=DesktopBackend()
                 panels=state.get('panels',[])
@@ -229,50 +310,31 @@ def restore_after_exit(pid):
                 # Only discard the recovery journal once all windows are visible.
                 from Xlib import X
                 for attempt in range(48):
-                    backend.set_panel_visible(panels,True)
+                    mapped=backend.set_panel_visible(panels,True)
                     # X11 MapWindow may not override XFCE's panel-managed
                     # visibility after an abrupt owner exit. Restart the panel
                     # service once as a last-resort crash recovery; configuration
                     # is preserved and window IDs may change.
                     if attempt==12:
+                        _panel_recovery_event(path,'panel_restart_requested',attempt=attempt)
                         try:
                             subprocess.run(['xfce4-panel','--restart'],timeout=8,
                                            stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,
                                            stderr=subprocess.DEVNULL,check=False)
                         except (OSError,subprocess.TimeoutExpired):
                             pass
-                    con=None
-                    try:
-                        con=backend._connect()
-                        visible=all(con.create_resource_object('window',int(row['id']))
-                                    .get_attributes().map_state==X.IsViewable for row in panels)
-                    except Exception:
-                        visible=False
-                    finally:
-                        if con:con.close()
-                    if not visible and attempt>=12:
-                        # A restarted xfce4-panel has fresh X window IDs.
-                        try:
-                            # A panel restart may invalidate the old IDs. At
-                            # this point leave the recovery journal intact for
-                            # the next launch unless the new panel is detected.
-                            con2=backend._connect()
-                            try:
-                                root=con2.screen().root
-                                candidates=list(root.query_tree().children)
-                                candidates.extend(con2.create_resource_object('window',int(xid))
-                                                  for xid in backend.prop(con2,root,'_NET_CLIENT_LIST',[]))
-                                visible=any(
-                                    any('xfce4-panel' in cls.lower() for cls in
-                                        (window.get_wm_class() or ()))
-                                    and window.get_attributes().map_state==X.IsViewable
-                                    for window in candidates)
-                            finally:con2.close()
-                        except Exception:visible=False
+                    visible=backend.panels_effectively_visible(panels)
+                    if attempt in (0,12,24,47):
+                        _panel_recovery_event(path,'watchdog_visibility_check',attempt=attempt,
+                                              map_request_ok=mapped,effective_visible=visible)
                     if visible:
                         path.unlink(missing_ok=True)
+                        _panel_recovery_event(path,'journal_removed',reason='all_saved_panels_visible')
                         return
                     time.sleep(.25)
+                _panel_recovery_event(path,'watchdog_timeout',journal_retained=path.exists())
                 return
             time.sleep(1)
-    except (OSError,ValueError,TypeError):return
+    except (OSError,ValueError,TypeError) as error:
+        _panel_recovery_event(data_dir()/'native-panel-visibility.json','watchdog_error',error=str(error))
+        return
