@@ -376,6 +376,8 @@ class TerminalView(W.QTextEdit):
                 self.copy();return
         if control and event.key()==C.Qt.Key_V:
             self.paste_text();return
+        if self._selection_snapshot and control and event.key()==C.Qt.Key_A:
+            self.selectAll();return
         if self._selection_snapshot and event.key()==C.Qt.Key_Escape:
             self.end_history_selection();return
         if self._selection_snapshot and (not control or event.key()!=C.Qt.Key_C):
@@ -398,9 +400,15 @@ class TerminalView(W.QTextEdit):
         self.follow_live()
         self.session.write(data)
 
+    def copy_full_history(self):
+        self.begin_history_selection()
+        self.selectAll()
+        self.copy()
+
     def contextMenuEvent(self,event):
         menu=W.QMenu(self)
         menu.addAction('Copier · Ctrl+C',self.copy)
+        menu.addAction('Copier tout l’historique',self.copy_full_history)
         menu.addAction('Coller · Ctrl+V',self.paste_text)
         menu.exec(event.globalPos())
 
