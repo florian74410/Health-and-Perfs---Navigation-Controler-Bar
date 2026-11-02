@@ -309,7 +309,7 @@ def restore_after_exit(pid):
                 # Only discard the recovery journal once all windows are visible.
                 from Xlib import X
                 for attempt in range(48):
-                    backend.set_panel_visible(panels,True)
+                    mapped=backend.set_panel_visible(panels,True)
                     # X11 MapWindow may not override XFCE's panel-managed
                     # visibility after an abrupt owner exit. Restart the panel
                     # service once as a last-resort crash recovery; configuration
@@ -325,7 +325,7 @@ def restore_after_exit(pid):
                     visible=backend.panels_effectively_visible(panels)
                     if attempt in (0,12,24,47):
                         _panel_recovery_event(path,'watchdog_visibility_check',attempt=attempt,
-                                              map_request_ok=True,effective_visible=visible)
+                                              map_request_ok=mapped,effective_visible=visible)
                     if visible:
                         path.unlink(missing_ok=True)
                         _panel_recovery_event(path,'journal_removed',reason='all_saved_panels_visible')
