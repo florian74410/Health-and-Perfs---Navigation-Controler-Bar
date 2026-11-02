@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
     QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea, QColorDialog)
@@ -6,6 +7,7 @@ from . import __version__
 from .autostart import set_enabled
 from .plugins import PluginRegistry
 from .module_preferences import load as load_module_prefs, save as save_module_prefs, FIELDS, MODULES
+from .theme_overrides import load as load_theme_overrides, save as save_theme_overrides
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
@@ -44,6 +46,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.settings = settings
         self.module_prefs = load_module_prefs()
+        self.pending_theme_colors = load_theme_overrides()
         self.module_controls = {}
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
         from .ui_kit import stylesheet
@@ -382,8 +385,10 @@ class SettingsDialog(QDialog):
         def update_palette_preview():
             name=self.theme.currentData()
             colors=PALETTES.get(name, PALETTES.get('blue-neon', ('#00d9ff','#1860ff','#061020')))
-            primary, secondary = colors[:2]
-            background = '#061224'
+            custom=self.pending_theme_colors.get(name,{})
+            primary=custom.get('primary',colors[0])
+            secondary=custom.get('secondary',colors[1])
+            background=custom.get('background','#061224')
             self.palette_preview.setText("   PCB   /   " + name.upper() + "   ·   " + primary + "  " + secondary)
             self.palette_preview.setStyleSheet(
                 "color:"+primary+"; background:"+background+
@@ -396,6 +401,27 @@ class SettingsDialog(QDialog):
         palette_select.currentIndexChanged.connect(self.theme.setCurrentIndex)
         self.theme.currentIndexChanged.connect(palette_select.setCurrentIndex)
         colors_box.insertWidget(2, palette_select)
+        for key,label in (("primary","Néon principal"),
+                          ("secondary","Néon secondaire"),
+                          ("background","Verre / fond")):
+            picker=QPushButton("◈  Choisir : "+label)
+            def choose_color(checked=False, part=key):
+                theme_name=self.theme.currentData()
+                preset=PALETTES.get(theme_name,PALETTES["blue-neon"])
+                fallbacks={"primary":preset[0],"secondary":preset[1],"background":"#061224"}
+                initial=self.pending_theme_colors.get(theme_name,{}).get(part,fallbacks[part])
+                chosen=QColorDialog.getColor(QColor(initial),self,"NOVA / "+part)
+                if chosen.isValid():
+                    self.pending_theme_colors.setdefault(theme_name,{})[part]=chosen.name().upper()
+                    update_palette_preview()
+            picker.clicked.connect(choose_color)
+            colors_box.addWidget(picker)
+        reset_palette=QPushButton("↺  Restaurer les couleurs d'origine de cette palette")
+        def reset_palette_colors():
+            self.pending_theme_colors.pop(self.theme.currentData(),None)
+            update_palette_preview()
+        reset_palette.clicked.connect(reset_palette_colors)
+        colors_box.addWidget(reset_palette)
         update_palette_preview()
         colors_box.addWidget(QLabel("Palettes existantes conservées : bleu, Matrix, rouge, cyber-futuriste."))
         colors_box.addStretch()
@@ -570,6 +596,7 @@ class SettingsDialog(QDialog):
             }
         try:
             save_module_prefs(self.module_prefs)
+            save_theme_overrides(self.pending_theme_colors)
         except OSError as error:
             QMessageBox.warning(self, "Préférences des modules", str(error))
             return
