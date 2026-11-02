@@ -274,11 +274,12 @@ class NativePanelGuard:
         self.backend.set_panel_visible(self.rows,True)
 
     def restore(self):
-        if self.path.exists() and not self.rows:
-            try:self.rows=json.loads(self.path.read_text()).get('panels',[])
-            except (OSError,ValueError,TypeError):return False
         if not self.rows:
-            return not self.path.exists()
+            # Another guard may own this journal in the same application.
+            # Never consume its live crash-recovery backup: only the guard
+            # that hid those panels is allowed to restore and clear it.
+            # Stale journals are processed by __init__ / the watchdog.
+            return True
         mapped=self.backend.set_panel_visible(self.rows,True)
         visible=self.backend.panels_effectively_visible(self.rows)
         _panel_recovery_event(self.path,'normal_restore_checked',map_request=mapped,
