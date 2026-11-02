@@ -238,6 +238,8 @@ class Bar(QWidget):
         self.sync_sidebars()
         self.xfce_skin_fx = None
         self.bottom_dock = None
+        from .desktop_backend import NativePanelGuard
+        self.native_panel_guard = NativePanelGuard() if sys.platform.startswith('linux') else None
         self._xfce_skin_was_active = False
         self.xfce_skin_status = "Non activé"
         self.sync_xfce_skin()
@@ -250,6 +252,8 @@ class Bar(QWidget):
         bottom = getattr(self, "bottom_dock", None)
         if bottom is not None:
             maintain_all_workspaces(bottom)
+            if self.native_panel_guard is not None:
+                self.native_panel_guard.hide(bottom.full_rect)
         panel = getattr(self, "xfce_skin_fx", None)
         if panel is not None:
             maintain_all_workspaces(panel)
@@ -325,10 +329,14 @@ class Bar(QWidget):
                 self.bottom_dock.settings_requested.connect(self.preferences)
                 self.bottom_dock.quit_requested.connect(self.quit_app)
             else:self.bottom_dock.apply_settings(self.settings)
-            self.xfce_skin_status="Barre inférieure NovaBar active · original XFCE masqué pendant la session"
+            if self.native_panel_guard is not None:
+                self.native_panel_guard.hide(self.bottom_dock.full_rect)
+            self.xfce_skin_status="Barre inférieure NovaBar active · panneau XFCE masqué et restaurable"
             return
         if self.bottom_dock is not None:
             self.bottom_dock.close();self.bottom_dock.deleteLater();self.bottom_dock=None
+        if self.native_panel_guard is not None:
+            self.native_panel_guard.restore()
         enabled = bool(self.settings.xfce_skin_enabled)
         if enabled:
             ok, message = apply_skin(self.settings.theme, self.settings.xfce_skin_delay_seconds,
@@ -580,6 +588,8 @@ class Bar(QWidget):
         QApplication.instance().quit()
 
     def closeEvent(self, event):
+        if getattr(self, 'native_panel_guard', None) is not None:
+            self.native_panel_guard.restore()
         if getattr(self,"bottom_dock",None) is not None:
             self.bottom_dock.close()
         self.tray.hide()
