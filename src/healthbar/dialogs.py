@@ -103,6 +103,11 @@ class SettingsDialog(QDialog):
         self.hide_seconds.setValue(settings.hide_seconds)
         self.hide_seconds.setSuffix(" secondes")
         form.addRow("Délai avant veille", self.hide_seconds)
+        self.retracted_hud_height = QSpinBox()
+        self.retracted_hud_height.setRange(20, 50)
+        self.retracted_hud_height.setValue(settings.retracted_hud_height)
+        self.retracted_hud_height.setSuffix(" px")
+        form.addRow("Hauteur HUD rétracté", self.retracted_hud_height)
         self.length_percent = QSpinBox()
         self.length_percent.setRange(25, 100)
         self.length_percent.setValue(settings.length_percent)
@@ -385,13 +390,14 @@ class SettingsDialog(QDialog):
         self.thickness.setValue(72)
         self.opacity.setValue(88)
         self.hide_seconds.setValue(15)
+        self.retracted_hud_height.setValue(30)
 
     def save(self):
         from dataclasses import replace
         updated = replace(self.settings, position=("top", "bottom", "right", "left")[self.position.currentIndex()],
             screen=self.screen.currentIndex(), thickness=self.thickness.value(), opacity=self.opacity.value(),
             auto_hide=self.retract_mode.currentData() == "auto", retract_mode=self.retract_mode.currentData(),
-            always_on_top=self.always_on_top.isChecked(), theme=self.theme.currentData(), holo_enabled=self.holo_enabled.isChecked(), hide_seconds=self.hide_seconds.value(),
+            always_on_top=self.always_on_top.isChecked(), theme=self.theme.currentData(), holo_enabled=self.holo_enabled.isChecked(), hide_seconds=self.hide_seconds.value(), retracted_hud_height=self.retracted_hud_height.value(),
             autostart=self.autostart.isChecked(), configured=True,
             length_percent=self.length_percent.value(),
             alignment=("left", "center", "right")[self.alignment.currentIndex()],
