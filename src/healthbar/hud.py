@@ -491,9 +491,8 @@ class HudCanvas(QWidget):
                 self.slot_order = active + [x for x in self.slot_order if x not in active]
                 self.layout_changed.emit(self.slot_order.copy())
                 self.update()
-            elif (not moved and index == self._drag_origin and
-                  self.module_icon_rect(active[index]).contains(event.position().toPoint()) and
-                  self.module_icon_rect(active[index]).contains(self._drag_start)):
+            elif not moved and index == self._drag_origin:
+                # Whole module surface opens its Holo; dragging still reorders.
                 self.module_activated.emit(active[index])
         self._drag_origin = None
         self._drag_start = None
