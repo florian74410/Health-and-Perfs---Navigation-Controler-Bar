@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 from .desktop_theme import export_gtk_theme
 from .xfwm4 import export_xfwm4_theme
-from .theme_engine import get_default_theme
+from .theme_engine import get_active_theme
 from healthbar.system_env import native_env
 
 NAME = 'NOVA-NEXUS-HD'
@@ -97,8 +97,8 @@ def main(argv=None):
         print('Restored previous XFCE themes and title controls')
         return
     base = Path.home() / '.local/share/themes' / NAME
-    export_gtk_theme(base, get_default_theme())
-    export_xfwm4_theme(base, get_default_theme())
+    export_gtk_theme(base, get_active_theme())
+    export_xfwm4_theme(base, get_active_theme())
     if not args.apply:
         print('Exported NOVA theme to', base)
         return

@@ -131,7 +131,7 @@ class UnifiedTests(unittest.TestCase):
             if args[0]=='query':return mime['value']
             mime['value']=args[1];return ''
         with patch('healthbar.nova_components.install_components'),patch('nova_nexus.install_theme.main') as theme,patch.object(desktop,'_mime',side_effect=mime_command):
-            desktop.activate()
+            desktop.activate(replace_file_manager=True)
             self.assertEqual(mime['value'],desktop.DESKTOP_ID)
             self.assertTrue(Settings.load().dock_left_enabled)
             desktop.restore()

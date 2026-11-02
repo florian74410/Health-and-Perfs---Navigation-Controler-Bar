@@ -33,7 +33,7 @@ def _restore_mime(previous):
             with path.open('w',encoding='utf-8') as output:parser.write(output)
 
 
-def activate():
+def activate(*, replace_file_manager=False):
     from .nova_components import install_components
     from nova_nexus.install_theme import main as theme_main
     settings=Settings.load()
@@ -48,7 +48,8 @@ def activate():
         state_path.write_text(json.dumps(previous,indent=2)+'\n')
     try:
         theme_main(['--apply'])
-        _mime('default',DESKTOP_ID,'inode/directory')
+        if replace_file_manager:
+            _mime('default',DESKTOP_ID,'inode/directory')
         settings.hud_enabled=True
         settings.dock_left_enabled=True
         settings.dock_right_enabled=True

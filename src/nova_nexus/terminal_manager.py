@@ -23,7 +23,7 @@ class TerminalPane(W.QWidget):
         layout=W.QVBoxLayout(self);layout.setContentsMargins(0,0,0,0);layout.setSpacing(0)
         header=W.QWidget();header.setObjectName('paneHeader');row=W.QHBoxLayout(header);row.setContentsMargins(10,4,6,4)
         self.title=W.QLabel(f'◈  SESSION {number:02d}');self.title.setStyleSheet('color:#69E8F7;font:bold 10px Arial;');row.addWidget(self.title,1)
-        self.state=W.QLabel('BASH / PTY' if start else 'APERÇU');self.state.setStyleSheet('color:#A6BFCD;font:9px Arial;');row.addWidget(self.state)
+        self.state=W.QLabel(('ConPTY' if sys.platform=='win32' else 'SHELL / PTY') if start else 'APERÇU');self.state.setStyleSheet('color:#A6BFCD;font:9px Arial;');row.addWidget(self.state)
         close=W.QPushButton('×');close.setFixedSize(22,20);close.setStyleSheet('QPushButton{color:#FF647C;border:1px solid #248DA5;padding:0;font:bold 15px Arial;}');close.clicked.connect(lambda:owner.close_pane(self));row.addWidget(close)
         header.setStyleSheet('QWidget#paneHeader{background:#133345;border:1px solid #26738C;}');layout.addWidget(header)
         self.session=TerminalSession(self,cwd=cwd);self.view=TerminalView(self.session);self.view.installEventFilter(self)

@@ -1,10 +1,10 @@
 from pathlib import Path
 """NOVA glass chassis v3: shared framed notification/dialog. No desktop takeover."""
-from .theme_engine import validate_theme, get_default_theme
+from .theme_engine import validate_theme, get_active_theme
 
 def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=False):
     from PySide6 import QtCore as C, QtGui as G, QtWidgets as W
-    t=validate_theme(theme if theme is not None else get_default_theme())
+    t=validate_theme(theme if theme is not None else get_active_theme())
     accent=G.QColor(t['colors']['primary'])
     motion=t['motion']['enabled'] and not t['motion']['reduce_motion']
     class Chrome(W.QDialog if dialog else W.QWidget):
@@ -28,7 +28,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                     painter.end()
             self.drag_origin=None
             self.timer=C.QTimer(self)
-            self.timer.setInterval(33)
+            self.timer.setInterval(50)
             self.timer.timeout.connect(self.advance)
             self.setStyleSheet('QLabel{background:transparent;border:none;color:%s;font:12px Arial;}'
                 'QPushButton{background:rgba(3,21,35,220);color:%s;border:1px solid %s;'
@@ -124,7 +124,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             # Draw the transparent motherboard-routing asset beneath text.
             pcb=self.overlay.scaled(w,h,C.Qt.IgnoreAspectRatio,C.Qt.SmoothTransformation)
             p.save()
-            p.setOpacity(min(.7,max(.1,t['effects']['pcb_visibility'])))
+            p.setOpacity(t['effects']['pcb_visibility'])
             p.drawPixmap(0,0,pcb)
             p.restore()
             if motion:
@@ -142,7 +142,9 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                 pp.setCompositionMode(G.QPainter.CompositionMode_DestinationIn)
                 pp.drawPixmap(0,0,pcb)
                 pp.end()
+                p.setOpacity(t['effects']['pcb_visibility'])
                 p.drawPixmap(0,0,pulse)
+                p.setOpacity(1)
             # Full-width graphite title strip, clipped to the panel's beveled corners.
             # The titlebar widget itself stays transparent for drag and buttons.
             band=G.QLinearGradient(0,6,0,45)

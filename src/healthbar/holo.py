@@ -329,6 +329,11 @@ class SensorHoloPanel(CpuHoloPanel):
             self.chart = NetworkChart(self)
             self.layout().insertWidget(5, self.chart)
             self.resize(460, 360)
+        if slot == 'power':
+            from .power_chart import PowerChart
+            self.chart = PowerChart(self)
+            self.layout().insertWidget(5, self.chart)
+            self.resize(460, 330)
         self.note.setText("— = capteur indisponible · données système locales")
         self.setWindowTitle("NovaBar · " + slot.upper())
     def record_sample(self, data):
@@ -378,6 +383,20 @@ class SensorHoloPanel(CpuHoloPanel):
                 ("Puissance package", readout(data.get("cpu_power_w"), "W")),
                 ("Tension rail CPU", readout(data.get("cpu_package_voltage_v"), "V")),
             ]
+            for battery in data.get("batteries", []):
+                rows.append(("◈  " + battery["id"] + " · " + battery["status"], ""))
+                for key, label, unit in (
+                    ("voltage_v", "Tension batterie", "V"), ("current_a", "Courant batterie", "A"),
+                    ("power_w", "Puissance batterie · " + battery["power_kind"], "W"),
+                    ("charge_full_ah", "Capacité pleine", "Ah"),
+                    ("energy_full_wh", "Énergie pleine", "Wh"), ("energy_wh", "Énergie restante", "Wh"),
+                    ("remaining_percent", "Charge restante", "%"), ("wear_percent", "Usure", "%")):
+                    rows.append((label + (" (estimée)" if battery["energy_estimated"] and key.startswith("energy_") else ""), readout(battery.get(key), unit, 3)))
+            for key, label, unit in (
+                ("battery_session_wh", "Session décharge (intégration estimée)", "Wh"),
+                ("battery_average_w", "Moyenne session", "W"),
+                ("battery_min_w", "Minimum session", "W"), ("battery_max_w", "Maximum session", "W")):
+                rows.append((label, readout(data.get(key), unit, 3)))
             cores = data.get("cpu_cores", [])
             if cores:
                 for i, core in enumerate(cores[:64]):

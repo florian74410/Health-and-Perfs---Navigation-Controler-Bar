@@ -17,7 +17,8 @@ def newer_active_executable(arguments):
         state=read_installed_state(root)
         if not state:return None
         version=version_tuple(state['version'])
-        if version is None or version<=version_tuple(__version__):return None
+        if version is None:return None
+        if version<=version_tuple(__version__) and not state.get('rollback_requested'):return None
         expected=payload_executable(root/'versions'/state['version'])
         executable=Path(state.get('executable',''))
         if expected is None or executable.resolve()!=expected.resolve():return None

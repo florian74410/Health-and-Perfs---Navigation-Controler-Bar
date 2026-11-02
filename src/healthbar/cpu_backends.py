@@ -1,6 +1,7 @@
 """Narrow OS backends: report the effective boost state, never emulate hardware."""
 import os
 import sys
+import subprocess
 from pathlib import Path
 
 class UnsupportedBackend:
@@ -17,6 +18,7 @@ class LinuxBoostBackend:
     """
     def __init__(self, root=Path('/sys/devices/system/cpu')):
         root=Path(root)
+        self.system_root = root == Path("/sys/devices/system/cpu")
         self.path=next((p for p in (root/'intel_pstate/no_turbo', root/'cpufreq/boost') if p.is_file()), None)
         self.inverted=self.path is not None and self.path.name=='no_turbo'
 
@@ -30,7 +32,17 @@ class LinuxBoostBackend:
         if type(enabled) is not bool:raise ValueError('Expected a boolean boost request')
         if self.read()==enabled:return enabled
         if not os.access(self.path,os.W_OK):
-            raise PermissionError("Contrôle Turbo en lecture seule. Un administrateur doit autoriser l’écriture du commutateur sysfs ; NovaBar reste sans privilèges.")
+            helper=Path('/usr/libexec/novabar-boost')
+            if not self.system_root or not helper.is_file():
+                raise PermissionError("Contrôle Turbo en lecture seule. Installer le composant Polkit NOVA ; NovaBar reste sans privilèges.")
+            info=helper.stat()
+            if info.st_uid!=0 or info.st_mode & 0o022:
+                raise PermissionError("Composant Polkit non protégé")
+            result=subprocess.run(['/usr/bin/pkexec',str(helper),'1' if enabled else '0'],
+                capture_output=True,text=True,timeout=30)
+            if result.returncode or self.read()!=enabled:
+                raise OSError("Autorisation Turbo refusée ou état non appliqué")
+            return enabled
         self.path.write_text(('0' if enabled else '1') if self.inverted else ('1' if enabled else '0'))
         actual=self.read()
         if actual!=enabled:raise OSError("Le noyau n’a pas appliqué la demande Turbo.")

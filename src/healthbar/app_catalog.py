@@ -4,8 +4,8 @@ import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from PySide6.QtCore import Qt,QSize,Signal
-from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QListWidget,QListWidgetItem,QPushButton,QAbstractItemView,QApplication)
+from PySide6.QtCore import Qt,QSize,Signal,QTimer,QPoint
+from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QListWidget,QListWidgetItem,QPushButton,QAbstractItemView,QApplication,QMenu)
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon
 from .edge_docks import launch_item
 from .xfce_panel_skin import PALETTES
@@ -101,8 +101,33 @@ class ApplicationLauncher(QWidget):
             QPushButton {{background:#102d40;border:1px solid {secondary};border-radius:4px;padding:7px;}} QPushButton:hover {{border-color:{primary};}}
             QScrollBar:vertical {{background:#071724;width:7px;}} QScrollBar::handle:vertical {{background:{secondary};min-height:25px;}} QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {{height:0;}}''')
         self.search.textChanged.connect(self.filter);self.categories.currentItemChanged.connect(self.select_category)
-        self.grid.itemClicked.connect(self.launch);self.grid.itemActivated.connect(self.launch);self.filter()
+        self.launch_timer=QTimer(self);self.launch_timer.setSingleShot(True)
+        self.launch_timer.timeout.connect(lambda:self.launch(self.grid.currentItem()) if self.grid.currentItem() else None)
+        self.grid.itemClicked.connect(lambda _:self.launch_timer.start(QApplication.doubleClickInterval()+30))
+        self.grid.itemDoubleClicked.connect(lambda item:self.item_menu(self.grid.visualItemRect(item).center()))
+        self.grid.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.grid.customContextMenuRequested.connect(self.item_menu)
+        from PySide6.QtGui import QShortcut,QKeySequence
+        self.enter=QShortcut(QKeySequence('Return'),self.grid)
+        self.enter.activated.connect(lambda:self.launch(self.grid.currentItem()) if self.grid.currentItem() else None)
+        self.context_key=QShortcut(QKeySequence('Shift+F10'),self.grid)
+        self.context_key.activated.connect(lambda:self.item_menu(self.grid.visualItemRect(self.grid.currentItem()).center()) if self.grid.currentItem() else None)
+        self.filter()
         self.resize(790,510)
+
+    def item_menu(self, pos):
+        self.launch_timer.stop()
+        item=self.grid.itemAt(pos)
+        if not item:return
+        self.grid.setCurrentItem(item)
+        menu=QMenu(self)
+        menu.addAction('Ouvrir',lambda:self.launch(item))
+        menu.addAction('Ajouter à la barre droite',lambda:self.add_to_dock(item))
+        menu.exec(self.grid.viewport().mapToGlobal(pos))
+
+    def add_to_dock(self,item):
+        from .dock_shortcuts import add_shortcut
+        add_shortcut(item.data(Qt.UserRole),'apps')
 
     def select_category(self,current,previous):
         if current:self.category=current.data(Qt.ItemDataRole.UserRole);self.filter()

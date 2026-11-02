@@ -8,14 +8,14 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from .theme_engine import get_default_theme, qt_stylesheet
+from .theme_engine import get_active_theme, qt_stylesheet
 
 
 def run(start=None, *, embedded=False):
     from PySide6 import QtCore as C, QtGui as G, QtWidgets as W
     from .chrome_v3 import make_dialog
     app = W.QApplication.instance() or W.QApplication(sys.argv[:1])
-    theme = get_default_theme()
+    theme = get_active_theme()
     colors = theme["colors"]
     cyan = colors["primary"]
 
@@ -104,7 +104,7 @@ def run(start=None, *, embedded=False):
             terminal_button=W.QPushButton("▣ TERMINAL")
             terminal_button.setToolTip("Ouvrir NOVA Terminal dans ce dossier")
             terminal_button.clicked.connect(self.open_terminal)
-            terminal_button.setEnabled(sys.platform.startswith("linux"))
+
             header.insertWidget(2,terminal_button)
             navigation = W.QHBoxLayout()
             for text, handler, name in (("❮",self.back,"navBack"),("❯",self.forward,"navForward"),("↑",self.up,"navUp"),("⌂",lambda:self.navigate(Path.home()),"navHome")):
@@ -122,6 +122,18 @@ def run(start=None, *, embedded=False):
             self.search.textChanged.connect(self.filter_files)
             navigation.addWidget(self.search, 1)
             outer.addLayout(navigation)
+            self.breadcrumbs=W.QWidget()
+            self.crumb_layout=W.QHBoxLayout(self.breadcrumbs)
+            self.crumb_layout.setContentsMargins(0,0,0,0)
+            outer.addWidget(self.breadcrumbs)
+            self.tabs=W.QTabBar()
+            self.tabs.setTabsClosable(True);self.tabs.setExpanding(False)
+            self.tab_paths=[];self.switching_tab=False
+            self.tabs.currentChanged.connect(self.switch_tab)
+            self.tabs.tabCloseRequested.connect(self.close_tab)
+            tab_row=W.QHBoxLayout();tab_row.addWidget(self.tabs,1)
+            plus=W.QPushButton('+');plus.setToolTip('Nouvel onglet');plus.clicked.connect(lambda:self.add_tab(Path.home()));tab_row.addWidget(plus)
+            outer.addLayout(tab_row)
 
             body = W.QHBoxLayout()
             body.setSpacing(10)
@@ -145,6 +157,11 @@ def run(start=None, *, embedded=False):
                     btn.setStyleSheet("text-align:left;padding:6px 9px;")
                     btn.clicked.connect(lambda checked=False,p=destination:self.navigate(p))
                     nav.addWidget(btn)
+            self.favorite_box=W.QVBoxLayout()
+            nav.addLayout(self.favorite_box)
+            favorite=W.QPushButton('★ Ajouter ce dossier aux favoris')
+            favorite.clicked.connect(self.add_favorite);nav.addWidget(favorite)
+            self.refresh_favorites()
             nav.addStretch()
             body.addWidget(sidebar)
 
@@ -204,8 +221,64 @@ def run(start=None, *, embedded=False):
             self.effect = W.QGraphicsOpacityEffect(self.views)
             self.views.setGraphicsEffect(self.effect)
             self.fade = C.QPropertyAnimation(self.effect,b"opacity",self)
-            self.fade.setDuration(190)
-            self.navigate(Path(start).expanduser() if start else Path.home())
+            self.fade.setDuration(int(theme["motion"]["duration_ms"]))
+            self.add_tab(Path(start).expanduser() if start else Path.home())
+
+        def add_tab(self,path):
+            self.switching_tab=True
+            self.tab_paths.append(Path(path))
+            index=self.tabs.addTab(Path(path).name or str(path))
+            self.tabs.setCurrentIndex(index)
+            self.switching_tab=False
+            self.history=[];self.cursor=-1
+            self.navigate(path)
+
+        def switch_tab(self,index):
+            if self.switching_tab or not 0<=index<len(self.tab_paths):return
+            self.history=[];self.cursor=-1
+            self.navigate(self.tab_paths[index])
+
+        def close_tab(self,index):
+            if self.tabs.count()==1:return
+            self.switching_tab=True
+            self.tab_paths.pop(index);self.tabs.removeTab(index)
+            self.switching_tab=False
+            self.switch_tab(self.tabs.currentIndex())
+
+        def refresh_favorites(self):
+            import json
+            from healthbar.config import data_dir
+            self.favorites_path=data_dir()/'explorer-favorites.json'
+            try:self.favorites=json.loads(self.favorites_path.read_text())
+            except (OSError,ValueError):self.favorites=[]
+            while self.favorite_box.count():
+                item=self.favorite_box.takeAt(0)
+                if item.widget():item.widget().deleteLater()
+            for value in self.favorites[:20]:
+                p=Path(value)
+                button=W.QPushButton('★ '+(p.name or str(p)))
+                button.clicked.connect(lambda checked=False,path=p:self.navigate(path))
+                button.setContextMenuPolicy(C.Qt.CustomContextMenu)
+                button.customContextMenuRequested.connect(lambda pos,path=p:self.remove_favorite(path))
+                self.favorite_box.addWidget(button)
+
+        def save_favorites(self):
+            from healthbar.profiles import write_json
+            write_json(self.favorites_path,self.favorites)
+            self.refresh_favorites()
+
+        def add_favorite(self):
+            self.favorites=list(dict.fromkeys([*self.favorites,self.address.text()]))[:20]
+            self.save_favorites()
+
+        def remove_favorite(self,path):
+            self.favorites=[value for value in self.favorites if value!=str(path)]
+            self.save_favorites()
+
+        def add_to_dock(self,path):
+            from healthbar.dock_shortcuts import add_shortcut
+            try:add_shortcut(path,'folders')
+            except (OSError,ValueError) as error:W.QMessageBox.warning(self,'NOVA',str(error))
 
         def eventFilter(self,obj,event):
             if obj in (self.title_surface,self.drag_handle,self.header_caption):
@@ -255,7 +328,7 @@ def run(start=None, *, embedded=False):
             p.setPen(G.QPen(G.QColor(18,163,190,135),1))
             p.drawLine(C.QPointF(29,h-39),C.QPointF(w-29,h-39))
             p.setPen(C.Qt.NoPen)
-            p.setOpacity(.13)
+            p.setOpacity(theme["effects"]["pcb_visibility"])
             p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
             p.setOpacity(1)
             p.setClipping(False)
@@ -274,6 +347,18 @@ def run(start=None, *, embedded=False):
                 return
             p = p.resolve()
             self.address.setText(str(p))
+            if self.tabs.currentIndex()>=0:
+                self.tab_paths[self.tabs.currentIndex()]=p
+                self.tabs.setTabText(self.tabs.currentIndex(),p.name or str(p))
+            while self.crumb_layout.count():
+                item=self.crumb_layout.takeAt(0)
+                if item.widget():item.widget().deleteLater()
+            parts=[*reversed(p.parents),p]
+            for part in parts[-6:]:
+                button=W.QPushButton(part.name or part.anchor)
+                button.clicked.connect(lambda checked=False,path=part:self.navigate(path))
+                self.crumb_layout.addWidget(button)
+            self.crumb_layout.addStretch()
             idx = self.model.index(str(p))
             self.tiles.setRootIndex(idx)
             self.details.setRootIndex(idx)
@@ -336,6 +421,10 @@ def run(start=None, *, embedded=False):
                              ("Couper",self.cut),("Renommer",self.rename),
                              ("Propriétés",self.properties),("Mettre à la corbeille",self.trash)):
                 menu.addAction(title,fn)
+            chosen=Path(self.model.filePath(idx))
+            if chosen.is_dir():
+                menu.addAction('Ouvrir dans un nouvel onglet',lambda:self.add_tab(chosen))
+                menu.addAction('Ajouter à la barre gauche',lambda:self.add_to_dock(chosen))
             menu.exec(view.viewport().mapToGlobal(pos))
         def new_folder(self):
             name,ok=W.QInputDialog.getText(self,"NOVA / NOUVEAU DOSSIER","Nom du dossier")
@@ -366,6 +455,9 @@ def run(start=None, *, embedded=False):
             source=self.clipboard_path
             if not source or not source.exists():return
             destination=Path(self.address.text())/source.name
+            if source.is_dir() and destination.resolve().is_relative_to(source.resolve()):
+                W.QMessageBox.warning(self,"NOVA","Impossible de copier un dossier dans lui-même.")
+                return
             if destination.exists() or destination.is_symlink():
                 W.QMessageBox.warning(self,"NOVA","La destination existe déjà.")
                 return
@@ -390,7 +482,8 @@ def run(start=None, *, embedded=False):
                     subprocess.run(["gio", "trash", "--", str(p)], check=True,
                                    env=native_env(), timeout=15, capture_output=True)
                 else:
-                    raise OSError("Corbeille disponible sous Linux avec GIO")
+                    from send2trash import send2trash
+                    send2trash(str(p))
             except Exception as e:W.QMessageBox.warning(self,"NOVA",str(e))
             self.update_status()
         def properties(self):

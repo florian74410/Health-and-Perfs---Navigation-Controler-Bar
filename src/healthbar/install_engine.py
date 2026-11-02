@@ -63,7 +63,10 @@ def cleanup_obsolete_runtimes(root, active_version, notify=None):
     if active is None or not versions.is_dir() or versions.is_symlink():
         return []
     removed = []
+    retained = (state.get("previous") or {}).get("version")
     for entry in versions.iterdir():
+        if entry.name == retained:
+            continue
         old = version_tuple(entry.name)
         if old is None or old >= active or entry.is_symlink() or not entry.is_dir():
             continue

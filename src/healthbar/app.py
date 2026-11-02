@@ -911,9 +911,6 @@ class Bar(QWidget):
         __import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(data_dir())
 
     def open_terminal(self):
-        if not sys.platform.startswith("linux"):
-            self.console_info()
-            return
         from .nova_components import open_terminal
         directory=Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else Path.home()
         try:

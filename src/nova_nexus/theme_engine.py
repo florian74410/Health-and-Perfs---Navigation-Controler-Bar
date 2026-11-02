@@ -146,3 +146,40 @@ def qt_stylesheet(theme: dict[str, Any]) -> str:
         "QLineEdit { color: " + c["text"] + "; background: " + c["surface"] + "; "
         "border: 1px solid " + c["secondary"] + "; padding: 6px; }\n"
     )
+
+PALETTES = {
+    'Electric Blue': ('#00CBF3', '#277FEA'),
+    'Matrix Green': ('#40F58A', '#168B4D'),
+    'Cyber Magenta': ('#F34DEB', '#9136C4'),
+    'Tactical Amber': ('#FFBD45', '#B97816'),
+    'Stealth Dark': ('#9CAFC1', '#526477'),
+}
+
+
+def preset(name='Electric Blue', mode='Standard'):
+    if name not in PALETTES or mode not in ('Off', 'Eco', 'Standard', 'Ultra'):
+        raise ThemeError('Unknown palette or effects mode')
+    theme = get_default_theme()
+    theme['name'] = name
+    theme['colors']['primary'], theme['colors']['secondary'] = PALETTES[name]
+    glow, pcb, motion = {'Off': (0, 0, False), 'Eco': (.25, .15, False),
+                         'Standard': (.55, .32, True), 'Ultra': (.85, .6, True)}[mode]
+    theme['effects'].update(glow=glow, pcb_visibility=pcb)
+    theme['motion']['enabled'] = motion
+    return theme
+
+
+def active_theme_path():
+    from healthbar.config import data_dir
+    return data_dir() / 'nova-theme.json'
+
+
+def get_active_theme():
+    path = active_theme_path()
+    if path.exists():
+        return load_theme(path)
+    return get_default_theme()
+
+
+def set_active_theme(theme):
+    save_theme(active_theme_path(), theme)

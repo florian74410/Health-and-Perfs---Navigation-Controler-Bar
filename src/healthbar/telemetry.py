@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from .network_detail import NetworkSampler, PingProbe
 from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
-from .power_sensors import power_sensor_snapshot
+from .power_sensors import power_sensor_snapshot, PowerSession
 try:
     import psutil
 except ImportError:
@@ -74,6 +74,7 @@ class Telemetry:
         self.network = NetworkSampler()
         self.ping = PingProbe()
         self.package_power = PackagePower()
+        self.power_session = PowerSession()
         self.cpu_model = cpu_identity()
         if psutil:
             psutil.cpu_percent(interval=None)
@@ -91,10 +92,11 @@ class Telemetry:
         data["fans"] = []
         data["cpu_cores"] = []
         # Unsupported readings stay None; wall power is never estimated from TDP.
+        now = time.monotonic()
         data.update(power_sensor_snapshot())
+        data.update(self.power_session.sample(data["batteries"], now))
         if psutil is None:
             return data
-        now = time.monotonic()
         # Network acquisition is independent of CPU/sensor failures.
         data.update(self.network.sample(psutil, now))
         data.update(self.ping.sample(now))

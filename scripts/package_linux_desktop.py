@@ -70,6 +70,10 @@ def build_deb(version):
     with tempfile.TemporaryDirectory(prefix="novabar-deb-") as temporary:
         stage = Path(temporary) / "package"
         populate(stage, Path("usr"), "deb", version)
+        for name,relative in (
+            ('novabar-boost','usr/libexec/novabar-boost'),
+            ('io.github.florian74410.NovaBar.boost.policy','usr/share/polkit-1/actions/io.github.florian74410.NovaBar.boost.policy')):
+            _write(stage/relative,(ROOT/'packaging/linux'/name).read_text(),executable=name=='novabar-boost')
         size = sum(p.stat().st_size for p in stage.rglob("*") if p.is_file()) // 1024
         _write(stage / "DEBIAN/control", (
             "Package: novabar\n"

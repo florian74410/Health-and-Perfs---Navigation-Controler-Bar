@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-WALLPAPER = Path(__file__).resolve().parent.parent / "Assets/Wallpapers/nova-electric-blue-pcb.svg"
+WALLPAPER = Path(__file__).resolve().parent / "assets/nova-electric-blue-pcb.svg"
 STATE = Path.home() / ".config/nova-nexus/wallpaper-backup.json"
 
 

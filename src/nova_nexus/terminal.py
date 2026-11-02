@@ -16,7 +16,7 @@ from .chrome_v3 import make_window
 
 def pty_child(fd, shell):
     """Fresh helper process: acquire a controlling TTY before exec, outside Qt threads."""
-    if not sys.platform.startswith('linux'):
+    if sys.platform not in ('linux','darwin'):
         return 2
     if hasattr(os, 'login_tty'):
         os.login_tty(fd)
@@ -27,7 +27,7 @@ def pty_child(fd, shell):
         for standard in range(3):os.dup2(fd, standard)
         if fd > 2:os.close(fd)
     env=native_env()
-    env.update(TERM='linux',COLORTERM='truecolor')
+    env.update(TERM='xterm-256color',COLORTERM='truecolor')
     os.execve(shell,[shell,'-i'],env)
 
 
@@ -36,18 +36,21 @@ class TerminalSession(C.QObject):
     finished=C.Signal(int)
     def __init__(self, parent=None, *, shell=None, cwd=None):
         super().__init__(parent)
+        self.windows_pty=None;self.output_queue=None;self.reader_stop=threading.Event()
         self.fd=None;self.process=None;self.notifier=None;self.pending=bytearray()
         self.screen=pyte.HistoryScreen(100,28,history=2000)
         self.stream=pyte.ByteStream(self.screen)
         self.screen.write_process_input=lambda text:self.write(text.encode())
-        self.shell=shell or os.environ.get('SHELL') or '/bin/bash'
+        self.shell=shell or (os.environ.get('COMSPEC','cmd.exe') if sys.platform=='win32' else os.environ.get('SHELL') or '/bin/bash')
         self.cwd=Path(cwd or Path.home())
         self.poll=C.QTimer(self);self.poll.setInterval(100);self.poll.timeout.connect(self.check_exit)
         self.flush_timer=C.QTimer(self);self.flush_timer.setInterval(10);self.flush_timer.timeout.connect(self.flush)
 
     def start(self):
-        if not sys.platform.startswith('linux'):
-            raise OSError('NOVA Terminal nécessite Linux dans cette version')
+        if sys.platform=='win32':
+            return self.start_windows()
+        if sys.platform not in ('linux','darwin'):
+            raise OSError('Backend PTY indisponible')
         if not Path(self.shell).is_file() or not os.access(self.shell,os.X_OK):
             raise OSError('Shell introuvable : '+self.shell)
         import pty
@@ -72,15 +75,38 @@ class TerminalSession(C.QObject):
         self.resize(self.screen.columns,self.screen.lines)
         self.poll.start()
 
+    def start_windows(self):
+        from winpty import PtyProcess
+        from queue import Queue, Full
+        self.output_queue=Queue(maxsize=32)
+        self.windows_pty=PtyProcess.spawn([self.shell],cwd=str(self.cwd),env=native_env(),
+                                         dimensions=(self.screen.lines,self.screen.columns),backend=1)
+        process=self.windows_pty
+        def read_output():
+            while not self.reader_stop.is_set():
+                try:data=process.read()
+                except (EOFError,OSError):break
+                if not data:continue
+                while not self.reader_stop.is_set():
+                    try:self.output_queue.put(data,timeout=.1);break
+                    except Full:continue
+        self.reader=threading.Thread(target=read_output,daemon=True,name='nova-conpty')
+        self.reader.start();self.poll.start()
+
     def resize(self,columns,lines):
         columns=max(20,min(400,columns));lines=max(5,min(160,lines))
         self.screen.resize(lines=lines,columns=columns)
+        if self.windows_pty is not None:self.windows_pty.setwinsize(lines,columns)
         if self.fd is not None:
             import fcntl,termios
             fcntl.ioctl(self.fd,termios.TIOCSWINSZ,struct.pack('HHHH',lines,columns,0,0))
         self.changed.emit()
 
     def write(self,data):
+        if self.windows_pty is not None:
+            try:self.windows_pty.write(data.decode('utf-8',errors='replace'))
+            except (EOFError,OSError):pass
+            return
         if self.fd is None:return
         # Bound paste buffering; keep order across short nonblocking writes.
         if len(self.pending)+len(data)>1024*1024:return
@@ -113,11 +139,25 @@ class TerminalSession(C.QObject):
         self.changed.emit()
 
     def check_exit(self):
+        if self.windows_pty is not None:
+            from queue import Empty
+            for _ in range(32):
+                try:self.stream.feed(self.output_queue.get_nowait().encode('utf-8'))
+                except Empty:break
+            self.changed.emit()
+            if not self.windows_pty.isalive() and not self.reader.is_alive() and self.output_queue.empty():
+                code=self.windows_pty.exitstatus or 0
+                self.close();self.finished.emit(code)
+            return
         if self.process is not None and self.process.poll() is not None:
             code=self.process.returncode
             self.read();self.close();self.finished.emit(code)
 
     def close(self):
+        self.reader_stop.set()
+        if self.windows_pty is not None:
+            process=self.windows_pty;self.windows_pty=None
+            threading.Thread(target=lambda:process.terminate(force=True),daemon=True).start()
         self.poll.stop();self.flush_timer.stop()
         if self.notifier:self.notifier.setEnabled(False)
         if self.fd is not None:
@@ -301,8 +341,6 @@ _windows=[]
 
 
 def open_terminal(*,start=True,cwd=None):
-    if start and not sys.platform.startswith('linux'):
-        raise OSError('NOVA Terminal interactif est disponible sous Linux')
     content=W.QWidget();layout=W.QVBoxLayout(content);layout.setContentsMargins(0,0,0,0)
     session=TerminalSession(content,cwd=cwd)
     view=TerminalView(session);layout.addWidget(view,1)

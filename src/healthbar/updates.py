@@ -37,6 +37,8 @@ def version(value):
 
 def platform_key():
     machine=platform.machine().lower()
+    if machine not in ("aarch64", "arm64", "x86_64", "amd64"):
+        raise ValueError("Architecture non prise en charge : " + machine)
     arch="arm64" if machine in ("aarch64","arm64") else "x86_64"
     family="windows" if sys.platform=="win32" else "macos" if sys.platform=="darwin" else "linux"
     return family+"-"+arch
@@ -147,6 +149,8 @@ def prepare_update(release,progress):
                 total+=len(chunk)
                 if total>MAX_DOWNLOAD:raise ValueError("Téléchargement trop volumineux")
                 digest.update(chunk);output.write(chunk)
+        if release["asset"].get("size") is not None and total != release["asset"]["size"]:
+            raise ValueError("Taille du paquet incorrecte")
         if digest.hexdigest()!=release["asset"]["sha256"]:raise ValueError("L’empreinte SHA-256 ne correspond pas au manifeste")
         progress(45,"Vérification et déploiement dans une nouvelle version")
         stage=temp/"stage";stage.mkdir();extract_runtime(archive,stage)
@@ -155,6 +159,8 @@ def prepare_update(release,progress):
         progress(70,"Test isolé du nouvel exécutable")
         self_test(executable,report,expected_version=release["version"])
         relative=executable.relative_to(stage);target.parent.mkdir(parents=True,exist_ok=True);stage.rename(target)
+    from .update_recovery import backup_user_data
+    recovery = backup_user_data(root)
     settings=Settings.load()
     path=workspace_dir()/"App/Profiles"/(current_profile()+".json")
     profile=json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"identity":{}}
@@ -162,6 +168,9 @@ def prepare_update(release,progress):
     state=json.loads(current.read_text(encoding="utf-8")) if current.exists() else {}
     result=activate(target/relative,settings,profile.get("identity",{}),state.get("desktop_shortcut",False),root,
                     release_version=release["version"])
+    from .profiles import write_json
+    result["recovery_backup"] = str(recovery)
+    write_json(root/"installation.json", result)
     from .install_engine import cleanup_obsolete_runtimes
     removed=cleanup_obsolete_runtimes(root,release["version"],lambda m:progress(95,m))
     if removed:
@@ -186,16 +195,28 @@ class UpdateDialog(QDialog):
         self.auto_upgrade=auto_upgrade
         from .installer import WIZARD_STYLE
         self.setStyleSheet(WIZARD_STYLE+"QDialog { background: #061224; }")
-        self.setWindowTitle("CYBER NEXUS HUD · Mises à jour de NovaBar")
+        self.setWindowTitle("NOVA NEXUS HD · Mises à jour de NovaBar")
         self.setMinimumWidth(560);self.worker=None;self.release=None;self.prepared=None
         box=QVBoxLayout(self);box.setContentsMargins(24,24,24,24);box.setSpacing(18)
         self.label=QLabel("NOVABAR / v"+__version__+"\nVérification explicite des releases du dépôt officiel.")
         self.label.setWordWrap(True);box.addWidget(self.label)
         self.progress=QProgressBar();self.progress.setRange(0,100);box.addWidget(self.progress)
         self.button=QPushButton("Vérifier les mises à jour");self.button.clicked.connect(self.start);box.addWidget(self.button)
+        self.rollback_button=QPushButton("Restaurer la version précédente")
+        self.rollback_button.clicked.connect(self.restore_previous)
+        box.addWidget(self.rollback_button)
         note=QLabel("Les profils, thèmes et plugins restent conservés. Aucune adresse e-mail ni mesure matérielle n’est envoyée. La vérification contacte GitHub, qui reçoit les données habituelles d’une connexion réseau.")
         note.setWordWrap(True);box.addWidget(note)
         if self.auto_upgrade:QTimer.singleShot(0,self.start)
+
+    def restore_previous(self):
+        from .update_recovery import rollback
+        try:
+            self.prepared = rollback()
+            self.button.setText("Redémarrer NovaBar")
+            self.label.setText("Version précédente restaurée. Redémarrage prêt.")
+        except Exception as error:
+            self.failed(str(error))
 
     def start(self):
         if self.prepared:
@@ -218,12 +239,13 @@ class UpdateDialog(QDialog):
         self.worker.wait();self.release=release;self.button.setEnabled(True)
         self.label.setText("Version "+release["version"]+" disponible. Installer cette mise à jour ?" if release else "Aucune version stable plus récente publiée pour cette installation.")
         self.button.setText("Installer la mise à jour" if release else "Vérifier à nouveau")
-        if release and self.auto_upgrade:QTimer.singleShot(0,self.start)
+        # Installation always requires the user to press the install button.
     def completed(self,state):
         self.worker.wait();self.prepared=state;self.button.setEnabled(True);self.button.setText("Redémarrer NovaBar")
         if self.auto_upgrade:QTimer.singleShot(700,self.start)
     def failed(self,message):
-        self.worker.wait();self.label.setText(message);self.button.setEnabled(True)
+        if self.worker: self.worker.wait()
+        self.label.setText(message);self.button.setEnabled(True)
     def reject(self):
         if self.worker and self.worker.isRunning():
             return

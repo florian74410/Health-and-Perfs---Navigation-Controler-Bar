@@ -26,6 +26,10 @@ QCheckBox { spacing: 12px; }
 
 
 class SettingsDialog(QDialog):
+    def customize_nova(self):
+        from nova_nexus.theme_settings import ThemeSettings
+        ThemeSettings(self).exec()
+
     def configure_nova(self, action):
         from .nova_components import configure_theme
         try:
@@ -249,11 +253,17 @@ class SettingsDialog(QDialog):
         modules_layout.addStretch()
         tabs.addTab(modules_tab, "Modules")
         nova_tab=QWidget();nova_layout=QVBoxLayout(nova_tab)
-        nova_info=QLabel("NOVA NEXUS HD\nActive le HUD, les deux panneaux latéraux et le cockpit inférieur.\nNOVA Explorer devient le gestionnaire de dossiers par défaut.\nLes applications GTK3 compatibles reçoivent le thème NOVA.\nLes notifications XFCE restent actives ; le style NOVA est disponible en aperçu.")
+        nova_info=QLabel("NOVA NEXUS HD\nActive le HUD, les deux panneaux latéraux et le cockpit inférieur.\nNOVA Explorer reste accessible sans remplacer le gestionnaire de dossiers choisi.\nLes applications GTK3 compatibles reçoivent le thème NOVA.\nLes notifications XFCE restent actives ; le style NOVA est disponible en aperçu.")
         nova_info.setWordWrap(True);nova_layout.addWidget(nova_info)
         for label,action in (("Activer le bureau NOVA NEXUS HD","apply"),("Restaurer les préférences précédentes","restore")):
             control=QPushButton(label);control.setEnabled(__import__("sys").platform.startswith("linux"))
             control.clicked.connect(lambda checked=False,a=action:self.configure_nova(a));nova_layout.addWidget(control)
+        customize=QPushButton("Personnaliser le thème NOVA")
+        customize.clicked.connect(self.customize_nova)
+        nova_layout.addWidget(customize)
+        notifications=QPushButton("Centre de notifications NOVA")
+        notifications.clicked.connect(lambda:__import__('nova_nexus.notification_center',fromlist=['center']).center().show_history())
+        nova_layout.addWidget(notifications)
         explorer=QPushButton("Ouvrir NOVA Explorer")
         explorer.clicked.connect(lambda:__import__("healthbar.nova_components",fromlist=["open_explorer"]).open_explorer(__import__("pathlib").Path.home()))
         nova_layout.addWidget(explorer);nova_layout.addStretch();tabs.addTab(nova_tab,"Bureau NOVA")

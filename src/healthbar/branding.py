@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 
 
 from .ui_kit import QColor
+from .identity import BRAND_NAME, DEVELOPER_CREDITS
 
 class BrandHeader(QWidget):
     def __init__(self, parent=None):
@@ -37,11 +38,11 @@ class BrandHeader(QWidget):
         p.setFont(QFont("DejaVu Sans", 21, QFont.Weight.Bold))
         for delta, alpha in ((2, 45), (0, 255)):
             color=QColor("#00dfff");color.setAlpha(alpha);p.setPen(color)
-            p.drawText(QPointF(99+delta, 54), "NOVA NEXUS HD")
+            p.drawText(QPointF(99+delta, 54), BRAND_NAME)
         p.setFont(QFont("DejaVu Sans", 10));p.setPen(QColor("#8ddaff"))
         p.drawText(QPointF(102, 76), "NOVABAR / VOTRE PC. VOTRE COCKPIT.")
         p.setFont(QFont("DejaVu Sans", 9));p.setPen(QColor("#cae6ff"))
-        p.drawText(QPointF(102, 109), "© 2026  0verF1ow  &  La Puce")
+        p.drawText(QPointF(102, 109), "© 2026  " + DEVELOPER_CREDITS)
         # Transparent Matrix signature, cycling the specified bit rows.
         rows=("101011", "101101", "001010")
         p.setFont(QFont("DejaVu Sans Mono", 11, QFont.Weight.Bold))

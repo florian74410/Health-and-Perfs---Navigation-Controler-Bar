@@ -1,13 +1,13 @@
 """Local NOVA notification previews — FRONT-FACING and opt-in, no D-Bus takeover."""
 from __future__ import annotations
-from .theme_engine import get_default_theme
+from .theme_engine import get_active_theme
 from .widgets import make_notification
 
 
 def show_notification(title: str, body: str, app, theme=None):
     """Show a front-facing popup. Caller owns Qt event loop."""
     from PySide6 import QtCore, QtGui
-    palette = theme or get_default_theme()
+    palette = theme or get_active_theme()
     widget = make_notification(title, body, palette)
     widget.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint |
                           QtCore.Qt.WindowStaysOnTopHint)
