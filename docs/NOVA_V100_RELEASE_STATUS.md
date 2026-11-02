@@ -28,7 +28,7 @@ La branche `release/nova-nexus-hd-v1.0.0` intègre les sources 0.7.5/0.7.6 et l'
 
 **Consoles** : scrollbar à droite de chaque terminal ; molette ou Maj+Page ↑↓ ; saisir une commande revient à la sortie en direct. Le tampon conserve 2 000 lignes.
 
-**Mise à jour** : Paramètres → Upgrade → Vérifier → Installer la mise à jour → Redémarrer NovaBar. Les préversions sont disponibles uniquement avec la case correspondante. Une version 0.7.x déjà distribuée ne possède pas cette nouvelle case : pour tester un candidat, installer son paquet natif complet. La mise à jour vers la future stable reste compatible avec le manifeste historique 0.7.x.
+**Mise à jour** : Paramètres → Upgrade → Vérifier → Installer la mise à jour → Redémarrer NovaBar. Les préversions sont disponibles uniquement avec la case correspondante. Une version 0.7.x déjà distribuée ne possède pas cette nouvelle case : pour tester un candidat, installer son paquet natif complet. La mise à jour vers la future stable reste compatible avec le manifeste historique 0.7.x. Attention : un ancien client 0.7.x exécute encore son ancien code de mise à jour et peut supprimer son runtime précédent ; pour bénéficier de la nouvelle sauvegarde et de la conservation du runtime lors du premier passage, utiliser l’installateur 1.0.0 complet. Un paquet système remplacé par apt ne peut pas être restauré comme un runtime utilisateur absent.
 
 **Restauration** : Upgrade → Restaurer la version précédente → Redémarrer NovaBar. Elle exige que l'ancien runtime existe encore. Les versions historiques qui l'ont déjà supprimé ne peuvent pas être restaurées sans réinstallation de leur paquet.
 

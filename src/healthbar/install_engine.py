@@ -172,8 +172,11 @@ def activate(executable, settings, identity, desktop, root=None, release_version
     root.mkdir(parents=True,exist_ok=True)
     state_path=root/"installation.json"
     old_state=read_installed_state(root)
-    previous=({key:old_state.get(key) for key in ("version","executable","desktop_shortcut")}
-              if old_state else None)
+    same_version=bool(old_state and old_state.get("version")== (release_version or __version__))
+    previous=(old_state.get("previous") if same_version else
+              {key:old_state.get(key) for key in ("version","executable","desktop_shortcut")} if old_state else None)
+    if same_version and recovery_backup is None:
+        recovery_backup=old_state.get("recovery_backup")
     # Initialize the official plugin source only once; never overwrite user-added repositories.
     from .plugin_sources import SourceStore, DEFAULT_SOURCE
     sources = SourceStore()
@@ -221,6 +224,12 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
         raise ValueError("Un runtime NovaBar plus récent est installé : rétrogradation refusée")
     if old_version and old_version != __version__:
         progress(5, f"Ancienne version NovaBar {old_version} détectée · données préservées")
+    def activate_install(executable):
+        recovery=None
+        if old_version and old_version!=__version__:
+            from .update_recovery import backup_user_data
+            recovery=backup_user_data(root)
+        return activate(executable,settings,identity,desktop,root,recovery_backup=recovery)
     target=root/"versions"/__version__
     if target.exists():
         # Reconfiguration does not reinstall a healthy version.
@@ -229,7 +238,7 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
             progress(35,"Version déjà installée · vérification")
             self_test(executable,report)
             progress(85,"Enregistrement du profil et des raccourcis")
-            state=activate(executable,settings,identity,desktop,root)
+            state=activate_install(executable)
             removed=cleanup_obsolete_runtimes(root,__version__,lambda m:progress(94,m))
             if removed:
                 progress(96,"Ancien runtime supprimé : "+", ".join(removed))
@@ -283,7 +292,7 @@ def install(settings, identity, desktop, progress, source_root=None, payload=Non
         target.parent.mkdir(parents=True,exist_ok=True)
         stage.rename(target)
         try:
-            state=activate(target/relative,settings,identity,desktop,root)
+            state=activate_install(target/relative)
             # Delete the old runtime ONLY after staging, self-test and successful switch.
             removed=cleanup_obsolete_runtimes(root,__version__,lambda m:progress(94,m))
             if removed:
