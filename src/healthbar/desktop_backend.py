@@ -14,7 +14,7 @@ def _panel_recovery_event(path, stage, **details):
         log=Path(path).with_suffix('.log')
         log.parent.mkdir(parents=True,exist_ok=True)
         with log.open('a',encoding='utf-8') as output:
-            output.write(json.dumps({'time':time.time(),'stage':stage,**details},sort_keys=True)+'\\n')
+            output.write(json.dumps({'time':time.time(),'stage':stage,**details},sort_keys=True)+'\n')
     except OSError:
         pass
 
