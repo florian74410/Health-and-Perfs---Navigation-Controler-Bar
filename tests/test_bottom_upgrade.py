@@ -60,6 +60,7 @@ class BottomUpgradeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp,patch.dict(os.environ,HEALTHBAR_DATA_DIR=temp),patch('healthbar.desktop_backend.x11_ready',return_value=True),patch('psutil.Process') as process:
             process.return_value.create_time.return_value=123.0
             backend=Mock();backend.native_bottom_panels.return_value=[{'id':22,'pid':200}]
+            backend.panels_effectively_visible.return_value=True
             guard=NativePanelGuard(backend)
             def visibility(rows,visible):
                 if not visible:self.assertEqual(json.loads(guard.path.read_text())['panels'],rows)
@@ -86,6 +87,7 @@ class BottomUpgradeTests(unittest.TestCase):
             rows=[{'id':3,'pid':4}]
             path.write_text(json.dumps({'owner':os.getpid(),'owner_started':0,'display':':99','panels':rows}))
             backend=Mock();backend.set_panel_visible.return_value=True
+            backend.panels_effectively_visible.return_value=True
             NativePanelGuard(backend)
             backend.set_panel_visible.assert_called_once_with(rows,True);self.assertFalse(path.exists())
 
