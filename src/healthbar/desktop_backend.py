@@ -253,11 +253,6 @@ def restore_after_exit(pid):
                     if not visible and attempt>=12:
                         # A restarted xfce4-panel has fresh X window IDs.
                         try:
-                            from PySide6.QtWidgets import QApplication
-                            from Xlib import display
-                            probe=display.Display()
-                            bounds=probe.screen().root.get_geometry()
-                            probe.close()
                             # A panel restart may invalidate the old IDs. At
                             # this point leave the recovery journal intact for
                             # the next launch unless the new panel is detected.
