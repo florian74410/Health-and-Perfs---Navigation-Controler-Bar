@@ -78,6 +78,85 @@ def check_release():
     return {"version":remote.removeprefix("v"),"asset":asset}
 
 
+
+def check_native_release():
+    """Find the next official same-series patch for an APT-installed NovaBar.
+
+    Never mistake an untagged CI artifact for a stable release. In particular
+    0.7.0 -> 0.7.1 must not accidentally jump to historical v0.7.5.
+    """
+    from .bootstrapper import package_candidates
+    latest = json.loads(read_url(
+        "https://api.github.com/repos/"+REPO+"/releases?per_page=50",
+        limit=5*1024*1024))
+    if not isinstance(latest,list):
+        raise ValueError("Liste des releases GitHub invalide")
+    current=version(__version__)
+    releases=[]
+    for entry in latest:
+        if entry.get("draft") or entry.get("prerelease"):
+            continue
+        try: target=version(entry.get("tag_name",""))
+        except ValueError: continue
+        if target[:2]!=current[:2] or target<=current:
+            continue
+        releases.append((target,entry))
+    if not releases:
+        return None
+    target,selected=min(releases,key=lambda row:row[0])
+    tag=selected["tag_name"]
+    manifest_asset=next((a for a in selected.get("assets",[])
+                         if a.get("name")=="novabar-bootstrap-manifest.json"),None)
+    if not manifest_asset:
+        raise ValueError("Manifeste du paquet natif absent pour "+tag)
+    manifest_url=asset_url(manifest_asset.get("browser_download_url",""))
+    if "/releases/download/"+tag+"/" not in manifest_url:
+        raise ValueError("Manifeste natif hors de la release cible")
+    manifest=json.loads(read_url(manifest_url,limit=1024*1024))
+    if manifest.get("schema_version")!=1 or version(manifest.get("version"))!=target:
+        raise ValueError("Version du manifeste natif incohérente")
+    asset=package_candidates(manifest,platform_key(),".deb")
+    if asset.get("format")!=".deb" or "/releases/download/"+tag+"/" not in asset["url"]:
+        raise ValueError("Paquet DEB incohérent avec la release")
+    if not any(x.get("name")==asset["name"] and x.get("browser_download_url")==asset["url"]
+               for x in selected.get("assets",[])):
+        raise ValueError("Le DEB sélectionné ne figure pas dans la release officielle")
+    return {"version":tag.removeprefix("v"),"asset":asset,"native":True}
+
+
+def prepare_native_update(release,progress):
+    """APT update with explicit policy authentication; never install in ~/.local.
+
+    Verified GitHub package is validated before asking for elevated privileges.
+    The active system application is restarted only once installation finishes.
+    """
+    if os.getenv("NOVABAR_PACKAGED")!="deb" or not sys.platform.startswith("linux"):
+        raise ValueError("Mise à jour native disponible uniquement avec le paquet Debian")
+    if version(release["version"])<=version(__version__):
+        raise ValueError("Version cible déjà installée")
+    from .bootstrapper import download,install_package
+    from .system_env import native_env
+    if not shutil.which("dpkg-deb"):
+        raise OSError("dpkg-deb indisponible")
+    with tempfile.TemporaryDirectory(prefix="novabar-update-",dir="/tmp") as directory:
+        stage=Path(directory)
+        stage.chmod(0o755)  # _apt needs traverse rights, even under pkexec.
+        progress(5,"Téléchargement du paquet Debian officiel")
+        package=download(release["asset"],stage)
+        package.chmod(0o644)
+        query=subprocess.run(["dpkg-deb","-f",str(package),
+                              "Package","Version","Architecture"],
+                             capture_output=True,text=True,check=True,timeout=15,
+                             env=native_env())
+        values=query.stdout.strip().splitlines()
+        if values!=["novabar",release["version"],"amd64"]:
+            raise ValueError("Identité ou architecture du paquet invalide")
+        progress(70,"SHA-256 et paquet vérifiés ; autorisation APT nécessaire")
+        install_package(package)
+    progress(100,"Paquet APT mis à jour · redémarrage prêt")
+    return {"native":True,"version":release["version"],"executable":"/usr/bin/novabar"}
+
+
 def extract_runtime(archive,destination):
     destination=Path(destination)
     destination.mkdir(parents=True,exist_ok=True)
@@ -175,8 +254,12 @@ class UpdateWorker(QThread):
     def __init__(self,release=None,parent=None):super().__init__(parent);self.release=release
     def run(self):
         try:
-            if self.release:self.completed.emit(prepare_update(self.release,self.progress.emit))
-            else:self.checked.emit(check_release())
+            if self.release:
+                install=prepare_native_update if self.release.get("native") else prepare_update
+                self.completed.emit(install(self.release,self.progress.emit))
+            else:
+                native = os.getenv("NOVABAR_PACKAGED")=="deb" and sys.platform.startswith("linux")
+                self.checked.emit(check_native_release() if native else check_release())
         except Exception as error:self.failed.emit(str(error))
 
 
@@ -218,10 +301,10 @@ class UpdateDialog(QDialog):
         self.worker.wait();self.release=release;self.button.setEnabled(True)
         self.label.setText("Version "+release["version"]+" disponible. Installer cette mise à jour ?" if release else "Aucune version stable plus récente publiée pour cette installation.")
         self.button.setText("Installer la mise à jour" if release else "Vérifier à nouveau")
-        if release and self.auto_upgrade:QTimer.singleShot(0,self.start)
+        # Installing system software always requires an explicit button click.
     def completed(self,state):
         self.worker.wait();self.prepared=state;self.button.setEnabled(True);self.button.setText("Redémarrer NovaBar")
-        if self.auto_upgrade:QTimer.singleShot(700,self.start)
+        # Restart remains an explicit user choice.
     def failed(self,message):
         self.worker.wait();self.label.setText(message);self.button.setEnabled(True)
     def reject(self):
