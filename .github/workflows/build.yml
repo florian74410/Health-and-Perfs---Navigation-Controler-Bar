@@ -129,7 +129,7 @@ jobs:
             dist/NOVA-NEXUS-HD-Wallpapers.zip
             dist/NovaBarDownloader-*
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'release/nova-nexus-hd-v1.0.0' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && (github.head_ref == 'release/nova-nexus-hd-v1.0.0' || github.head_ref == 'release/nova-nexus-hd-v1.1.0') && github.event.pull_request.head.repo.full_name == github.repository)
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -151,7 +151,7 @@ jobs:
           from pathlib import Path
           tag = "v" + tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
           if os.environ["RELEASE_EVENT"] == "pull_request":
-              assert tag == "v1.0.0", "Unexpected candidate version"
+              assert tag in ("v1.0.0", "v1.1.0"), "Unexpected candidate version"
               tag += "-rc." + os.environ["GITHUB_RUN_NUMBER"]
           else:
               assert os.environ["GITHUB_REF_NAME"] == tag, "Tag/version mismatch"

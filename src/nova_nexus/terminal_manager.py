@@ -141,8 +141,8 @@ class TerminalManager(C.QObject):
         self.action(file,'Fermer l’onglet',lambda:self.close_tab(self.tabs.currentIndex()),'Ctrl+Shift+W')
         self.action(file,'Fermer la fenêtre',self.window.close)
         edit=self.edit_menu=self.menu.addMenu('Édition')
-        self.action(edit,'Copier',lambda:self.active_view().copy(),'Ctrl+Shift+C')
-        self.action(edit,'Coller',lambda:self.active_view().paste_text(),'Ctrl+Shift+V')
+        self.action(edit,'Copier',lambda:self.active_view().copy())
+        self.action(edit,'Coller',lambda:self.active_view().paste_text())
         self.action(edit,'Rechercher',self.show_search,'Ctrl+Shift+F')
         edit.addSeparator();self.formats=edit.addMenu('Formats')
         self.format_actions={}
@@ -234,7 +234,7 @@ class TerminalManager(C.QObject):
             self.text.update(font=font.currentFont().family(),size=size.value(),foreground=foreground.text(),background=background.text());self.save_text()
 
     def shortcuts(self):
-        make_dialog('NOVA / RACCOURCIS','Ctrl+Maj+T : onglet · Ctrl+Maj+N : fenêtre\nCtrl+Maj+C / V : copier / coller\nCtrl+Maj+F : rechercher · F11 : agrandir / rétablir\nMaj+Page ↑↓ : historique · Ctrl+C : interrompre\nChanger de format conserve les sessions masquées.').exec()
+        make_dialog('NOVA / RACCOURCIS','Ctrl+Maj+T : onglet · Ctrl+Maj+N : fenêtre\nCtrl+C : copier si sélection, sinon interrompre · Ctrl+V : coller\nCtrl+Maj+F : rechercher · F11 : agrandir / rétablir\nMaj+Page ↑↓ : historique · Ctrl+C : interrompre\nChanger de format conserve les sessions masquées.').exec()
 
     def eventFilter(self,watched,event):
         if event.type()==C.QEvent.Close:
