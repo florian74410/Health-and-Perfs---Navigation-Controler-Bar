@@ -8,6 +8,17 @@ from pathlib import Path
 from .config import data_dir
 
 
+def _panel_recovery_event(path, stage, **details):
+    """Append small, non-sensitive breadcrumbs for crash-recovery diagnosis."""
+    try:
+        log=Path(path).with_suffix('.log')
+        log.parent.mkdir(parents=True,exist_ok=True)
+        with log.open('a',encoding='utf-8') as output:
+            output.write(json.dumps({'time':time.time(),'stage':stage,**details},sort_keys=True)+'\\n')
+    except OSError:
+        pass
+
+
 def x11_ready():
     from PySide6.QtWidgets import QApplication
     return sys.platform.startswith('linux') and bool(os.getenv('DISPLAY')) and QApplication.platformName() == 'xcb'
@@ -215,12 +226,16 @@ class NativePanelGuard:
                 state=json.loads(self.path.read_text())
                 try:alive=psutil.Process(state['owner']).create_time()==state.get('owner_started')
                 except psutil.Error:alive=False
+                _panel_recovery_event(self.path,'startup_journal_checked',owner_alive=alive,
+                                      saved_panels=len(state.get('panels',[])),
+                                      display_matches=state.get('display')==os.getenv('DISPLAY'))
                 if not alive and state.get('display')==os.getenv('DISPLAY'):
                     self.rows=state.get('panels',[])
-                    # A successful XMapWindow call is not proof that XFCE made
-                    # the panel visible. Keep the recovery record until verified.
-                    self.backend.set_panel_visible(self.rows,True)
-                    if self.backend.panels_effectively_visible(self.rows):
+                    mapped=self.backend.set_panel_visible(self.rows,True)
+                    visible=self.backend.panels_effectively_visible(self.rows)
+                    _panel_recovery_event(self.path,'startup_restore_checked',map_request=mapped,
+                                          effective_visible=visible)
+                    if visible:
                         self.path.unlink(missing_ok=True)
                         self.rows=[]
             except (OSError,ValueError,KeyError,TypeError):pass
@@ -228,6 +243,7 @@ class NativePanelGuard:
     def hide(self,bounds):
         if not x11_ready() or time.monotonic()<self.reveal_until:return
         found=self.backend.native_bottom_panels(bounds)
+        _panel_recovery_event(self.path,'panels_detected',count=len(found))
         known={r['id'] for r in self.rows}
         added=[r for r in found if r['id'] not in known]
         if added or (self.rows and self.watchdog is None):
@@ -240,14 +256,18 @@ class NativePanelGuard:
             temp.write_text(json.dumps({'owner':os.getpid(),'owner_started':started,
                                         'display':os.getenv('DISPLAY'),'panels':rows}))
             temp.replace(self.path)  # Backup BEFORE unmapping anything.
+            _panel_recovery_event(self.path,'journal_saved',count=len(rows))
             self.rows=rows
             if self.watchdog is None:
                 command=([sys.executable] if getattr(sys,'frozen',False) else [sys.executable,'-m','healthbar'])
                 try:self.watchdog=subprocess.Popen(command+['--restore-xfce-after-pid',str(os.getpid())],
                         stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
-                except OSError:
+                except OSError as error:
+                    _panel_recovery_event(self.path,'watchdog_start_failed',error=str(error))
                     self.path.unlink(missing_ok=True);self.rows=[];return
-        if self.rows:self.backend.set_panel_visible(self.rows,False)
+        if self.rows:
+            hidden=self.backend.set_panel_visible(self.rows,False)
+            _panel_recovery_event(self.path,'hide_requested',count=len(self.rows),request_ok=hidden)
 
     def reveal(self):
         self.reveal_until=time.monotonic()+30
@@ -259,8 +279,11 @@ class NativePanelGuard:
             except (OSError,ValueError,TypeError):return False
         if not self.rows:
             return not self.path.exists()
-        self.backend.set_panel_visible(self.rows,True)
-        if not self.backend.panels_effectively_visible(self.rows):return False
+        mapped=self.backend.set_panel_visible(self.rows,True)
+        visible=self.backend.panels_effectively_visible(self.rows)
+        _panel_recovery_event(self.path,'normal_restore_checked',map_request=mapped,
+                              effective_visible=visible,count=len(self.rows))
+        if not visible:return False
         self.path.unlink(missing_ok=True);self.rows=[]
         return True
 
@@ -276,6 +299,8 @@ def restore_after_exit(pid):
             try:alive=psutil.Process(pid).create_time()==state.get('owner_started')
             except psutil.Error:alive=False
             if not alive:
+                _panel_recovery_event(path,'watchdog_detected_owner_exit',owner=pid,
+                                      saved_panels=len(state.get('panels',[])))
                 os.environ['DISPLAY']=state.get('display') or os.environ.get('DISPLAY','')
                 backend=DesktopBackend()
                 panels=state.get('panels',[])
@@ -290,6 +315,7 @@ def restore_after_exit(pid):
                     # service once as a last-resort crash recovery; configuration
                     # is preserved and window IDs may change.
                     if attempt==12:
+                        _panel_recovery_event(path,'panel_restart_requested',attempt=attempt)
                         try:
                             subprocess.run(['xfce4-panel','--restart'],timeout=8,
                                            stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,
@@ -297,10 +323,17 @@ def restore_after_exit(pid):
                         except (OSError,subprocess.TimeoutExpired):
                             pass
                     visible=backend.panels_effectively_visible(panels)
+                    if attempt in (0,12,24,47):
+                        _panel_recovery_event(path,'watchdog_visibility_check',attempt=attempt,
+                                              map_request_ok=True,effective_visible=visible)
                     if visible:
                         path.unlink(missing_ok=True)
+                        _panel_recovery_event(path,'journal_removed',reason='all_saved_panels_visible')
                         return
                     time.sleep(.25)
+                _panel_recovery_event(path,'watchdog_timeout',journal_retained=path.exists())
                 return
             time.sleep(1)
-    except (OSError,ValueError,TypeError):return
+    except (OSError,ValueError,TypeError) as error:
+        _panel_recovery_event(data_dir()/'native-panel-visibility.json','watchdog_error',error=str(error))
+        return
