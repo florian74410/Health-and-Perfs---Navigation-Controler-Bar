@@ -17,10 +17,17 @@ class SharedTelemetry:
         self.last_at = 0.0
         self.snapshot = None
         self.prefs = load()
+        self._apply_intervals()
+
+    def _apply_intervals(self):
+        if hasattr(self.sampler, 'module_intervals'):
+            self.sampler.module_intervals.update({key: self.prefs[key]['refresh_seconds']
+                for key in ('gpu', 'fans', 'power')})
 
     def reload_preferences(self):
         with self.lock:
             self.prefs = load()
+            self._apply_intervals()
 
     def interval(self):
         # The highest-frequency enabled subscriber determines sample rate.
