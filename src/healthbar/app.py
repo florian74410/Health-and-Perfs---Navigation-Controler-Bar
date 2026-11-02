@@ -807,6 +807,7 @@ class Bar(QWidget):
                 panel.close_panel()
         self.retracted = True
         self._edge_armed = False
+        self._top_edge_entered_at = None
         self.actions.hide()
         self.root.setSpacing(0)
         self.canvas.update()
@@ -835,10 +836,26 @@ class Bar(QWidget):
         self.arm_hide()
 
     def check_edge(self):
-        if self.retracted:
-            if not self.geometry().contains(QCursor.pos()):
-                self._edge_armed = True
-            elif self._edge_armed:
+        if not self.retracted:
+            self._top_edge_entered_at = None
+            return
+        bounds = self.full_rect
+        pointer = QCursor.pos()
+        if self.settings.position == 'top':
+            edge = QRect(bounds.left(), bounds.top(), bounds.width(), 10)
+        elif self.settings.position == 'bottom':
+            edge = QRect(bounds.left(), bounds.bottom()-9, bounds.width(), 10)
+        else:
+            edge = self.geometry()
+        if not edge.contains(pointer):
+            self._top_edge_entered_at = None
+            self._edge_armed = True
+        elif self._edge_armed:
+            now = time.monotonic()
+            if getattr(self, '_top_edge_entered_at', None) is None:
+                self._top_edge_entered_at = now
+            elif now - self._top_edge_entered_at >= 1.0:
+                self._top_edge_entered_at = None
                 self.reveal()
 
     def toggle_expand(self):
