@@ -49,6 +49,20 @@ class NativePanelGuardTests(unittest.TestCase):
             self.assertTrue(guard.restore())
             self.assertFalse(guard.path.exists())
 
+    def test_all_nova_bars_can_be_disabled(self):
+        from healthbar.config import Settings
+
+        settings = Settings(
+            hud_enabled=False,
+            bottom_dock_enabled=False,
+            dock_left_enabled=False,
+            dock_right_enabled=False,
+            xfce_skin_enabled=False,
+        )
+        settings.validate()
+        self.assertFalse(settings.hud_enabled or settings.bottom_dock_enabled or
+                         settings.dock_left_enabled or settings.dock_right_enabled)
+
 
 if __name__ == "__main__":
     unittest.main()
