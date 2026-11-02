@@ -373,7 +373,8 @@ class SettingsDialog(QDialog):
         colors_page = QWidget()
         colors_box = QVBoxLayout(colors_page)
         colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
-        colors_box.addWidget(QLabel("Choisissez une palette existante ; les couleurs ci-dessous servent de référence visuelle."))
+        colors_box.addWidget(QLabel("Sélectionnez la palette dans Générale. Aperçu de son rendu et de ses accents."))
+        colors_box.addWidget(QLabel("Le design original 0.6.11 reste actif ; seul son thème change."))
         from .cockpit_style import PALETTES
         self.palette_preview = QLabel()
         self.palette_preview.setMinimumHeight(68)
@@ -381,12 +382,20 @@ class SettingsDialog(QDialog):
         def update_palette_preview():
             name=self.theme.currentData()
             colors=PALETTES.get(name, PALETTES.get('blue-neon', ('#00d9ff','#1860ff','#061020')))
-            primary, secondary, background = colors[:3]
+            primary, secondary = colors[:2]
+            background = '#061224'
             self.palette_preview.setText("   PCB   /   " + name.upper() + "   ·   " + primary + "  " + secondary)
             self.palette_preview.setStyleSheet(
                 "color:"+primary+"; background:"+background+
                 ";border:2px solid "+secondary+";font-weight:700;")
         self.theme.currentIndexChanged.connect(update_palette_preview)
+        palette_select = QComboBox()
+        for index in range(self.theme.count()):
+            palette_select.addItem(self.theme.itemText(index), self.theme.itemData(index))
+        palette_select.setCurrentIndex(self.theme.currentIndex())
+        palette_select.currentIndexChanged.connect(self.theme.setCurrentIndex)
+        self.theme.currentIndexChanged.connect(palette_select.setCurrentIndex)
+        colors_box.insertWidget(2, palette_select)
         update_palette_preview()
         colors_box.addWidget(QLabel("Palettes existantes conservées : bleu, Matrix, rouge, cyber-futuriste."))
         colors_box.addStretch()
