@@ -1,12 +1,12 @@
 [Setup]
 AppId=CyberNexusHUD
-AppName=CYBER NEXUS HUD
-AppVersion=0.6.11
+AppName=NOVA NEXUS HD
+AppVersion=1.0.0
 CloseApplications=yes
 RestartApplications=no
 UsePreviousAppDir=yes
 DefaultDirName={localappdata}\Programs\CyberNexusHUD
-DefaultGroupName=CYBER NEXUS HUD
+DefaultGroupName=NOVA NEXUS HD
 PrivilegesRequired=lowest
 OutputDir=..\dist
 OutputBaseFilename=CyberNexusHUD-Setup-Windows

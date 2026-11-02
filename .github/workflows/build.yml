@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   pull_request:
-    paths: ['src/**', 'scripts/**', 'tests/**', 'pyproject.toml', '.github/workflows/build.yml']
+    paths: ['src/**', 'scripts/**', 'tests/**', 'pyproject.toml', 'packaging/**', 'Patch/**', '.github/workflows/build.yml']
 permissions:
   contents: read
 jobs:
@@ -122,7 +122,7 @@ jobs:
             dist/plugins/*.zip
             dist/NovaBarDownloader-*
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'fix/novabar-v075-terminal-scrollback' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'release/nova-nexus-hd-v1.0.0' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: build
     runs-on: ubuntu-22.04
     permissions:
@@ -144,8 +144,8 @@ jobs:
           from pathlib import Path
           tag = "v" + tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
           if os.environ["RELEASE_EVENT"] == "pull_request":
-              request = json.loads(Path(".release/" + tag.removeprefix("v") + ".json").read_text())
-              assert request == {"tag": tag, "publish": True}, "Release not explicitly requested"
+              assert tag == "v1.0.0", "Unexpected candidate version"
+              tag += "-rc." + os.environ["GITHUB_RUN_NUMBER"]
           else:
               assert os.environ["GITHUB_REF_NAME"] == tag, "Tag/version mismatch"
           with open(os.environ["GITHUB_ENV"], "a") as output:
@@ -160,10 +160,17 @@ jobs:
           cp Executable/Linux/*.run release/
           find artifacts -type f -name 'NovaBarDownloader-*' -exec cp {} release/ \;
           python scripts/release_manifest.py "$NOVABAR_RELEASE_TAG"
+          python scripts/package_upgrade.py "$NOVABAR_RELEASE_TAG" release
+          cd release && sha256sum * > SHA256SUMS
       - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.event.pull_request.head.sha || github.sha }}" --title "CYBER NEXUS HUD / NovaBar $NOVABAR_RELEASE_TAG" --generate-notes
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.event.pull_request.head.sha || github.sha }}" --title "NOVA NEXUS HD / NovaBar $NOVABAR_RELEASE_TAG" --prerelease --generate-notes
+          else
+            gh release create "$NOVABAR_RELEASE_TAG" release/* --target "${{ github.sha }}" --title "NOVA NEXUS HD / NovaBar $NOVABAR_RELEASE_TAG" --generate-notes
+          fi
   executable-folder:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/novabar-v075-terminal-scrollback'
     needs: build
