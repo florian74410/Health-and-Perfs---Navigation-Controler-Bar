@@ -15,7 +15,10 @@ class CpuModeController:
 
     def select(self, mode):
         if mode not in self.MODES:raise ValueError('Unknown CPU mode')
-        with self._lock:self.mode=mode
+        with self._lock:
+            self.mode=mode
+            if callable(getattr(self.backend,"reset_authorization",None)):
+                self.backend.reset_authorization()
 
     def sample(self, temperature):
         """Called on the telemetry worker, never blocks the Qt thread.

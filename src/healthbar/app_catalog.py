@@ -142,6 +142,7 @@ class ApplicationLauncher(QWidget):
         self.count.setText(f'{self.grid.count()} application(s)')
 
     def launch(self,item):
+        self.launch_timer.stop()
         if launch_item(item.data(Qt.ItemDataRole.UserRole),'apps'):self.close()
 
     def show_above(self,button):

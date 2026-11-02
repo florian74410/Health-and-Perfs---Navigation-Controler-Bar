@@ -3,11 +3,13 @@ from PySide6 import QtCore as C, QtGui as G, QtWidgets as W
 
 
 def _icon(action):
+    from .theme_engine import get_active_theme
+    theme=get_active_theme()
     pixmap = G.QPixmap(18, 18)
     pixmap.fill(C.Qt.transparent)
     painter = G.QPainter(pixmap)
     painter.setRenderHint(G.QPainter.Antialiasing)
-    painter.setPen(G.QPen(G.QColor('#FF526A'), 2))
+    painter.setPen(G.QPen(G.QColor(theme['colors']['danger']), 2))
     if action == 'minimize':
         painter.drawLine(4, 12, 14, 12)
     elif action == 'close':

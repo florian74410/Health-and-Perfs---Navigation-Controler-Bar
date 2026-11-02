@@ -60,13 +60,17 @@ def read_url(url, limit=1024*1024):
     return data
 
 
-def check_release():
-    try:release=json.loads(read_url(API))
+def check_release(include_prereleases=False):
+    try:
+        release=json.loads(read_url(API.removesuffix('/latest')+'?per_page=20' if include_prereleases else API))
+        if include_prereleases:
+            release=next((item for item in release if not item.get('draft')),None)
+            if release is None:return None
     except urllib.error.HTTPError as error:
         if error.code==404:return None
         raise
-    if release.get("draft") or release.get("prerelease"):return None
-    remote=release.get("tag_name","")
+    if release.get("draft") or (release.get("prerelease") and not include_prereleases):return None
+    remote=release.get("tag_name","").split("-rc.",1)[0]
     if version(remote)<=version(__version__):return None
     manifest_asset=next((a for a in release.get("assets",[]) if a.get("name")=="novabar-update-manifest.json"),None)
     if not manifest_asset:raise ValueError("Une release existe, mais son manifeste de mise à jour manque")
@@ -181,11 +185,12 @@ def prepare_update(release,progress):
 
 class UpdateWorker(QThread):
     checked=Signal(object);completed=Signal(dict);failed=Signal(str);progress=Signal(int,str)
-    def __init__(self,release=None,parent=None):super().__init__(parent);self.release=release
+    def __init__(self,release=None,parent=None,include_prereleases=False):
+        super().__init__(parent);self.release=release;self.include_prereleases=include_prereleases
     def run(self):
         try:
             if self.release:self.completed.emit(prepare_update(self.release,self.progress.emit))
-            else:self.checked.emit(check_release())
+            else:self.checked.emit(check_release(self.include_prereleases))
         except Exception as error:self.failed.emit(str(error))
 
 
@@ -205,9 +210,17 @@ class UpdateDialog(QDialog):
         self.rollback_button=QPushButton("Restaurer la version précédente")
         self.rollback_button.clicked.connect(self.restore_previous)
         box.addWidget(self.rollback_button)
+        from PySide6.QtWidgets import QCheckBox
+        self.preview_channel=QCheckBox("Inclure les préversions de test (choix volontaire)")
+        self.preview_channel.toggled.connect(self.change_channel)
+        box.addWidget(self.preview_channel)
         note=QLabel("Les profils, thèmes et plugins restent conservés. Aucune adresse e-mail ni mesure matérielle n’est envoyée. La vérification contacte GitHub, qui reçoit les données habituelles d’une connexion réseau.")
         note.setWordWrap(True);box.addWidget(note)
         if self.auto_upgrade:QTimer.singleShot(0,self.start)
+
+    def change_channel(self):
+        self.release=None
+        self.button.setText("Vérifier les mises à jour")
 
     def restore_previous(self):
         from .update_recovery import rollback
@@ -230,22 +243,27 @@ class UpdateDialog(QDialog):
             else:QApplication.instance().quit()
             return
         self.button.setEnabled(False)
-        self.worker=UpdateWorker(self.release,self)
+        self.preview_channel.setEnabled(False)
+        self.rollback_button.setEnabled(False)
+        self.worker=UpdateWorker(self.release,self,include_prereleases=self.preview_channel.isChecked())
         self.worker.checked.connect(self.checked);self.worker.completed.connect(self.completed)
         self.worker.failed.connect(self.failed);self.worker.progress.connect(self.status);self.worker.start()
 
     def status(self,value,text):self.progress.setValue(value);self.label.setText(text)
     def checked(self,release):
         self.worker.wait();self.release=release;self.button.setEnabled(True)
+        self.preview_channel.setEnabled(True);self.rollback_button.setEnabled(True)
         self.label.setText("Version "+release["version"]+" disponible. Installer cette mise à jour ?" if release else "Aucune version stable plus récente publiée pour cette installation.")
         self.button.setText("Installer la mise à jour" if release else "Vérifier à nouveau")
         # Installation always requires the user to press the install button.
     def completed(self,state):
         self.worker.wait();self.prepared=state;self.button.setEnabled(True);self.button.setText("Redémarrer NovaBar")
+        self.rollback_button.setEnabled(True)
         if self.auto_upgrade:QTimer.singleShot(700,self.start)
     def failed(self,message):
         if self.worker: self.worker.wait()
         self.label.setText(message);self.button.setEnabled(True)
+        self.preview_channel.setEnabled(True);self.rollback_button.setEnabled(True)
     def reject(self):
         if self.worker and self.worker.isRunning():
             return

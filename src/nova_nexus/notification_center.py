@@ -4,7 +4,7 @@ import json
 from PySide6 import QtCore as C, QtWidgets as W
 from healthbar.config import data_dir
 from healthbar.profiles import write_json
-from .theme_engine import get_active_theme
+from .theme_engine import get_active_theme,qt_stylesheet
 from .chrome_v3 import make_notification
 
 
@@ -73,6 +73,7 @@ class NotificationCenter(C.QObject):
         if self.window:
             self.window.show();self.window.raise_();return self.window
         window=W.QDialog();window.setWindowTitle('NOVA NEXUS HD · Notifications');window.resize(640,500)
+        window.setStyleSheet(qt_stylesheet(self.theme))
         root=W.QVBoxLayout(window)
         quiet=W.QCheckBox('Mode silencieux');quiet.setChecked(self.quiet)
         quiet.toggled.connect(self.set_quiet);root.addWidget(quiet)

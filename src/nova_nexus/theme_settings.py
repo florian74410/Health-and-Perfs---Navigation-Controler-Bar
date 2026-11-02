@@ -1,6 +1,6 @@
 """Persistent NOVA theme editor; desktop export remains a separate explicit action."""
 from PySide6 import QtWidgets as W
-from .theme_engine import PALETTES, preset, get_active_theme, set_active_theme
+from .theme_engine import PALETTES, preset, get_active_theme, set_active_theme, qt_stylesheet
 
 
 class ThemeSettings(W.QDialog):
@@ -8,6 +8,7 @@ class ThemeSettings(W.QDialog):
         super().__init__(parent)
         self.setWindowTitle('NOVA NEXUS HD · Thème')
         self.theme = get_active_theme()
+        self.setStyleSheet(qt_stylesheet(self.theme))
         root = W.QVBoxLayout(self)
         form = W.QFormLayout()
         root.addLayout(form)
@@ -22,9 +23,17 @@ class ThemeSettings(W.QDialog):
         apply_preset = W.QPushButton('Charger cette palette et ces effets')
         apply_preset.clicked.connect(self.load_preset)
         form.addRow(apply_preset)
+        self.colors={}
+        for key,label in (('primary','Couleur principale'),('secondary','Couleur secondaire'),('danger','Symboles de fenêtre'),('background','Fond')):
+            control=W.QLineEdit(self.theme['colors'][key]);self.colors[key]=control
+            form.addRow(label,control)
         self.controls = {}
         for key, label, lo, hi, step in (
-            ('opacity', 'Opacité du verre', .4, 1, .05),
+            ('opacity', 'Opacité du fond', .4, 1, .05),
+            ('glass_opacity','Opacité du verre',.4,1,.05),
+            ('reflection_intensity','Reflets',0,1,.05),
+            ('font_scale','Échelle du texte',.75,2,.05),
+            ('animation_speed','Vitesse des animations',.25,3,.25),
             ('glow', 'Halo', 0, 1, .05), ('shadow', 'Ombre', 0, 1, .05),
             ('pcb_visibility', 'Visibilité PCB', 0, 1, .05),
             ('border_width', 'Épaisseur du contour', .5, 5, .5),
@@ -46,6 +55,7 @@ class ThemeSettings(W.QDialog):
         root.addWidget(buttons)
 
     def populate(self):
+        for key,control in self.colors.items():control.setText(self.theme['colors'][key])
         for key, control in self.controls.items(): control.setValue(self.theme['effects'][key])
         self.motion.setChecked(self.theme['motion']['enabled'])
         self.duration.setValue(self.theme['motion']['duration_ms'])
@@ -58,6 +68,7 @@ class ThemeSettings(W.QDialog):
         self.theme = preset(); self.palette.setCurrentText('Electric Blue'); self.populate()
 
     def save(self):
+        for key,control in self.colors.items():self.theme["colors"][key]=control.text()
         for key, control in self.controls.items(): self.theme['effects'][key] = control.value()
         self.theme['motion']['enabled'] = self.motion.isChecked()
         self.theme['motion']['duration_ms'] = self.duration.value()

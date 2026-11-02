@@ -384,7 +384,7 @@ def main():
     import argparse
     parser=argparse.ArgumentParser();parser.add_argument("--preview");parser.add_argument("--verify-payload",action="store_true");args=parser.parse_args()
     if args.preview or args.verify_payload:os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
-    app=QApplication(sys.argv[:1]);app.setApplicationName("CYBER NEXUS HUD")
+    app=QApplication(sys.argv[:1]);app.setApplicationName("NOVA NEXUS HD")
     payload=Path(getattr(sys,"_MEIPASS",Path(__file__).parent))/"payload"
     if args.verify_payload:
         import tempfile

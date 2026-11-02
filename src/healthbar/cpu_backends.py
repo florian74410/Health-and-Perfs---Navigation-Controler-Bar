@@ -13,14 +13,18 @@ class UnsupportedBackend:
 class LinuxBoostBackend:
     """Use the kernel boost switch, with Intel's inverted no_turbo semantics.
 
-    Rights must be granted by the administrator outside NovaBar. We never invoke
-    sudo, weaken sysfs permissions, or write any frequency/voltage parameters.
+    The optional root-owned helper requests administrator authentication through
+    Polkit. NovaBar never receives a password or writes frequency/voltage values.
     """
     def __init__(self, root=Path('/sys/devices/system/cpu')):
         root=Path(root)
         self.system_root = root == Path("/sys/devices/system/cpu")
+        self.authorization_denied=False
         self.path=next((p for p in (root/'intel_pstate/no_turbo', root/'cpufreq/boost') if p.is_file()), None)
         self.inverted=self.path is not None and self.path.name=='no_turbo'
+
+    def reset_authorization(self):
+        self.authorization_denied=False
 
     def read(self):
         if self.path is None:raise OSError("Le noyau n’expose aucun contrôle Turbo (intel_pstate/no_turbo ou cpufreq/boost).")
@@ -32,15 +36,22 @@ class LinuxBoostBackend:
         if type(enabled) is not bool:raise ValueError('Expected a boolean boost request')
         if self.read()==enabled:return enabled
         if not os.access(self.path,os.W_OK):
+            if self.authorization_denied:
+                raise PermissionError("Autorisation Turbo annulée. Choisir ON/OFF à nouveau pour réessayer.")
             helper=Path('/usr/libexec/novabar-boost')
             if not self.system_root or not helper.is_file():
                 raise PermissionError("Contrôle Turbo en lecture seule. Installer le composant Polkit NOVA ; NovaBar reste sans privilèges.")
             info=helper.stat()
             if info.st_uid!=0 or info.st_mode & 0o022:
                 raise PermissionError("Composant Polkit non protégé")
-            result=subprocess.run(['/usr/bin/pkexec',str(helper),'1' if enabled else '0'],
-                capture_output=True,text=True,timeout=30)
+            try:
+                result=subprocess.run(['/usr/bin/pkexec',str(helper),'1' if enabled else '0'],
+                    capture_output=True,text=True,timeout=30)
+            except subprocess.TimeoutExpired as error:
+                self.authorization_denied=True
+                raise OSError('Délai d’autorisation Turbo dépassé') from error
             if result.returncode or self.read()!=enabled:
+                self.authorization_denied=True
                 raise OSError("Autorisation Turbo refusée ou état non appliqué")
             return enabled
         self.path.write_text(('0' if enabled else '1') if self.inverted else ('1' if enabled else '0'))

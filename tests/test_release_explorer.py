@@ -13,7 +13,7 @@ class ExplorerTests(unittest.TestCase):
     def setUpClass(cls):cls.app=QApplication.instance() or QApplication([])
     def test_tabs_breadcrumbs_and_favorites(self):
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,HEALTHBAR_DATA_DIR=tmp):
-            root=Path(tmp);child=root/'folder';child.mkdir()
+            root=Path(tmp).resolve();child=root/'folder';child.mkdir()
             window=run(root,embedded=True)
             try:
                 window.add_tab(child)

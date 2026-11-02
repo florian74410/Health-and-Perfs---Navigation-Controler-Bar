@@ -139,7 +139,7 @@ class SettingsDialog(QDialog):
         general_form.addRow("Holo",self.holo_enabled)
         update_button = QPushButton("Upgrade • mise à jour automatique")
         update_button.clicked.connect(self.open_updates)
-        general_form.addRow("CYBER NEXUS HUD", update_button)
+        general_form.addRow("NOVA NEXUS HD", update_button)
         from .help_links import WIKI_URL
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl

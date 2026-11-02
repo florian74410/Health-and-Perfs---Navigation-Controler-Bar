@@ -28,13 +28,13 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
                     painter.end()
             self.drag_origin=None
             self.timer=C.QTimer(self)
-            self.timer.setInterval(50)
+            self.timer.setInterval(max(16,int(50/t['effects']['animation_speed'])))
             self.timer.timeout.connect(self.advance)
-            self.setStyleSheet('QLabel{background:transparent;border:none;color:%s;font:12px Arial;}'
+            self.setStyleSheet('QLabel{background:transparent;border:none;color:%s;font:%spx Arial;}'
                 'QPushButton{background:rgba(3,21,35,220);color:%s;border:1px solid %s;'
                 'border-radius:0px;padding:5px 11px;font:bold 11px Arial;}'
                 'QPushButton:hover{background:%s;color:#03121c;}' %
-                (t['colors']['text'],t['colors']['text'],t['colors']['primary'],t['colors']['primary']))
+                (t['colors']['text'],12*t['effects']['font_scale'],t['colors']['text'],t['colors']['primary'],t['colors']['primary']))
             root=W.QVBoxLayout(self)
             root.setContentsMargins(23,14,23,20)
             root.setSpacing(5)
@@ -119,7 +119,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             bg=G.QLinearGradient(0,0,w,h)
             for at,rgb in [(0,(12,40,58,215)),(.55,(5,19,31,238)),(1,(12,40,58,215))]:
                 r,g,b,a=rgb
-                bg.setColorAt(at,G.QColor(r,g,b,int(a*t['effects']['opacity'])))
+                bg.setColorAt(at,G.QColor(r,g,b,int(a*t['effects']['opacity']*t['effects']['glass_opacity'])))
             p.fillPath(path,bg)
             # Draw the transparent motherboard-routing asset beneath text.
             pcb=self.overlay.scaled(w,h,C.Qt.IgnoreAspectRatio,C.Qt.SmoothTransformation)
@@ -160,7 +160,7 @@ def _panel(title, message, theme=None, actions=None, dialog=False, dangerous=Fal
             x=w*self.phase
             shine=G.QLinearGradient(x-100,0,x+110,h)
             shine.setColorAt(0,G.QColor(240,250,255,0))
-            shine.setColorAt(.5,G.QColor(220,250,255,65 if motion else 30))
+            shine.setColorAt(.5,G.QColor(220,250,255,int((130 if motion else 60)*t['effects']['reflection_intensity'])))
             shine.setColorAt(1,G.QColor(240,250,255,0))
             p.fillPath(path,shine)
             p.setClipping(False)

@@ -55,6 +55,8 @@ def run(start=None, *, embedded=False):
                     alternate-background-color:rgba(20,52,70,166);}
                 QListView::item:hover,QTreeView::item:hover{background:#123A50;}
                 QHeaderView::section {background:#102D3D;color:#8FE9F6;padding:6px;border:0;}
+                QTabBar::tab {background:#102D3D;color:#D9F6FF;padding:7px 12px;border:1px solid #277FEA;}
+                QTabBar::tab:selected {background:#17526A;border-color:#00CBF3;}
                 QScrollBar:vertical {background:#081D2B;width:11px;}
                 QScrollBar::handle:vertical {background:#16718B;min-height:25px;}
                 QMenu {background:#0B2231;color:#EFFBFF;border:1px solid #00BBDD;}
@@ -160,6 +162,8 @@ def run(start=None, *, embedded=False):
             self.favorite_box=W.QVBoxLayout()
             nav.addLayout(self.favorite_box)
             favorite=W.QPushButton('★ Ajouter ce dossier aux favoris')
+            favorite.setText("★ Ajouter aux favoris")
+            favorite.setToolTip("Ajouter le dossier courant aux favoris")
             favorite.clicked.connect(self.add_favorite);nav.addWidget(favorite)
             self.refresh_favorites()
             nav.addStretch()
@@ -214,7 +218,7 @@ def run(start=None, *, embedded=False):
             body.addLayout(right,1)
             outer.addLayout(body,1)
             self.setCentralWidget(root)
-            self.statusBar().setSizeGripEnabled(False)
+            self.statusBar().setSizeGripEnabled(True)
             self.statusBar().setFixedHeight(22)
             self.statusBar().setContentsMargins(55,0,55,3)
             self.statusBar().showMessage("NOVA Explorer prêt")
@@ -328,7 +332,7 @@ def run(start=None, *, embedded=False):
             p.setPen(G.QPen(G.QColor(18,163,190,135),1))
             p.drawLine(C.QPointF(29,h-39),C.QPointF(w-29,h-39))
             p.setPen(C.Qt.NoPen)
-            p.setOpacity(theme["effects"]["pcb_visibility"])
+            p.setOpacity(theme["effects"]["pcb_visibility"]*.4)
             p.drawPixmap(C.QRect(0,0,w,h),self.pcb)
             p.setOpacity(1)
             p.setClipping(False)
@@ -428,7 +432,7 @@ def run(start=None, *, embedded=False):
             menu.exec(view.viewport().mapToGlobal(pos))
         def new_folder(self):
             name,ok=W.QInputDialog.getText(self,"NOVA / NOUVEAU DOSSIER","Nom du dossier")
-            if not ok or not name or "/" in name or name in (".","..") or chr(0) in name:
+            if not ok or not name or "/" in name or "\\" in name or name in (".","..") or chr(0) in name:
                 return
             try:(Path(self.address.text())/name).mkdir(exist_ok=False)
             except OSError as e:W.QMessageBox.warning(self,"NOVA",str(e))
@@ -437,7 +441,7 @@ def run(start=None, *, embedded=False):
             p=self.selected()
             if not p:return
             name,ok=W.QInputDialog.getText(self,"NOVA / RENOMMER","Nouveau nom",text=p.name)
-            if not ok or not name or "/" in name or name in (".","..") or chr(0) in name:return
+            if not ok or not name or "/" in name or "\\" in name or name in (".","..") or chr(0) in name:return
             dest=p.with_name(name)
             if dest.exists() or dest.is_symlink():
                 W.QMessageBox.warning(self,"NOVA","La destination existe déjà.")

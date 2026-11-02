@@ -31,6 +31,10 @@ DEFAULT_THEME: dict[str, Any] = {
         "danger": "#FF526A",
     },
     "effects": {
+        "glass_opacity": 0.96,
+        "reflection_intensity": 0.5,
+        "font_scale": 1.0,
+        "animation_speed": 1.0,
         "glow": 0.55,
         "shadow": 0.65,
         "opacity": 0.96,
@@ -49,7 +53,10 @@ _ALLOWED = {
     "notifications": set(DEFAULT_THEME["notifications"]),
     "explorer": set(DEFAULT_THEME["explorer"]),
 }
+_OPTIONAL_EFFECTS = {"glass_opacity", "reflection_intensity", "font_scale", "animation_speed"}
 _RANGES = {
+    "glass_opacity": (0.4, 1.0), "reflection_intensity": (0, 1),
+    "font_scale": (0.75, 2.0), "animation_speed": (0.25, 3.0),
     "glow": (0.0, 1.0),
     "shadow": (0.0, 1.0),
     "opacity": (0.4, 1.0),
@@ -79,6 +86,8 @@ def validate_theme(candidate: Any) -> dict[str, Any]:
     theme = deepcopy(candidate)
     for section, allowed in _ALLOWED.items():
         values = theme[section]
+        if section == "effects" and isinstance(values,dict) and set(values)<=allowed and allowed-set(values)<=_OPTIONAL_EFFECTS:
+            values = theme[section] = {**DEFAULT_THEME[section], **values}
         if not isinstance(values, dict) or set(values) != allowed:
             raise ThemeError("Invalid theme section: " + section)
         for key, value in values.items():

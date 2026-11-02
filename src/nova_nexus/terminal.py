@@ -157,7 +157,12 @@ class TerminalSession(C.QObject):
         self.reader_stop.set()
         if self.windows_pty is not None:
             process=self.windows_pty;self.windows_pty=None
-            threading.Thread(target=lambda:process.terminate(force=True),daemon=True).start()
+            def stop_windows():
+                try:process.terminate(force=True)
+                finally:
+                    process.fileobj.close()
+                    process._server.close()
+            threading.Thread(target=stop_windows,daemon=True).start()
         self.poll.stop();self.flush_timer.stop()
         if self.notifier:self.notifier.setEnabled(False)
         if self.fd is not None:
@@ -199,7 +204,9 @@ class TerminalView(W.QTextEdit):
         self.history_scrollbar=W.QScrollBar(C.Qt.Vertical,self)
         self.history_scrollbar.setObjectName('novaTerminalHistory')
         self.history_scrollbar.setAccessibleName('Historique du terminal')
-        self.history_scrollbar.setToolTip('Historique du terminal · 2 000 lignes')
+        self.history_scrollbar.setToolTip('Historique console · molette / Maj + Page ↑↓ · 2 000 lignes')
+        self.history_scrollbar.setMinimumWidth(14)
+        self.history_scrollbar.show()
         self.history_scrollbar.setStyleSheet('''
             QScrollBar:vertical{background:#071C30;border:1px solid #22657F;width:14px;margin:0;}
             QScrollBar::handle:vertical{background:#156497;border:1px solid #00CBF3;min-height:28px;}

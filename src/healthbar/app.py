@@ -204,7 +204,7 @@ class Bar(QWidget):
         self.workspace_timer.start()
         self.xfce_skin_status = "Habillage non activé"
         self.tray = QSystemTrayIcon(novabar_icon(settings.theme), self)
-        self.tray.setToolTip("NovaBar • CYBER NEXUS HUD")
+        self.tray.setToolTip("NovaBar • NOVA NEXUS HD")
         self.tray_menu = QMenu(self)
         self.tray.setContextMenu(self.tray_menu)
         self.tray.activated.connect(self.tray_activated)
@@ -994,7 +994,7 @@ class Bar(QWidget):
     def select_cpu_mode(self, mode):
         self.cpu_controller.select(mode)
         self.last_sensor_request = 0
-        self.turbo.setToolTip("Demande en cours de vérification par le noyau")
+        self.turbo.setToolTip("Authentification administrateur si nécessaire · vérification de l’état Turbo par le noyau")
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
