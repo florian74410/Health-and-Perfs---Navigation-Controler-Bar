@@ -35,3 +35,13 @@ def test_terminal_clipboard_and_interrupt_semantics():
     assert "self.session.write(data)" in terminal
     assert "self.action(edit,'Copier',lambda:self.active_view().copy())" in manager
     assert "self.action(edit,'Coller',lambda:self.active_view().paste_text())" in manager
+
+def test_scrollback_selection_snapshot():
+    terminal=source("src/nova_nexus/terminal.py")
+    assert "def begin_history_selection(self):" in terminal
+    assert "def end_history_selection(self):" in terminal
+    assert "self.setPlainText(text)" in terminal
+    assert "self.setVerticalScrollBarPolicy(C.Qt.ScrollBarAlwaysOn)" in terminal
+    assert "def mousePressEvent(self,event):" in terminal
+    assert "super().wheelEvent(event)" in terminal
+    assert "def copy_full_history(self):" in terminal
