@@ -1,0 +1,107 @@
+name: Publish NovaBar 0.6.9 verified executables
+on:
+  push:
+    branches: [fix/novabar-v069-xfce-cyber-panel]
+    paths: ['.github/workflows/publish-v069.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: novabar-v069-official
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'florian74410/Health-and-Perfs---Navigation-Controler-Bar'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify explicit publish request and version
+        run: |
+          python - <<'PY'
+          import json,tomllib
+          from pathlib import Path
+          assert tomllib.loads(Path('pyproject.toml').read_text())['project']['version']=='0.6.9'
+          assert json.loads(Path('.release/0.6.9.json').read_text())=={'tag':'v0.6.9','publish':True}
+          PY
+      - name: Download previously successful four-platform native build (run 41211208348)
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 41211208348
+          github-token: ${{ github.token }}
+          pattern: CyberNexusHUD-*
+          path: native-artifacts
+      - name: Assemble versioned installers in Executable
+        env:
+          NEXUS_BUILD_SHA: 2f2b916a41632e76ddad02465ea080129942236e
+        run: |
+          python scripts/package_executables.py native-artifacts
+          test -s Executable/Linux/NovaBar_0.6.9_amd64.deb
+          dpkg-deb --info Executable/Linux/NovaBar_0.6.9_amd64.deb
+          sh Executable/Linux/CyberNexusHUD-Linux-x86_64.run --check
+          python - <<'PY'
+          import json, pathlib, hashlib
+          p=pathlib.Path('Executable')
+          j=json.loads((p/'manifest.json').read_text())
+          assert j['version']=='0.6.9'
+          for name,details in j['files'].items():
+              data=(p/name).read_bytes()
+              assert hashlib.sha256(data).hexdigest()==details['sha256'] and len(data)==details['bytes']
+          PY
+      - name: Collect native packages and runtime update manifests
+        run: |
+          mkdir -p release
+          cp Executable/Linux/NovaBar_0.6.9_amd64.deb Executable/Linux/NovaBar_0.6.9_x86_64.flatpak Executable/Linux/CyberNexusHUD-Linux-x86_64.run release/
+          cp Executable/Windows/CyberNexusHUD-Setup-Windows.exe release/
+          cp Executable/MacOS/CyberNexusHUD-macOS-arm64.dmg Executable/MacOS/CyberNexusHUD-macOS-x86_64.dmg release/
+          find native-artifacts -type f -name 'CyberNexusHUD-*.tar.xz' -exec cp -t release/ {} +
+          find native-artifacts -type f -name 'NovaBar-runtime-*.zip' -exec cp {} release/ \;
+          find native-artifacts -type f -name '*-v*.zip' -exec cp {} release/ \;
+          find native-artifacts -type f -name 'NovaBarDownloader-*' -exec cp {} release/ \;
+          python scripts/release_manifest.py v0.6.9
+          cd release && sha256sum * > SHA256SUMS
+      - name: Publish GitHub Release v0.6.9
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.6.9 >/dev/null 2>&1; then
+            gh release upload v0.6.9 release/* --clobber
+          else
+            gh release create v0.6.9 release/* --target "$GITHUB_SHA" --title 'NovaBar 0.6.9 — CYBER NEXUS HUD' --notes-file docs/UPDATE_V069.md --latest
+          fi
+      - name: Publish Executable folder on development branch and main
+        run: |
+          git config user.name 'CYBER NEXUS HUD Build Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          export_dir=$(mktemp -d)
+          cp -a Executable "$export_dir/Executable"
+          mkdir -p "$export_dir/docs/wiki" "$export_dir/Documentation"
+          cp README.md "$export_dir/README.md"
+          cp Documentation/README.md "$export_dir/Documentation/README.md"
+          cp docs/UPDATE_V069.md docs/INSTALLATION.md "$export_dir/docs/"
+          cp docs/wiki/Docks.md docs/wiki/XFCE-Cyber-Skin.md "$export_dir/docs/wiki/"
+          git fetch origin fix/novabar-v069-xfce-cyber-panel
+          git switch --detach FETCH_HEAD
+          cp -a "$export_dir/Executable/." Executable/
+          git add -f Executable
+          if ! git diff --cached --quiet; then
+            git commit -m 'build(v0.6.9): publish native installers in Executable [skip ci]'
+            git push origin HEAD:fix/novabar-v069-xfce-cyber-panel
+          fi
+          git fetch origin main
+          git switch --detach origin/main
+          mkdir -p Executable Documentation docs/wiki
+          cp -a "$export_dir/Executable/." Executable/
+          cp "$export_dir/README.md" README.md
+          cp "$export_dir/Documentation/README.md" Documentation/README.md
+          cp "$export_dir/docs/UPDATE_V069.md" "$export_dir/docs/INSTALLATION.md" docs/
+          cp "$export_dir/docs/wiki/Docks.md" "$export_dir/docs/wiki/XFCE-Cyber-Skin.md" docs/wiki/
+          git add -f Executable README.md Documentation/README.md docs/UPDATE_V069.md docs/INSTALLATION.md docs/wiki/Docks.md docs/wiki/XFCE-Cyber-Skin.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'release(v0.6.9): official executables and updated documentation [skip ci]'
+            git push origin HEAD:main
+          fi

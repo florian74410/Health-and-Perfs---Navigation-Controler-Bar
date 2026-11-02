@@ -1,0 +1,29 @@
+#!/usr/bin/python3 -I
+"""Root-owned Polkit helper. Only the kernel boost boolean may be modified."""
+import os
+from pathlib import Path
+import sys
+
+
+def main():
+    if os.geteuid() != 0 or len(sys.argv) != 2 or sys.argv[1] not in ('0', '1'):
+        raise SystemExit('Expected privileged boost request: 0 or 1')
+    enabled = sys.argv[1] == '1'
+    candidates = (('/sys/devices/system/cpu/intel_pstate/no_turbo', True),
+                  ('/sys/devices/system/cpu/cpufreq/boost', False))
+    for name, inverted in candidates:
+        path = Path(name)
+        if not path.is_file(): continue
+        desired = ('0' if enabled else '1') if inverted else sys.argv[1]
+        # sysfs attributes must resolve within the CPU kernel subtree.
+        if not path.resolve().is_relative_to(Path('/sys/devices/system/cpu')):
+            raise SystemExit('Unexpected kernel attribute')
+        if path.read_text().strip() not in ('0', '1'): raise SystemExit('Unknown boost state')
+        path.write_text(desired)
+        if path.read_text().strip() != desired: raise SystemExit('Kernel refused boost request')
+        print('1' if enabled else '0')
+        return
+    raise SystemExit('No supported kernel boost control')
+
+
+if __name__ == '__main__': main()

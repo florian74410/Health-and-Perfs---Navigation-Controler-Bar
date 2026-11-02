@@ -1,3 +1,13 @@
+# Cyber-Neon Interactif – THEME 1.0
+
+**NOVA NEXUS HD** est la marque affichée du thème ; **NovaBar** reste le nom de l’application. Crédits : **0verF1ow & La Puce**.
+
+Chantier 1.0 : [fonctionnalités, utilisation et limites de la préversion](docs/NOVA_V100_RELEASE_STATUS.md). [Builds natifs](Builds/v1.0.0/README.md) · [Patch vers 1.0](Patch/to-v1.0.0/README.md).
+
+Les anciennes versions et captures ci-dessous documentent l’historique. Elles ne prouvent pas la validation de la préversion 1.0.
+
+---
+
 # ⚡ NovaBar — NOVA NEXUS HD
 
 ## NOVA NEXUS HD 0.7.5

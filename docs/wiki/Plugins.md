@@ -60,3 +60,7 @@ Ce fichier exemple représente des métadonnées déclaratives, **pas** un scrip
 ---
 
 <sub>⚡ NovaBar • CYBER NEXUS HUD · Les illustrations sont documentaires, les fonctions non livrées sont signalées.</sub>
+
+## Plugins Next 0.5
+
+CPU Manager/Viewer 2.1.0 et les six autres ZIP 1.1.0 déclarent le kit Holo partagé. Les anciens ZIP restent lisibles ; leurs versions et activations sont conservées. Les Holo GPU, FANS, NETWORK, SSD, RAM et CPU utilisent les données du collecteur natif : le logo en haut à droite ouvre le panneau au clic uniquement. Le contrôle CPU Mode appartient au service de l’hôte et n’exécute pas de code fourni par le ZIP.

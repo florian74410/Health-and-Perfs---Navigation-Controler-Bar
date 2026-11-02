@@ -1,0 +1,48 @@
+{
+  "release_tag": "v1.0.0-rc.149",
+  "source_commit": "cd8462b45c34839326cb97f8461648a67cc42d93",
+  "assets": [
+    {
+      "name": "CyberNexusHUD-Bazzite-x86_64.tar.xz",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-Bazzite-x86_64.tar.xz",
+      "size": 131211660,
+      "sha256": "51ae844c69b0f60f4feff4058c8049de1d2e4db6b5aabe558a123dcb0ee2eb8f"
+    },
+    {
+      "name": "CyberNexusHUD-Linux-x86_64.run",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-Linux-x86_64.run",
+      "size": 75178143,
+      "sha256": "af6d94290474939c2eb4ce6bb952ec7ef9f6472efef2c6fa3e2efb953bd1b821"
+    },
+    {
+      "name": "CyberNexusHUD-Linux-x86_64.tar.xz",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-Linux-x86_64.tar.xz",
+      "size": 131211660,
+      "sha256": "51ae844c69b0f60f4feff4058c8049de1d2e4db6b5aabe558a123dcb0ee2eb8f"
+    },
+    {
+      "name": "NovaBar-runtime-linux-x86_64.zip",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-linux-x86_64.zip",
+      "size": 74728375,
+      "sha256": "0e41a466f4a3e80fc9b5f8d1659d244b05d7fd3bcb841fe60fcc4321fe8c854a"
+    },
+    {
+      "name": "NovaBarDownloader-linux-x86_64",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBarDownloader-linux-x86_64",
+      "size": 74308520,
+      "sha256": "461355e0f82e2972164465b9bf924a1deb71f4ee8389e36d8726945777539ec1"
+    },
+    {
+      "name": "NovaBar_1.0.0_amd64.deb",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar_1.0.0_amd64.deb",
+      "size": 59279380,
+      "sha256": "2aadc4c5f59c7ac75ba3d9b3bcfe8cb466356249e360e1d5644b195a97ccfc95"
+    },
+    {
+      "name": "NovaBar_1.0.0_x86_64.flatpak",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar_1.0.0_x86_64.flatpak",
+      "size": 54044896,
+      "sha256": "9367a90f779f19b13b54802a1fee0c6384ce0acba5b2488db8b3b5f6e5541490"
+    }
+  ]
+}

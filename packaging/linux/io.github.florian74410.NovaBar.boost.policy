@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>NOVA NEXUS HD</vendor>
+  <action id="io.github.florian74410.NovaBar.boost">
+    <description>Change CPU Turbo boost</description>
+    <message>Authorize NOVA to change the kernel CPU boost switch</message>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/novabar-boost</annotate>
+  </action>
+</policyconfig>

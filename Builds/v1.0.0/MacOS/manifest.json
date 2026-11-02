@@ -1,0 +1,42 @@
+{
+  "release_tag": "v1.0.0-rc.149",
+  "source_commit": "cd8462b45c34839326cb97f8461648a67cc42d93",
+  "assets": [
+    {
+      "name": "CyberNexusHUD-macOS-arm64.dmg",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-macOS-arm64.dmg",
+      "size": 68603072,
+      "sha256": "ea8c86b66bec302a8a331806bc33238464676b605d92a8efbf1ab500530ddc72"
+    },
+    {
+      "name": "CyberNexusHUD-macOS-x86_64.dmg",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/CyberNexusHUD-macOS-x86_64.dmg",
+      "size": 74561310,
+      "sha256": "ac656a4060331fca81e713e08ea3ffa0eb5e5f1c4dc1fd2ee11212cd79dfeda2"
+    },
+    {
+      "name": "NovaBar-runtime-macos-arm64.zip",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-macos-arm64.zip",
+      "size": 33475013,
+      "sha256": "d3b60df3ae8e9743065180f547b004850ed3e4bd7102880687432b5804eefdc5"
+    },
+    {
+      "name": "NovaBar-runtime-macos-x86_64.zip",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-macos-x86_64.zip",
+      "size": 36268489,
+      "sha256": "b673a4ae0349be86a257d995d49ff04bca1020b3abd4aa415ed63ce0e2c9518d"
+    },
+    {
+      "name": "NovaBarDownloader-macos-arm64",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBarDownloader-macos-arm64",
+      "size": 32895968,
+      "sha256": "7273199dafc33d9149ec4928f2f3adfe83a1e26eef6cee9cf426b88957d10c9e"
+    },
+    {
+      "name": "NovaBarDownloader-macos-x86_64",
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBarDownloader-macos-x86_64",
+      "size": 35617984,
+      "sha256": "46ca64499c7b9ad660512df8baba76d2202d711ecd584c91533aee6163feb8ca"
+    }
+  ]
+}

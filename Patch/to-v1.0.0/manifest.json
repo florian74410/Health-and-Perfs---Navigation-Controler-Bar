@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "version": "1.0.0",
+  "platforms": {
+    "linux-x86_64": {
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-linux-x86_64.zip",
+      "sha256": "0e41a466f4a3e80fc9b5f8d1659d244b05d7fd3bcb841fe60fcc4321fe8c854a",
+      "size": 74728375,
+      "type": "full-runtime"
+    },
+    "macos-arm64": {
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-macos-arm64.zip",
+      "sha256": "d3b60df3ae8e9743065180f547b004850ed3e4bd7102880687432b5804eefdc5",
+      "size": 33475013,
+      "type": "full-runtime"
+    },
+    "windows-x86_64": {
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-windows-x86_64.zip",
+      "sha256": "9cbd8ee9cf496dd18b18d381782f8e5e8a7f9875c31c8c450c8f442071b49abb",
+      "size": 44977742,
+      "type": "full-runtime"
+    },
+    "macos-x86_64": {
+      "url": "https://github.com/florian74410/Health-and-Perfs---Navigation-Controler-Bar/releases/download/v1.0.0-rc.149/NovaBar-runtime-macos-x86_64.zip",
+      "sha256": "b673a4ae0349be86a257d995d49ff04bca1020b3abd4aa415ed63ce0e2c9518d",
+      "size": 36268489,
+      "type": "full-runtime"
+    }
+  },
+  "project": "Cyber-Neon Interactif – THEME 1.0",
+  "brand": "NOVA NEXUS HD",
+  "application": "NovaBar",
+  "release_tag": "v1.0.0-rc.149",
+  "type": "full-runtime",
+  "source_min": "0.7.0",
+  "source_max_exclusive": "1.0.0",
+  "rollback": "Retain previous runtime and snapshot of settings, profiles and plugins",
+  "trust": "Official repository over HTTPS; SHA-256 integrity. No independent manifest signing key configured."
+}
