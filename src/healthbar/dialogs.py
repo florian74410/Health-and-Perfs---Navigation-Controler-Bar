@@ -1,10 +1,13 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
-    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit)
+    QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea, QColorDialog)
 from . import __version__
 from .autostart import set_enabled
 from .plugins import PluginRegistry
+from .module_preferences import load as load_module_prefs, save as save_module_prefs, FIELDS, MODULES
+from .theme_overrides import load as load_theme_overrides, save as save_theme_overrides
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
@@ -25,10 +28,28 @@ QCheckBox { spacing: 12px; }
 """
 
 
+
+_catalog_workers = set()  # Keep nonblocking workers alive if settings closes.
+
+class CatalogReader(QThread):
+    finished_catalog = Signal(object, object)
+    def run(self):
+        from .plugin_sources import SourceStore, fetch_catalog
+        try:
+            rows, errors = fetch_catalog(SourceStore().load())
+            self.finished_catalog.emit(rows, errors)
+        except (OSError, ValueError, TypeError) as exc:
+            self.finished_catalog.emit({}, [str(exc)])
+
+
+
 class SettingsDialog(QDialog):
     def __init__(self, settings, screens, first_run=False, parent=None):
         super().__init__(parent)
         self.settings = settings
+        self.module_prefs = load_module_prefs()
+        self.pending_theme_colors = load_theme_overrides()
+        self.module_controls = {}
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
         from .ui_kit import stylesheet
         self.setStyleSheet(stylesheet(STYLE))
@@ -280,10 +301,180 @@ class SettingsDialog(QDialog):
         xfce_layout.addWidget(xfce_note)
         xfce_layout.addStretch()
         tabs.addTab(xfce_tab, "XFCE Cyber")
-        for name, widget in (("Générale", general), ("Affichage", display),
-                              ("Édition", edit), ("Extensions", extensions), ("Aide", help_tab)):
-            tabs.addTab(widget, name)
-        box.addWidget(tabs, 1)
+        # One logical General page; no separate legacy Édition/Docks tabs.
+        # Reparent the existing form widgets rather than recreating their controls.
+        while tabs.count():
+            tabs.removeTab(0)
+        general_all = QWidget()
+        general_all_box = QVBoxLayout(general_all)
+        general_all_box.addWidget(QLabel("GÉNÉRALE  /  COMPORTEMENT"))
+        for heading, section in (
+            ("Démarrage et actualisation", general),
+            ("Position, dimensions et affichage", display),
+            ("Édition de l'affichage", edit),
+            ("Barres, docks et rétraction", docks),
+            ("Habillage du panneau XFCE", xfce_tab)):
+            general_all_box.addWidget(QLabel("◈  " + heading))
+            general_all_box.addWidget(section)
+        general_all_box.addStretch()
+        general_scroll = QScrollArea()
+        general_scroll.setWidgetResizable(True)
+        general_scroll.setWidget(general_all)
+        # Plugin manager remains the existing secure GitHub ZIP catalogue.
+        # Existing ext_layout already owns the window; append a clear source action.
+        sources_button = QPushButton("⌁ Sources GitHub / Plugins")
+        sources_button.clicked.connect(lambda: PluginsDialog(PluginRegistry(), self).exec())
+        ext_layout.addWidget(sources_button)
+        # CPU gets its own controls without duplicating telemetry collectors.
+        cpu_page = QWidget()
+        cpu_box = QVBoxLayout(cpu_page)
+        cpu_box.addWidget(QLabel("CPU  /  HOLOGRAMME ET COLLECTE"))
+        cpu_box.addWidget(QLabel("La fréquence est partagée par les capteurs; pas de timer CPU supplémentaire."))
+        cpu_box.addWidget(QLabel("Taux de rafraîchissement CPU (secondes)"))
+        self.cpu_refresh_control = QSpinBox()
+        self.cpu_refresh_control.setRange(1, 30)
+        self.cpu_refresh_control.setSuffix(" s")
+        self.cpu_refresh_control.setValue(settings.refresh_seconds)
+        self.cpu_refresh_control.valueChanged.connect(self.refresh_seconds.setValue)
+        self.refresh_seconds.valueChanged.connect(self.cpu_refresh_control.setValue)
+        cpu_box.addWidget(self.cpu_refresh_control)
+        self.cpu_holo_control = QCheckBox("Activer le Holo Mode des modules")
+        self.cpu_holo_control.setChecked(settings.holo_enabled)
+        self.cpu_holo_control.toggled.connect(self.holo_enabled.setChecked)
+        self.holo_enabled.toggled.connect(self.cpu_holo_control.setChecked)
+        cpu_box.addWidget(self.cpu_holo_control)
+        cpu_box.addWidget(QLabel("Un clic sur toute la surface du module ouvre son Holo Mode."))
+        cpu_box.addStretch()
+        updates_page = QWidget()
+        updates_box = QVBoxLayout(updates_page)
+        updates_box.addWidget(QLabel("MISE À JOUR  /  NOVABAR"))
+        update_action = QPushButton("↻ Vérifier et installer une mise à jour")
+        update_action.clicked.connect(self.open_updates)
+        updates_box.addWidget(update_action)
+        updates_box.addStretch()
+        # Preserve the existing functional module enable/disable controls.
+        ext_layout.addWidget(QLabel("MODULES INSTALLÉS  /  VISIBILITÉ"))
+        for slot, control in self.module_checks.items():
+            control.setParent(extensions)
+            ext_layout.addWidget(control)
+        ext_layout.addWidget(QLabel("Les plugins ZIP peuvent être activés ou désactivés dans le gestionnaire."))
+        ext_layout.addWidget(QLabel("EXTENSIONS DISPONIBLES / GITHUB"))
+        self.catalog_list = QListWidget()
+        self.catalog_list.setMinimumHeight(130)
+        ext_layout.addWidget(self.catalog_list)
+        refresh_catalog_button = QPushButton("↻ Actualiser le catalogue GitHub")
+        refresh_catalog_button.clicked.connect(self.reload_catalog)
+        ext_layout.addWidget(refresh_catalog_button)
+        self.catalog_worker = None
+
+        about = QWidget()
+        about_layout = QVBoxLayout(about)
+        about_layout.addWidget(QLabel("NOVA NEXUS HD  /  WIKI ET AIDE"))
+        about_layout.addWidget(wiki)
+        about_layout.addWidget(help_tab)
+        about_layout.addStretch()
+        # Visual settings: reuse native theme presets, preview colours without
+        # altering the active desktop until the user explicitly applies a preset.
+        colors_page = QWidget()
+        colors_box = QVBoxLayout(colors_page)
+        colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
+        colors_box.addWidget(QLabel("Sélectionnez la palette dans Générale. Aperçu de son rendu et de ses accents."))
+        colors_box.addWidget(QLabel("Le design original 0.6.11 reste actif ; seul son thème change."))
+        from .cockpit_style import PALETTES
+        self.palette_preview = QLabel()
+        self.palette_preview.setMinimumHeight(68)
+        colors_box.addWidget(self.palette_preview)
+        def update_palette_preview():
+            name=self.theme.currentData()
+            colors=PALETTES.get(name, PALETTES.get('blue-neon', ('#00d9ff','#1860ff','#061020')))
+            custom=self.pending_theme_colors.get(name,{})
+            primary=custom.get('primary',colors[0])
+            secondary=custom.get('secondary',colors[1])
+            background=custom.get('background','#061224')
+            self.palette_preview.setText("   PCB   /   " + name.upper() + "   ·   " + primary + "  " + secondary)
+            self.palette_preview.setStyleSheet(
+                "color:"+primary+"; background:"+background+
+                ";border:2px solid "+secondary+";font-weight:700;")
+        self.theme.currentIndexChanged.connect(update_palette_preview)
+        palette_select = QComboBox()
+        for index in range(self.theme.count()):
+            palette_select.addItem(self.theme.itemText(index), self.theme.itemData(index))
+        palette_select.setCurrentIndex(self.theme.currentIndex())
+        palette_select.currentIndexChanged.connect(self.theme.setCurrentIndex)
+        self.theme.currentIndexChanged.connect(palette_select.setCurrentIndex)
+        colors_box.insertWidget(2, palette_select)
+        for key,label in (("primary","Néon principal"),
+                          ("secondary","Néon secondaire"),
+                          ("background","Verre / fond")):
+            picker=QPushButton("◈  Choisir : "+label)
+            def choose_color(checked=False, part=key):
+                theme_name=self.theme.currentData()
+                preset=PALETTES.get(theme_name,PALETTES["blue-neon"])
+                fallbacks={"primary":preset[0],"secondary":preset[1],"background":"#061224"}
+                initial=self.pending_theme_colors.get(theme_name,{}).get(part,fallbacks[part])
+                chosen=QColorDialog.getColor(QColor(initial),self,"NOVA / "+part)
+                if chosen.isValid():
+                    self.pending_theme_colors.setdefault(theme_name,{})[part]=chosen.name().upper()
+                    update_palette_preview()
+            picker.clicked.connect(choose_color)
+            colors_box.addWidget(picker)
+        reset_palette=QPushButton("↺  Restaurer les couleurs d'origine de cette palette")
+        def reset_palette_colors():
+            self.pending_theme_colors.pop(self.theme.currentData(),None)
+            update_palette_preview()
+        reset_palette.clicked.connect(reset_palette_colors)
+        colors_box.addWidget(reset_palette)
+        update_palette_preview()
+        colors_box.addWidget(QLabel("Palettes existantes conservées : bleu, Matrix, rouge, cyber-futuriste."))
+        colors_box.addStretch()
+        # Per-plugin configuration. The shared collector provides cached
+        # values; this page does not create any additional acquisition timers.
+        for module in MODULES:
+            page = QWidget()
+            form_plugin = QVBoxLayout(page)
+            form_plugin.addWidget(QLabel(module.upper() + " / HOLOGRAMME"))
+            rate = QSpinBox()
+            rate.setRange(1,60)
+            rate.setSuffix(" s")
+            rate.setValue(self.module_prefs[module]["refresh_seconds"])
+            form_plugin.addWidget(QLabel("Fraîcheur souhaitée des données"))
+            form_plugin.addWidget(rate)
+            holo = QCheckBox("Autoriser le mode Holo")
+            holo.setChecked(self.module_prefs[module]["holo_enabled"])
+            form_plugin.addWidget(holo)
+            details={}
+            form_plugin.addWidget(QLabel("Détails à afficher dans l'Holo :"))
+            for field_name in FIELDS[module]:
+                check = QCheckBox(field_name.replace("_"," ").capitalize())
+                check.setChecked(field_name in self.module_prefs[module]["details"])
+                details[field_name]=check
+                form_plugin.addWidget(check)
+            form_plugin.addStretch()
+            self.module_controls[module]=(rate,holo,details)
+            self.plugin_pages = getattr(self, 'plugin_pages', {})
+            self.plugin_pages[module] = page
+        tabs.addTab(general_scroll, "Générale")
+        tabs.addTab(colors_page, "Thèmes & Couleurs")
+        tabs.addTab(extensions, "Extensions")
+        tabs.addTab(cpu_page, "CPU")
+        tabs.addTab(updates_page, "Mise à jour")
+        tabs.addTab(about, "À propos")
+        for module in MODULES:
+            tabs.addTab(self.plugin_pages[module], module.upper())
+        tabs.tabBar().hide()
+        nav = QListWidget()
+        nav.setObjectName("settingsNavigation")
+        nav.setFixedWidth(190)
+        for name in ("GÉNÉRALE", "THÈMES & COULEURS", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
+            nav.addItem(name)
+        for name in MODULES:
+            nav.addItem("↳ " + name.upper())
+        nav.currentRowChanged.connect(tabs.setCurrentIndex)
+        nav.setCurrentRow(0)
+        split = QHBoxLayout()
+        split.addWidget(nav)
+        split.addWidget(tabs, 1)
+        box.addLayout(split, 1)
         note = QLabel("Mesures locales : — indique un capteur indisponible.\nPriorité d’affichage limitée par le système et son compositeur.")
         note.setWordWrap(True)
         box.addWidget(note)
@@ -293,6 +484,32 @@ class SettingsDialog(QDialog):
         buttons.accepted.connect(self.save)
         buttons.rejected.connect(self.reject)
         box.addWidget(buttons)
+
+    def reload_catalog(self):
+        if self.catalog_worker is not None and self.catalog_worker.isRunning():
+            return
+        self.catalog_list.clear()
+        self.catalog_list.addItem("Connexion aux sources GitHub…")
+        worker = CatalogReader()
+        _catalog_workers.add(worker)
+        self.catalog_worker = worker
+        worker.finished_catalog.connect(self.show_catalog)
+        def release_worker():
+            _catalog_workers.discard(worker)
+            if self.catalog_worker is worker:
+                self.catalog_worker = None
+            worker.deleteLater()
+        worker.finished.connect(release_worker)
+        worker.start()
+
+    def show_catalog(self, entries, errors):
+        self.catalog_list.clear()
+        for item in sorted(entries.values(), key=lambda obj:obj["id"]):
+            self.catalog_list.addItem(item["id"]+"  ·  v"+item["version"]+"  ·  "+item["source"])
+        for message in errors:
+            self.catalog_list.addItem("⚠ "+str(message))
+        if not entries and not errors:
+            self.catalog_list.addItem("Aucune extension disponible")
 
     def open_updates(self):
         from .updates import UpdateDialog
@@ -378,6 +595,18 @@ class SettingsDialog(QDialog):
             updated.save()
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Enregistrement impossible", str(error))
+            return
+        for module,(rate,holo,fields) in self.module_controls.items():
+            self.module_prefs[module] = {
+                "refresh_seconds":rate.value(),
+                "holo_enabled":holo.isChecked(),
+                "details":[key for key,control in fields.items() if control.isChecked()]
+            }
+        try:
+            save_module_prefs(self.module_prefs)
+            save_theme_overrides(self.pending_theme_colors)
+        except OSError as error:
+            QMessageBox.warning(self, "Préférences des modules", str(error))
             return
         self.settings.__dict__.update(updated.__dict__)
         self.accept()

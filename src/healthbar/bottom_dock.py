@@ -98,7 +98,7 @@ class BottomDock(QWidget):
         self.hide_timer=QTimer(self);self.hide_timer.setSingleShot(True);self.hide_timer.timeout.connect(self.collapse)
         self.timer=QTimer(self);self.timer.setInterval(120);self.timer.timeout.connect(self.check_pointer);self.timer.start()
         self.tasks_timer=QTimer(self);self.tasks_timer.setInterval(1000);self.tasks_timer.timeout.connect(self.refresh);self.tasks_timer.start()
-        self.fx_timer=QTimer(self);self.fx_timer.setInterval(160);self.fx_timer.timeout.connect(self.animate);self.fx_timer.start()
+        self.fx_timer=QTimer(self);self.fx_timer.setInterval(160);self.fx_timer.timeout.connect(self.animate)
         self.body.regions=self.housing_regions
         self.apply_settings(settings);self.refresh()
         QTimer.singleShot(0,self.refresh)
@@ -148,14 +148,17 @@ class BottomDock(QWidget):
 
     def expand(self):
         self.collapsed=False;self.setGeometry(self.full_rect);self.show();self.raise_();self.hide_timer.stop()
+        self.tasks_timer.setInterval(1000)
+        if not self.fx_timer.isActive():self.fx_timer.start()
     def collapse(self):
         if QApplication.activePopupWidget() is not None or any(r.get('_menu_open') for r in self._sni_rows):self.hide_timer.start();return
         self.collapsed=True;self.hide();self.fx_timer.stop()
+        self.tasks_timer.setInterval(5000)
     def check_pointer(self):
         if not self.full_rect.isValid():return
         point=QCursor.pos()
         if self.collapsed:
-            if QRect(self.full_rect.left(),self.full_rect.bottom()-9,self.full_rect.width(),10).contains(point):self.expand();self.fx_timer.start()
+            if QRect(self.full_rect.left(),self.full_rect.bottom()-9,self.full_rect.width(),10).contains(point):self.expand()
         elif self.geometry().contains(point) or QApplication.activePopupWidget() is not None or any(r.get('_menu_open') for r in self._sni_rows):self.hide_timer.stop()
         elif not self.hide_timer.isActive():self.hide_timer.start()
 

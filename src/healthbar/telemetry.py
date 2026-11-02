@@ -75,8 +75,20 @@ class Telemetry:
         self.ping = PingProbe()
         self.package_power = PackagePower()
         self.cpu_model = cpu_identity()
+        # Cache expensive hardware/backend probes between shared sampling passes.
+        self.module_intervals = {'gpu': 3, 'fans': 5, 'power': 5}
+        self._last_probes = {}
+        self._probe_cache = {}
         if psutil:
             psutil.cpu_percent(interval=None)
+
+    def _cached_probe(self, name, get_value, now):
+        interval = max(1, min(60, int(self.module_intervals.get(name, 5))))
+        if name not in self._probe_cache or now-self._last_probes.get(name, 0) >= interval:
+            result = get_value()
+            self._probe_cache[name] = result
+            self._last_probes[name] = now
+        return self._probe_cache[name]
 
     def sample(self):
         keys = ("cpu_percent", "cpu_frequency_ghz", "cpu_frequency_max_ghz",
@@ -91,10 +103,10 @@ class Telemetry:
         data["fans"] = []
         data["cpu_cores"] = []
         # Unsupported readings stay None; wall power is never estimated from TDP.
-        data.update(power_sensor_snapshot())
+        now = time.monotonic()
+        data.update(self._cached_probe("power", power_sensor_snapshot, now))
         if psutil is None:
             return data
-        now = time.monotonic()
         # Network acquisition is independent of CPU/sensor failures.
         data.update(self.network.sample(psutil, now))
         data.update(self.ping.sample(now))
@@ -110,7 +122,7 @@ class Telemetry:
                 data["cpu_frequency_ghz"] = round(freq.current/1000, 2)
                 data["cpu_frequency_max_ghz"] = round(freq.max/1000, 2) if freq.max else None
             data["cpu_temperature_c"] = cpu_temperature()
-            data["fans"] = list_fans()
+            data["fans"] = self._cached_probe("fans", list_fans, now)
             mem = psutil.virtual_memory()
             data.update(ram_percent=mem.percent, ram_used_gb=mem.used/2**30,
                         ram_available_gb=mem.available/2**30, ram_total_gb=mem.total/2**30)
@@ -129,5 +141,5 @@ class Telemetry:
             self.last_at = now
         except (OSError, RuntimeError, ValueError):
             pass
-        data.update(nvidia_gpu())
+        data.update(self._cached_probe("gpu", nvidia_gpu, now))
         return data

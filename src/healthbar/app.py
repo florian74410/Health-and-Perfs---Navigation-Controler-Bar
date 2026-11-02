@@ -18,7 +18,7 @@ from .dialogs import SettingsDialog, PluginsDialog, STYLE
 from .plugins import PluginRegistry
 from .hud import HudCanvas
 from .holo import CpuHoloPanel
-from .telemetry import Telemetry
+from .shared_telemetry import SharedTelemetry
 from .help_links import WIKI_URL
 from .edge_docks import EdgeDock
 from .app_icon import novabar_icon
@@ -223,7 +223,7 @@ class Bar(QWidget):
         self.module_holos = {slot: SensorHoloPanel(slot, self) for slot in SensorHoloPanel.FIELDS}
         for panel in [self.holo,*self.module_holos.values()]:
             panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,settings.always_on_top)
-        self.sensors = Telemetry()
+        self.sensors = SharedTelemetry()
         self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
         self.sensor_future = None
         self.last_sensor_request = 0.0
@@ -566,7 +566,10 @@ class Bar(QWidget):
                 pass
             self.sensor_future = None
         now = time.monotonic()
-        if self.sensor_future is None and now - self.last_sensor_request >= (min(1,self.settings.refresh_seconds) if self.cpu_controller.mode=="auto" else self.settings.refresh_seconds):
+        interval = min(self.settings.refresh_seconds, self.sensors.interval())
+        if self.cpu_controller.mode == "auto":
+            interval = min(interval, 1)
+        if self.sensor_future is None and now - self.last_sensor_request >= interval:
             self.last_sensor_request = now
             self.sensor_future = self.sensor_worker.submit(self.sample_sensors)
 
@@ -599,6 +602,7 @@ class Bar(QWidget):
     def open_module_holo(self, slot):
         # The host supplies the CPU hologram; ZIP modules only declare capabilities.
         if not self.settings.holo_enabled: return
+        if not self.sensors.prefs.get(slot, {}).get('holo_enabled', True): return
         for kind, other in self.module_holos.items():
             if kind != slot: other.close_panel()
         if slot != "cpu": self.holo.close_panel()
@@ -807,6 +811,7 @@ class Bar(QWidget):
                 panel.close_panel()
         self.retracted = True
         self._edge_armed = False
+        self._top_edge_entered_at = None
         self.actions.hide()
         self.root.setSpacing(0)
         self.canvas.update()
@@ -835,10 +840,26 @@ class Bar(QWidget):
         self.arm_hide()
 
     def check_edge(self):
-        if self.retracted:
-            if not self.geometry().contains(QCursor.pos()):
-                self._edge_armed = True
-            elif self._edge_armed:
+        if not self.retracted:
+            self._top_edge_entered_at = None
+            return
+        bounds = self.full_rect
+        pointer = QCursor.pos()
+        if self.settings.position == 'top':
+            edge = QRect(bounds.left(), bounds.top(), bounds.width(), 10)
+        elif self.settings.position == 'bottom':
+            edge = QRect(bounds.left(), bounds.bottom()-9, bounds.width(), 10)
+        else:
+            edge = self.geometry()
+        if not edge.contains(pointer):
+            self._top_edge_entered_at = None
+            self._edge_armed = True
+        elif self._edge_armed:
+            now = time.monotonic()
+            if getattr(self, '_top_edge_entered_at', None) is None:
+                self._top_edge_entered_at = now
+            elif now - self._top_edge_entered_at >= 1.0:
+                self._top_edge_entered_at = None
                 self.reveal()
 
     def toggle_expand(self):
@@ -859,6 +880,12 @@ class Bar(QWidget):
             self.holo.close_panel()
         if self.run_dialog(SettingsDialog(self.settings, QApplication.screens(),
                                           parent=self if self.isVisible() else None)) == QDialog.DialogCode.Accepted:
+            self.sensors.reload_preferences()
+            for slot, panel in self.module_holos.items():
+                panel.detail_fields = set(self.sensors.prefs[slot]["details"])
+                if panel.isVisible():
+                    panel.set_telemetry(self.canvas.readings or {})
+            self.last_sensor_request = 0.0
             self.apply_settings()
             self.setVisible(self.settings.hud_enabled)
             from .ui_kit import stylesheet

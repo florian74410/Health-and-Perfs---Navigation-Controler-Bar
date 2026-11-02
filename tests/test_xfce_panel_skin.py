@@ -139,7 +139,7 @@ class NativePanelSkinTests(unittest.TestCase):
         dialog = SettingsDialog(settings, self.app.screens())
         try:
             tabs = dialog.findChild(QTabWidget)
-            self.assertIn("XFCE Cyber", [tabs.tabText(i) for i in range(tabs.count())])
+            self.assertIn("Générale", [tabs.tabText(i) for i in range(tabs.count())])  # XFCE options grouped into General
             self.assertTrue(dialog.xfce_skin_enabled.isChecked())
             self.assertEqual(dialog.xfce_skin_fx_intensity.value(), 72)
             self.assertEqual(dialog.xfce_skin_delay_seconds.value(), 10)
