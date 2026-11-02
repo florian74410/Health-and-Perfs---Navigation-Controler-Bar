@@ -14,6 +14,9 @@ common=[sys.executable,"-m","PyInstaller","--noconfirm","--clean","--windowed",
         "--paths",str(root/"src"),"--add-data",str(root/"src/healthbar/assets")+os.pathsep+"healthbar/assets"]
 if sys.platform == "win32":
     common += ["--icon", str(windows_icon)]
+elif sys.platform.startswith("linux"):
+    # Must execute before Qt/GIO loads, in all frozen entrypoints.
+    common += ["--runtime-hook", str(root/"scripts/runtime_linux_gio.py")]
 # Some managed Python distributions load a companion CA policy file from ssl.py.
 # Preserve that trust policy when freezing; normal CPython needs no extra file.
 import ssl
