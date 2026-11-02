@@ -18,7 +18,7 @@ from .dialogs import SettingsDialog, PluginsDialog, STYLE
 from .plugins import PluginRegistry
 from .hud import HudCanvas
 from .holo import CpuHoloPanel
-from .telemetry import Telemetry
+from .shared_telemetry import SharedTelemetry
 from .help_links import WIKI_URL
 from .edge_docks import EdgeDock
 from .app_icon import novabar_icon
@@ -223,7 +223,7 @@ class Bar(QWidget):
         self.module_holos = {slot: SensorHoloPanel(slot, self) for slot in SensorHoloPanel.FIELDS}
         for panel in [self.holo,*self.module_holos.values()]:
             panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,settings.always_on_top)
-        self.sensors = Telemetry()
+        self.sensors = SharedTelemetry()
         self.sensor_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="novabar-sensors")
         self.sensor_future = None
         self.last_sensor_request = 0.0
@@ -566,7 +566,10 @@ class Bar(QWidget):
                 pass
             self.sensor_future = None
         now = time.monotonic()
-        if self.sensor_future is None and now - self.last_sensor_request >= (min(1,self.settings.refresh_seconds) if self.cpu_controller.mode=="auto" else self.settings.refresh_seconds):
+        interval = min(self.settings.refresh_seconds, self.sensors.interval())
+        if self.cpu_controller.mode == "auto":
+            interval = min(interval, 1)
+        if self.sensor_future is None and now - self.last_sensor_request >= interval:
             self.last_sensor_request = now
             self.sensor_future = self.sensor_worker.submit(self.sample_sensors)
 
