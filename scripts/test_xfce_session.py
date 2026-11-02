@@ -131,19 +131,23 @@ def main():
             # Recovery may restart xfce4-panel, giving it new X11 window IDs.
             # Check live panel state rather than stale pre-crash XIDs.
             def restored_panel():
+                # XFCE docks can be absent from _NET_CLIENT_LIST after a restart.
+                # Query the X11 root tree, which includes override-redirect docks.
+                conn=None
                 try:
                     conn=backend._connect()
                     root2=conn.screen().root
-                    ids=backend.prop(conn,root2,'_NET_CLIENT_LIST',[])
-                    ok=any(
-                        any('xfce4-panel' in c.lower() for c in
-                            (conn.create_resource_object('window',int(xid)).get_wm_class() or ()))
-                        and conn.create_resource_object('window',int(xid))
-                            .get_attributes().map_state==X.IsViewable
-                        for xid in ids)
-                    conn.close()
-                    return ok
+                    candidates=list(root2.query_tree().children)
+                    candidates.extend(conn.create_resource_object('window',int(xid))
+                                      for xid in backend.prop(conn,root2,'_NET_CLIENT_LIST',[]))
+                    return any(
+                        any('xfce4-panel' in cls.lower() for cls in
+                            (window.get_wm_class() or ()))
+                        and window.get_attributes().map_state==X.IsViewable
+                        for window in candidates)
                 except Exception:return False
+                finally:
+                    if conn:conn.close()
             wait_for(restored_panel,app,timeout=24)
             wait_for(lambda:not dock.native.path.exists(),app,timeout=24)
             con.close()
