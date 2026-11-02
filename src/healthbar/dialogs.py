@@ -29,6 +29,8 @@ QCheckBox { spacing: 12px; }
 
 
 
+_catalog_workers = set()  # Keep nonblocking workers alive if settings closes.
+
 class CatalogReader(QThread):
     finished_catalog = Signal(object, object)
     def run(self):
@@ -488,10 +490,16 @@ class SettingsDialog(QDialog):
             return
         self.catalog_list.clear()
         self.catalog_list.addItem("Connexion aux sources GitHub…")
-        worker = CatalogReader(self)
+        worker = CatalogReader()
+        _catalog_workers.add(worker)
         self.catalog_worker = worker
         worker.finished_catalog.connect(self.show_catalog)
-        worker.finished.connect(worker.deleteLater)
+        def release_worker():
+            _catalog_workers.discard(worker)
+            if self.catalog_worker is worker:
+                self.catalog_worker = None
+            worker.deleteLater()
+        worker.finished.connect(release_worker)
         worker.start()
 
     def show_catalog(self, entries, errors):
