@@ -1,3 +1,7 @@
+# 1.0.0 — Candidats NOVA NEXUS HD
+
+Projet développeur : Cyber-Neon Interactif – THEME 1.0 ; application NovaBar. Intégration des thèmes persistants, batterie/énergie, Explorer, notifications, terminaux natifs et récupération Upgrade. Barres latérales rétractées après 2 secondes ; scrollbar console par panneau ; Turbo Linux avec authentification administrateur Polkit. Voir `docs/NOVA_V100_RELEASE_STATUS.md` pour les validations et limites. Distribution en préversion tant que les critères système critiques ne sont pas validés.
+
 # NovaBar 0.6.11 — Cockpit inférieur et NEXUS
 
 

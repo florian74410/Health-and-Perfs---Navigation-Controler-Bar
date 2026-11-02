@@ -33,7 +33,7 @@ class BottomUpgradeTests(unittest.TestCase):
                 with patch('healthbar.edge_docks.QCursor.pos',return_value=inside):dock.check_pointer()
                 self.assertTrue(dock.isVisible());self.assertFalse(dock.collapsed)
                 with patch('healthbar.edge_docks.QCursor.pos',return_value=QPoint(500,400)):dock.check_pointer()
-                self.assertEqual(dock.hide_timer.interval(),3000);self.assertTrue(dock.hide_timer.isActive())
+                self.assertEqual(dock.hide_timer.interval(),2000);self.assertTrue(dock.hide_timer.isActive())
                 dock.collapse();self.assertFalse(dock.isVisible())
             finally:dock.close()
 

@@ -166,7 +166,7 @@ def refresh_active_shortcuts():
         write_shortcuts(Path(sys.executable),state.get("desktop_shortcut",False))
 
 
-def activate(executable, settings, identity, desktop, root=None, release_version=None):
+def activate(executable, settings, identity, desktop, root=None, release_version=None, recovery_backup=None):
     from .autostart import set_enabled
     root = Path(root) if root else install_root()
     root.mkdir(parents=True,exist_ok=True)
@@ -181,6 +181,7 @@ def activate(executable, settings, identity, desktop, root=None, release_version
         sources.save([DEFAULT_SOURCE.copy()])
     state={"version":release_version or __version__,"executable":str(executable),"desktop_shortcut":desktop,
            "previous":previous}
+    if recovery_backup:state["recovery_backup"]=str(recovery_backup)
     from .profiles import workspace_dir, profile_id
     old_settings=__import__("healthbar.config",fromlist=["Settings"]).Settings.load()
     key=profile_id()+".json"

@@ -64,7 +64,7 @@ class DockTests(unittest.TestCase):
             loaded.dock_right_enabled = True
             loaded.validate()
 
-    def test_retract_expand_after_three_seconds_and_swap_side(self):
+    def test_retract_expand_after_two_seconds_and_swap_side(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, HEALTHBAR_DATA_DIR=temp):
             settings = Settings(configured=True, auto_hide=False, retract_mode="manual",
                                 dock_folder_paths=["recent:///"], dock_app_paths=[])
@@ -76,7 +76,7 @@ class DockTests(unittest.TestCase):
                 left, right = bar.sidebars["left"], bar.sidebars["right"]
                 self.assertEqual(left.kind, "folders")
                 self.assertEqual(right.kind, "apps")
-                self.assertEqual(left.hide_timer.interval(), 3000)
+                self.assertEqual(left.hide_timer.interval(), 2000)
                 self.assertEqual(left.width(), left.edge_width)
                 self.assertEqual(left.items.count(), 1)
                 self.assertEqual(left.items.item(0).text(), "Récents")

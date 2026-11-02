@@ -157,7 +157,7 @@ class TerminalSession(C.QObject):
         self.reader_stop.set()
         if self.windows_pty is not None:
             process=self.windows_pty;self.windows_pty=None
-            def stop_windows():
+            def stop_windows(process=process):
                 try:process.terminate(force=True)
                 finally:
                     process.fileobj.close()

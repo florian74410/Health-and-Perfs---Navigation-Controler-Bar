@@ -171,10 +171,7 @@ def prepare_update(release,progress):
     current=root/"installation.json"
     state=json.loads(current.read_text(encoding="utf-8")) if current.exists() else {}
     result=activate(target/relative,settings,profile.get("identity",{}),state.get("desktop_shortcut",False),root,
-                    release_version=release["version"])
-    from .profiles import write_json
-    result["recovery_backup"] = str(recovery)
-    write_json(root/"installation.json", result)
+                    release_version=release["version"], recovery_backup=recovery)
     from .install_engine import cleanup_obsolete_runtimes
     removed=cleanup_obsolete_runtimes(root,release["version"],lambda m:progress(95,m))
     if removed:

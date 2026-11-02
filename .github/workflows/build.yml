@@ -38,6 +38,9 @@ jobs:
       - name: Real StatusNotifier and XApp session integration
         if: runner.os == 'Linux'
         run: QT_QPA_PLATFORM=offscreen dbus-run-session -- python scripts/test_status_notifier.py
+      - name: NOVA notifications on isolated D-Bus
+        if: runner.os == 'Linux'
+        run: QT_QPA_PLATFORM=offscreen dbus-run-session -- python scripts/test_notification_bus.py
       - run: python scripts/build.py
       - name: Smoke test packaged downloader (no network or install)
         shell: bash
@@ -84,6 +87,9 @@ jobs:
           python scripts/package_linux_desktop.py flatpak --version "$(python -c 'import healthbar;print(healthbar.__version__)')"
           flatpak install --user --noninteractive -y dist/linux/NovaBar_*.flatpak
           QT_QPA_PLATFORM=offscreen dbus-run-session -- flatpak run --user --env=QT_QPA_PLATFORM=offscreen io.github.florian74410.NovaBar --self-test --expect-version "$(python -c 'import healthbar;print(healthbar.__version__)')"
+      - name: Official wallpaper and palette pack
+        if: runner.os == 'Linux'
+        run: QT_QPA_PLATFORM=offscreen python scripts/build_wallpapers.py
       - name: Linux and Bazzite installer archives
         if: runner.os == 'Linux'
         run: |
@@ -120,6 +126,7 @@ jobs:
             dist/linux/*.deb
             dist/linux/*.flatpak
             dist/plugins/*.zip
+            dist/NOVA-NEXUS-HD-Wallpapers.zip
             dist/NovaBarDownloader-*
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'pull_request' && github.head_ref == 'release/nova-nexus-hd-v1.0.0' && github.event.pull_request.head.repo.full_name == github.repository)
@@ -156,6 +163,7 @@ jobs:
           mkdir release
           find artifacts -type f \( -name '*.dmg' -o -name '*.deb' -o -name '*.flatpak' -o -name '*-Setup-*.exe' -o -name 'CyberNexusHUD-*.tar.xz' -o -name 'NovaBar-runtime-*.zip' \) -exec cp {} release/ \;
           find artifacts -type f -name '*-v*.zip' -exec cp {} release/ \;
+          find artifacts -type f -name 'NOVA-NEXUS-HD-Wallpapers.zip' -exec cp {} release/ \;
           python scripts/package_executables.py artifacts
           cp Executable/Linux/*.run release/
           find artifacts -type f -name 'NovaBarDownloader-*' -exec cp {} release/ \;

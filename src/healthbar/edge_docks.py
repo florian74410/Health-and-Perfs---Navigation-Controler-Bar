@@ -399,8 +399,8 @@ class EdgeDock(QWidget):
         self.root.addWidget(self.content)
         self.hide_timer = QTimer(self)
         self.hide_timer.setSingleShot(True)
-        self.hide_timer.setInterval(3000)
-        self.hide_timer.timeout.connect(self.collapse)
+        self.hide_timer.setInterval(2000)
+        self.hide_timer.timeout.connect(self.retract_if_outside)
         self.pointer_timer = QTimer(self)
         self.pointer_timer.setInterval(120)
         self.pointer_timer.timeout.connect(self.check_pointer)
@@ -466,7 +466,7 @@ class EdgeDock(QWidget):
 
     def open_item(self, item):
         launch_item(item.data(Qt.ItemDataRole.UserRole), self.kind)
-        self.hide_timer.start(3000)
+        self.hide_timer.start(2000)
 
     def show_item_menu(self, pos):
         menu = QMenu(self.items)
@@ -540,11 +540,12 @@ class EdgeDock(QWidget):
         x, y, width, height = self.full_rect
         return QRect(x if self.side == "left" else x+width-10, y, 10, height)
 
+    def retract_if_outside(self):
+        if not self.collapsed and not self.geometry().contains(QCursor.pos()):
+            self.collapse()
+
     def check_pointer(self):
         if not self.full_rect:
-            return
-        if QApplication.activePopupWidget() is not None:
-            self.hide_timer.stop()
             return
         inside = (self.edge_trigger_rect() if self.collapsed else self.geometry()).contains(QCursor.pos())
         if self.collapsed:
@@ -553,7 +554,7 @@ class EdgeDock(QWidget):
         elif inside:
             self.hide_timer.stop()
         elif not self.hide_timer.isActive():
-            self.hide_timer.start(3000)
+            self.hide_timer.start(2000)
 
     def enterEvent(self, event):
         if self.collapsed: self.expand()
@@ -561,7 +562,7 @@ class EdgeDock(QWidget):
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        if not self.collapsed: self.hide_timer.start(3000)
+        if not self.collapsed: self.hide_timer.start(2000)
         super().leaveEvent(event)
 
     def paintEvent(self, event):
