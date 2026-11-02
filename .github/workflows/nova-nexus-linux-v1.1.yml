@@ -66,8 +66,8 @@ jobs:
           mkdir -p release-linux
           find dist -type f \( -name '*.deb' -o -name '*.zip' -o -name '*.tar.xz' \) -exec cp --parents {} release-linux/ \;
           test -n "$(find release-linux -type f -print -quit)"
-          (cd release-linux && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-          (cd release-linux && sha256sum --check SHA256SUMS))
+          (cd release-linux && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS)
+          (cd release-linux && sha256sum --check SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
           name: nova-nexus-hd-1.1-linux
