@@ -37,8 +37,12 @@ TERMINAL_HOTKEY = '/commands/custom/<Primary><Alt>t'
 
 
 def _xfconf(*args):
-    return subprocess.run(['xfconf-query', '-c', 'xfce4-keyboard-shortcuts', *args],
-                          text=True, capture_output=True, timeout=6, env=native_env())
+    try:
+        return subprocess.run(['xfconf-query', '-c', 'xfce4-keyboard-shortcuts', *args],
+                              text=True, capture_output=True, timeout=6, env=native_env())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(['xfconf-query', *args], 127, '',
+                                           'xfconf-query indisponible')
 
 
 def _install_terminal_hotkey(previous):
@@ -52,6 +56,10 @@ def _install_terminal_hotkey(previous):
         operation=['-p', TERMINAL_HOTKEY, '-n', '-t', 'string', '-s', command]
     changed=_xfconf(*operation)
     if changed.returncode != 0:
+        # Non-XFCE hosts (CI, Windows, macOS) must not break activation.
+        if changed.returncode == 127:
+            previous.pop('terminal_hotkey', None)
+            return
         raise RuntimeError('Impossible de configurer Ctrl+Alt+T : '+changed.stderr.strip())
 
 
