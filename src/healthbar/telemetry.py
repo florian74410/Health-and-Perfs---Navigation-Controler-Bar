@@ -2,6 +2,7 @@
 import math
 import subprocess
 import time
+import platform
 from pathlib import Path
 from .network_detail import NetworkSampler, PingProbe
 from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
@@ -118,11 +119,12 @@ class Telemetry:
             "ram_percent", "ram_used_gb", "ram_available_gb", "ram_total_gb",
             "disk_percent", "disk_used_gb", "disk_free_gb", "disk_total_gb",
             "disk_read_mbs", "disk_write_mbs", "disk_health_percent",
-            "net_down_mbs", "net_up_mbs","cpu_turbo_enabled","ram_modules","ram_module_count","pc_temperature_c")
+            "net_down_mbs", "net_up_mbs","cpu_turbo_enabled","ram_modules","ram_module_count","pc_temperature_c","cpu_architecture")
         data = dict.fromkeys(keys)
         data["net_interfaces"] = []
         data["fans"] = []
         data["cpu_cores"] = []
+        data["cpu_architecture"] = platform.machine()
         data["ram_modules"] = self.ram_inventory["modules"]
         data["ram_module_count"] = self.ram_inventory["count"]
         # Unsupported readings stay None; wall power is never estimated from TDP.
