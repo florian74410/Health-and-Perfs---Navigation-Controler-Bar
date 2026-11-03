@@ -13,6 +13,7 @@ from .edge_docks import launcher_metadata,launch_item
 from .desktop_backend import DesktopBackend,NativePanelGuard,x11_ready
 from .overlay import apply_priority,schedule_all_workspaces
 from .xfce_panel_skin import PALETTES
+from .redblack_shell import active as redblack_active, paint_surface as redblack_surface, control_stylesheet
 from .system_env import native_env
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon,cut_path,glow,lookup_icon
 from .app_catalog import ApplicationLauncher,catalog
@@ -55,7 +56,7 @@ def draw_electron(p,path,phase):
     if (b-a).manhattanLength()>80:
         return  # Crossing the path seam.
     for thickness,alpha in ((6,60),(3,150),(1.5,255)):
-        col=QColor(190,255,255,alpha)
+        col=QColor(255,85,109,alpha) if redblack_active() else QColor(190,255,255,alpha)
         p.setPen(QPen(col,thickness))
         p.drawLine(a,b)
 
@@ -89,6 +90,18 @@ class TaskButton(QToolButton):
         self.setMinimumWidth(128);self.setMaximumWidth(480)
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if redblack_active(self.theme):
+            active=bool(self.property('active'))
+            redblack_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                             "task",self.flash_phase,active or self.underMouse())
+            size=min(38,self.height()-14)
+            self.icon.paint(p,QRect(10,(self.height()-size)//2,size,size))
+            p.setPen(QColor("#FFF0F2" if active else "#D7BAC0"))
+            font=p.font();font.setPixelSize(12);font.setBold(active);p.setFont(font)
+            title=p.fontMetrics().elidedText(self.row['name'],Qt.TextElideMode.ElideRight,max(0,self.width()-size-32))
+            p.drawText(QRect(20+size,0,self.width()-size-30,self.height()),Qt.AlignmentFlag.AlignVCenter,title)
+            p.end()
+            return
         primary,secondary,_=PALETTES.get(self.theme,PALETTES['blue-neon']);active=bool(self.property('active'))
         shape=cut_path(QRectF(2,2,self.width()-4,self.height()-4),9)
         g=QLinearGradient(0,0,0,self.height());g.setColorAt(0,QColor('#226080' if active else '#122d40'));g.setColorAt(.48,QColor('#113f5b' if active else '#061723'));g.setColorAt(1,QColor('#092031'))
@@ -193,7 +206,7 @@ class BottomDock(QWidget):
         if getattr(self,'_screen',settings.screen)!=settings.screen:self.native.restore()
         self._screen=settings.screen;self.settings=settings;self.body.theme=settings.theme
         primary,secondary,_=PALETTES.get(settings.theme,PALETTES['blue-neon'])
-        self.body.setStyleSheet(f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
+        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
             QToolButton:hover {{background:rgba(28,93,123,130);border-color:{primary};}}
             QToolButton#nexus {{background:rgba(15,44,60,180);border-color:{secondary};}}
             QToolButton#cockpitClock {{font-size:17px;color:#ecf7ff;}}
