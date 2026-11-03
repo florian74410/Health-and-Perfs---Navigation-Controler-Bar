@@ -17,13 +17,15 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
 
 THEME = "redblack-0822"
-CRIMSON = "#FF2647"
-HOT = "#FF7585"
-DEEP = "#050406"
-PANEL = "#0D060A"
-METAL = "#686067"
-WHITE = "#FFF2F4"
-MUTED = "#C7A8AD"
+# R2 visual contract: 75% graphite / 25% deep-red highlights.
+# Thin white electric sparks only; all interactive targets stay untouched.
+CRIMSON = "#D42B43"
+HOT = "#E75E71"
+DEEP = "#0D1015"
+PANEL = "#151920"
+METAL = "#3B424C"
+WHITE = "#F3F4F6"
+MUTED = "#ABB1BA"
 ASSET_ROOT = Path(__file__).resolve().parent / "assets" / "redblack"
 
 def active(theme=None):
@@ -62,7 +64,7 @@ def _route(p,points,color=CRIMSON,width=1,alpha=180):
 
 def _glow(p,path,color=CRIMSON,bright=1.0):
     p.setBrush(Qt.BrushStyle.NoBrush)
-    for width,alpha in ((9,12),(5,35),(2.5,75),(1.2,218)):
+    for width,alpha in ((7,6),(4,18),(2,45),(1.0,155)):
         p.setPen(QPen(_color(color,int(alpha*bright)),width))
         p.drawPath(path)
 
@@ -104,23 +106,23 @@ def paint_surface(p,rect,kind="holo",phase=0.0,selected=False):
     cut=8 if compact else 20 if kind in ("settings","holo","notification") else 15
     shell=_path(rect,cut,notch=(kind in ("holo","settings","notification")))
     housing=QLinearGradient(0,rect.top(),0,rect.bottom())
-    for stop, color in ((0,"#656168"),(.07,"#1E080F"),(.18,"#090609"),
-                        (.79,"#0A0609"),(.94,"#310B16"),(1,"#565157")):
+    for stop, color in ((0,"#474D57"),(.07,"#1C2028"),(.18,"#12161D"),
+                        (.79,"#10141B"),(.94,"#24242B"),(1,"#424852")):
         housing.setColorAt(stop,QColor(color))
     p.fillPath(shell,housing)
     p.setClipPath(shell)
     inset=rect.adjusted(5,5,-5,-5)
     cavity=_path(inset,max(3,cut-4))
-    p.fillPath(cavity,QColor(5,4,7,249 if kind=="holo" else 239))
+    p.fillPath(cavity,QColor(15,18,24,249 if kind=="holo" else 244))
     # The R1 pack changes actual chrome geometry, texture and bevels, not just
     # colors. The existing mathematically drawn shell remains a safe fallback.
     from .redblack_r1_assets import paint_asset_layer
     artwork = paint_asset_layer(p,kind,rect,phase,selected)
     header_h=min(60,height*.22 if not compact else 18)
     stripe=QLinearGradient(0,rect.top(),0,rect.top()+header_h)
-    stripe.setColorAt(0,_color("#871025",140))
-    stripe.setColorAt(.42,_color("#260913",140))
-    stripe.setColorAt(1,_color("#090609",0))
+    stripe.setColorAt(0,_color("#59232B",75))
+    stripe.setColorAt(.42,_color("#1D222A",75))
+    stripe.setColorAt(1,_color("#11151C",0))
     p.fillRect(QRectF(rect.left()+6,rect.top()+4,wide-12,header_h),stripe)
     if kind in ("settings","dock","holo","notification","catalog") and not artwork:
         _layer(p,"pcb",rect,.16 if kind=="settings" else .085)
@@ -138,9 +140,9 @@ def paint_surface(p,rect,kind="holo",phase=0.0,selected=False):
     )
     if height>=110 and wide>=100:
         for i,route in enumerate(routes):
-            _route(p,route,CRIMSON,.9,94+(i%2)*56)
+            _route(p,route,CRIMSON,.7,48+(i%2)*40)
             point=QPointF(*route[-1])
-            p.setBrush(_color(HOT,180));p.setPen(QPen(_color(CRIMSON,210),.8))
+            p.setBrush(_color(HOT,128));p.setPen(QPen(_color(CRIMSON,150),.7))
             p.drawEllipse(point,2.3,2.3)
     # Animated current travels inside the metal rail, never through labels.
     progress=(phase%1.0)
@@ -148,7 +150,7 @@ def paint_surface(p,rect,kind="holo",phase=0.0,selected=False):
         trail_x=x+max(24,(wide-55)*progress)
         light=QLinearGradient(trail_x-20,y+7,trail_x+20,y+7)
         light.setColorAt(0,_color(CRIMSON,0))
-        light.setColorAt(.50,_color("#FFF2F4",225 if selected else 170))
+        light.setColorAt(.50,_color("#FBFCFF",230 if selected else 155))
         light.setColorAt(1,_color(CRIMSON,0))
         p.fillRect(QRectF(trail_x-20,y+5,40,2.5),light)
         for j in range(min(7,max(0,int(wide//24)))):
@@ -162,12 +164,12 @@ def paint_surface(p,rect,kind="holo",phase=0.0,selected=False):
     shine.setColorAt(1,_color("#FFFFFF",0))
     p.fillRect(QRectF(x+cut,y+5,max(0,wide-2*cut),max(0,header_h*.32)),shine)
     p.setClipping(False)
-    _glow(p,shell,HOT if selected else CRIMSON,1.0 if selected else .75)
-    p.setPen(QPen(_color("#9E4651",155),.7))
+    _glow(p,shell,HOT if selected else CRIMSON,.85 if selected else .55)
+    p.setPen(QPen(_color("#4B4D57",155),.7))
     p.drawPath(cavity)
     # Brighter electrical junctions emphasize the real corner silhouettes.
     for ax,ay in ((x+cut+12,y+2),(r-cut-20,b-3)):
-        p.setPen(Qt.PenStyle.NoPen);p.setBrush(_color(CRIMSON,226))
+        p.setPen(Qt.PenStyle.NoPen);p.setBrush(_color(CRIMSON,150))
         p.drawRoundedRect(QRectF(ax,ay,18,2.8),1,1)
     p.restore()
 
@@ -208,35 +210,43 @@ def paint_hud(p,hud):
         if rect.width()<23 or rect.height()<16:continue
         selected=(hud._hover_slot==kind)
         title,value,detail,ratio=meta[kind]
+        title=hud.labels.get(kind,title)  # Registry is authoritative.
         paint_surface(p,rect,"hud",htime+i*.17,selected)
         p.save()
-        inner=rect.adjusted(12,6,-12,-6)
-        short=inner.height()<60
-        if retracted or inner.height()<31:
-            _fitted(p,inner,str(title)+"  "+str(value),11,WHITE,True)
+        inner=rect.adjusted(9,5,-9,-5)
+        p.setClipRect(inner)
+        icon_bounds=hud.module_icon_rect(kind)
+        available=max(1,inner.width()-max(28,icon_bounds.width()+15))
+        # Geometry contract shared with module_rect(), module_at() and
+        # the top-right Holo icon. Tiny cards get one compact readout.
+        compact=retracted or inner.height()<78 or inner.width()<118
+        if compact:
+            _fitted(p,QRectF(inner.left()+2,inner.top()+1,available,
+                             max(1,inner.height()-2)),
+                    str(title)+"  "+str(value),11,WHITE,True)
             p.restore()
             continue
-        # Metallic header + optical tick marks, not the original neon panel.
-        _fitted(p,QRectF(inner.x()+2,inner.y()+3,inner.width()-36,20),
+        _fitted(p,QRectF(inner.x()+2,inner.y()+3,available,19),
                 title,11,CRIMSON,True)
         top=inner.y()+25
-        if hud.vertical and inner.width()<115:
+        if hud.vertical and inner.width()<145:
             _fitted(p,QRectF(inner.x(),top,inner.width(),26),value,15,WHITE,True)
         else:
-            _fitted(p,QRectF(inner.x()+2,top,inner.width()-4,25 if short else 33),
-                    value,16 if short else 23,WHITE,True)
-        if not short:
+            _fitted(p,QRectF(inner.x()+2,top,inner.width()-4,
+                            25 if inner.height()<105 else 33),
+                    value,18 if inner.height()<105 else 23,WHITE,True)
+        if inner.height()>=114:
             _fitted(p,QRectF(inner.x()+2,min(inner.bottom()-26,top+36),inner.width()-4,18),
                     detail,10,MUTED)
         if ratio is not None:
             by=inner.bottom()-5
             gx=inner.x()+4;gw=max(10,inner.width()-8)
-            p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor("#2D121A"))
+            p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor("#333840"))
             p.drawRoundedRect(QRectF(gx,by,gw,3),1,1)
             p.setBrush(QColor(CRIMSON))
             p.drawRoundedRect(QRectF(gx,by,gw*ratio,3),1,1)
         # Decorative stripes are intentionally NOT presented as fabricated data.
-        if inner.width()>155 and inner.height()>80:
+        if inner.width()>155 and inner.height()>114:
             for ix in range(3):
                 x=inner.right()-35+ix*7
                 p.fillRect(QRectF(x,inner.y()+5,4,2),_color(HOT,180+20*ix))
@@ -253,10 +263,10 @@ def holo_stylesheet():
     QLabel#holoGroup {color:#FF6374;background:#390B19;border-left:3px solid #FF2945;
       padding:7px 8px;font-size:12px;font-weight:900;}
     QLabel#holoFoot {color:#B79BA1;font-size:10px;}
-    QPushButton {background:#210810;color:#FCE5E9;border:1px solid #D1213C;
-      padding:5px 8px;font-weight:700;}
-    QPushButton:checked {background:#5F0C22;color:white;}
-    QPushButton:hover {background:#78132C;border:1px solid #FF7485;}
+    QPushButton {background:#1B2027;color:#F3F4F6;border:1px solid #65313D;
+      padding:3px 7px;font-weight:700;}
+    QPushButton:checked {background:#49242E;color:white;}
+    QPushButton:hover {background:#49313A;border:1px solid #E75E71;}
     QPushButton#novaClose {background:#610B1D;color:#FFFFFF;border:1px solid #FF6374;}
     QScrollArea#novaDataScroll {background:#080508;border:1px solid #581422;}
     QScrollArea#novaDataScroll QWidget {background:transparent;border:0;}
@@ -266,42 +276,61 @@ def holo_stylesheet():
     """
 
 def control_stylesheet(scope="window"):
+    # Dock/HUD are tightly constrained by the original 0.8.2 geometry.
+    # NEVER inherit global button padding/min-heights in those widgets:
+    # doing so shifted plugin icons, launchers and system applets in R1.
+    if scope in ("dock","hud"):
+        return """
+        QWidget {background:transparent;color:#E7E8EB;}
+        QToolButton,QPushButton {background:transparent;color:#EBEDF0;
+          border:1px solid transparent;padding:0;min-height:0;}
+        QToolButton:hover,QPushButton:hover {
+          background:rgba(84,31,43,90);border:1px solid #963748;}
+        QToolButton#nexus {background:rgba(23,27,35,220);border:1px solid #803344;}
+        QToolButton#cockpitClock {font-size:17px;color:#F5F6F8;}
+        QScrollArea,QScrollArea QWidget,QScrollArea::viewport {
+          background:transparent;border:0;}
+        QScrollBar:horizontal {height:4px;background:transparent;}
+        QScrollBar::handle:horizontal {background:#693542;min-width:25px;}
+        QMenu {background:#181C23;color:#F0F1F3;border:1px solid #7D3645;}
+        QMenu::item:selected {background:#4A2932;}
+        """
     return """
-    QWidget {color:#F6E7EA;font-family:DejaVu Sans;background:transparent;}
-    QLabel {color:#E7D9DC;background:transparent;}
-    QLabel#title, QLabel#launcherTitle {color:#FF5E73;font-size:22px;font-weight:900;}
-    QLabel#sectionHeader {color:#FF7585;font-size:15px;font-weight:800;padding:11px 5px 7px;}
-    QDialog {background:#090609;color:#FFE8EC;}
-    QDialog#novaSettings {background:transparent;color:#FFE8EC;}
+    QWidget {color:#E9EBEF;font-family:DejaVu Sans;background:transparent;}
+    QLabel {color:#BEC4CC;background:transparent;}
+    QLabel#title, QLabel#launcherTitle {color:#E26A79;font-size:22px;font-weight:900;}
+    QLabel#sectionHeader {color:#CF6676;font-size:15px;font-weight:800;padding:11px 5px 7px;}
+    QDialog {background:#151920;color:#F0F0F3;}
+    QDialog#novaSettings {background:transparent;color:#F0F0F3;}
     QWidget#generalContent, QWidget#settingsPages {
       background:rgba(9,5,9,236);border:1px solid #8C1C31;}
     QListWidget#settingsNavigation {
       background:rgba(11,5,9,246);color:#E7CCD2;border:1px solid #9D1C35;
       padding:11px;outline:none;}
     QListWidget#settingsNavigation::item {height:37px;padding:8px 10px;border-bottom:1px solid #37111B;}
-    QListWidget#settingsNavigation::item:selected {color:#FFFFFF;background:#6A1028;border-left:3px solid #FF4561;}
+    QListWidget#settingsNavigation::item:selected {color:#FFFFFF;background:#4A2934;border-left:3px solid #FF4561;}
     QListWidget#settingsNavigation::item:hover {background:#35101B;}
-    QListWidget,QTreeWidget,QTableWidget {background:#080609;color:#F1E5E7;
+    QListWidget,QTreeWidget,QTableWidget {background:#151920;color:#F1E5E7;
       border:1px solid #7B1A2D;outline:none;selection-background-color:#79162C;}
-    QListWidget::item:selected {background:#6F1128;color:white;border-left:2px solid #FF4561;}
+    QListWidget::item:selected {background:#4A2934;color:white;border-left:2px solid #FF4561;}
     QListWidget::item:hover {background:#35101A;}
     QLineEdit,QComboBox,QSpinBox,QKeySequenceEdit {
-      background:#1A0A11;color:#FFF1F3;border:1px solid #AF1C36;
-      padding:7px 10px;min-height:22px;}
-    QComboBox QAbstractItemView {background:#0E080D;color:#FFF1F3;
+      background:#232730;color:#FFF1F3;border:1px solid #AF1C36;
+      padding:5px 8px;min-height:0px;}
+    QComboBox QAbstractItemView {background:#171B22;color:#FFF1F3;
       selection-background-color:#7E132B;border:1px solid #C12341;}
     QPushButton,QToolButton {
-      background:#1B0B11;color:#FCE8EB;border:1px solid #B91B39;
-      padding:7px 12px;min-height:18px;font-weight:700;}
-    QPushButton:hover,QToolButton:hover {background:#661124;color:#FFFFFF;border-color:#FF526B;}
-    QPushButton:pressed,QToolButton:pressed {background:#96192F;}
+      background:#232730;color:#FCE8EB;border:1px solid #733542;
+      padding:5px 8px;min-height:0px;font-weight:700;}
+    QPushButton:hover,QToolButton:hover {background:#661124;color:#FFFFFF;border-color:#DE6476;}
+    QPushButton:pressed,QToolButton:pressed {background:#593039;}
     QPushButton:disabled {background:#171014;color:#80636A;border-color:#51232B;}
     QPushButton#nav {background:transparent;border:0;}
-    QTabWidget::pane {background:#0B070B;border:1px solid #7D1730;padding:7px;}
-    QTabBar::tab {background:#190911;color:#BE9EA5;border:1px solid #6B1A2D;padding:10px 14px;}
-    QTabBar::tab:selected {background:#611029;color:#FFF4F4;border-bottom:2px solid #FF2945;}
+    QTabWidget::pane {background:#151920;border:1px solid #7D1730;padding:7px;}
+    QTabBar::tab {background:#20242D;color:#C8CAD0;border:1px solid #6B1A2D;padding:7px 10px;}
+    QTabBar::tab:selected {background:#4A2934;color:#FFF4F4;border-bottom:2px solid #C94359;}
     QCheckBox {color:#F2DEE2;spacing:9px;}
-    QCheckBox::indicator {background:#10070A;border:1px solid #BD2742;width:18px;height:18px;}
+    QCheckBox::indicator {background:#141920;border:1px solid #BD2742;width:18px;height:18px;}
     QCheckBox::indicator:checked {background:#F12543;border:1px solid #FF8F9D;}
     QScrollArea,QScrollArea QWidget,QScrollArea::viewport {background:transparent;border:0;}
     QScrollBar:vertical {width:9px;background:#10070C;}
@@ -309,10 +338,10 @@ def control_stylesheet(scope="window"):
     QScrollBar:horizontal {height:8px;background:#10070C;}
     QScrollBar::handle:horizontal {background:#BA1E39;}
     QSlider::groove:horizontal {height:5px;background:#3C111D;}
-    QSlider::handle:horizontal {background:#FF3454;width:14px;margin:-6px 0;}
-    QMenu {background:#0B070B;color:#FDE8EA;border:1px solid #ED2748;padding:6px;}
+    QSlider::handle:horizontal {background:#C94359;width:14px;margin:-6px 0;}
+    QMenu {background:#151920;color:#EBECEF;border:1px solid #9C4554;padding:6px;}
     QMenu::item {padding:9px 18px;margin:2px;}
-    QMenu::item:selected {background:#71152D;color:white;}
+    QMenu::item:selected {background:#4A2934;color:white;}
     QMenu::separator {height:1px;background:#682034;margin:5px;}
     QToolTip {background:#150A0F;color:#FFFFFF;border:1px solid #FF4560;}
     """

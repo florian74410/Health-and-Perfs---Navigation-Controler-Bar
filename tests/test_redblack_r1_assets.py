@@ -55,7 +55,10 @@ class R1AssetTests(unittest.TestCase):
                     painter.end()
                     self.assertEqual(dest.pixelColor(0,0).alpha(),0)
                     self.assertEqual(dest.pixelColor(width-1,0).alpha(),0)
-                    self.assertGreater(dest.pixelColor(width//2,height//2).alpha(),200)
+                    # Red material is deliberately faded over opaque graphite.
+                    alpha=dest.pixelColor(width//2,height//2).alpha()
+                    self.assertGreater(alpha,70)
+                    self.assertLess(alpha,150)
 
     def test_cannot_load_arbitrary_paths_or_nonalpha_textures(self):
         with tempfile.TemporaryDirectory() as tmp:

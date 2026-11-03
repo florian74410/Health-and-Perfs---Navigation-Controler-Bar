@@ -762,7 +762,7 @@ class Bar(QWidget):
         set_theme(self.settings.theme)
         from .ui_kit import stylesheet
         from .redblack_shell import active as redblack_active, control_stylesheet
-        self.setStyleSheet(control_stylesheet() if redblack_active() else stylesheet(STYLE))
+        self.setStyleSheet(control_stylesheet("hud") if redblack_active() else stylesheet(STYLE))
         if hasattr(self,"holo"):
             for panel in [self.holo,*getattr(self,"module_holos",{}).values()]:
                 panel.apply_visual_theme()
@@ -826,7 +826,7 @@ class Bar(QWidget):
             turbo_width = 148 if width >= 350 else 90
             utility_width = 28
             count = self.button_layout.count() - 3  # turbo, expand, optional quit
-            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
+            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//max(1,count)))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("NORMAL MODE")
             self._set_turbo_indicator(False,force=True)
