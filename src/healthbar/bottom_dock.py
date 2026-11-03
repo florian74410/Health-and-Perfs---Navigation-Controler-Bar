@@ -219,7 +219,8 @@ class BottomDock(QWidget):
         if getattr(self,'_screen',settings.screen)!=settings.screen:self.native.restore()
         self._screen=settings.screen;self.settings=settings;self.body.theme=settings.theme
         primary,secondary,_=PALETTES.get(settings.theme,PALETTES['blue-neon'])
-        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if settings.theme=="blue-night-083" else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
+        from .blue_night_shell import control_stylesheet as night_stylesheet
+        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else night_stylesheet() if settings.theme=="blue-night-083" else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
             QToolButton:hover {{background:rgba(28,93,123,130);border-color:{primary};}}
             QToolButton#nexus {{background:rgba(15,44,60,180);border-color:{secondary};}}
             QToolButton#cockpitClock {{font-size:17px;color:#ecf7ff;}}
