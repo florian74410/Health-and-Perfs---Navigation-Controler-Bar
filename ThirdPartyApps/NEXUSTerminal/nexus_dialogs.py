@@ -265,7 +265,7 @@ class SessionsDialog(GlassDialog):
     def save_api(self):
         name=self.api_name.text().strip()
         url=QUrl(self.api_url.text().strip())
-        if not ID_RE.fullmatch(name) or not url.isValid() or url.scheme()!="https" or not url.host():
+        if not ID_RE.fullmatch(name) or not url.isValid() or url.scheme()!="https" or not url.host() or url.userName() or url.password() or url.hasQuery() or url.hasFragment():
             QMessageBox.warning(self,"API","Nom de profil ou URL HTTPS invalide.")
             return
         try:
@@ -295,12 +295,14 @@ class SessionsDialog(GlassDialog):
         if self.api_reply is not None:
             return
         url=QUrl(self.api_url.text().strip())
-        if not url.isValid() or url.scheme()!="https" or not url.host():
+        if not url.isValid() or url.scheme()!="https" or not url.host() or url.userName() or url.password():
             QMessageBox.warning(self,"API","Utiliser une URL HTTPS valide.")
             return
         request=QNetworkRequest(url)
         request.setTransferTimeout(10000)
         request.setRawHeader(b"Accept",b"application/json")
+        request.setAttribute(QNetworkRequest.Attribute.RedirectPolicyAttribute,
+                             QNetworkRequest.RedirectPolicy.ManualRedirectPolicy)
         token=self.api_token.text()
         if not token:
             try:
@@ -381,6 +383,12 @@ class SessionsDialog(GlassDialog):
                 "Pour protéger ta phrase secrète, génère la clé dans un terminal :\n"
                 "ssh-keygen -t ed25519 -a 64\nPuis sélectionne-la ici.")
             return
+        answer=QMessageBox.question(self,"Clé sans phrase secrète",
+            "Créer une clé SSH non protégée par phrase secrète ?\\n"
+            "Préférer une clé protégée pour tout serveur sensible.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if answer!=QMessageBox.StandardButton.Yes:return
         result=subprocess.run(["ssh-keygen","-q","-t","ed25519","-a","64",
                                "-N","","-f",str(key)],capture_output=True,text=True,timeout=30)
         if result.returncode:
