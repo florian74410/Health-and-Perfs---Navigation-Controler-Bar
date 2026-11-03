@@ -167,7 +167,9 @@ class CpuHoloPanel(QWidget):
     def apply_visual_theme(self):
         from .ui_kit import stylesheet
         skin=redblack_active()
-        self.setStyleSheet(holo_stylesheet() if skin else stylesheet(self.base_style))
+        from .blue_night_shell import active as night_active, control_stylesheet as night_stylesheet
+        self.setStyleSheet(holo_stylesheet() if skin else
+                           night_stylesheet() if night_active() else stylesheet(self.base_style))
         self.layout().setContentsMargins(*( (29,30,29,26) if skin else (24,22,24,20) ))
         self.grid.setContentsMargins(*( (13,13,13,13) if skin else (1,6,1,6) ))
         self.grid.setVerticalSpacing(10 if skin else 5)
@@ -282,6 +284,16 @@ class CpuHoloPanel(QWidget):
                           "TDP nominal ≠ puissance instantanée par cœur.  — = indisponible.")
 
     def paintEvent(self, event):
+        from .blue_night_shell import active as night_active, paint_surface as night_surface
+        if night_active():
+            painter=QPainter(self)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            night_surface(painter,QRectF(self.rect()).adjusted(6,6,-6,-6),
+                          "holo",self._phase,opacity=.92)
+            painter.end()
+            return
         if redblack_active():
             painter=QPainter(self)
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
