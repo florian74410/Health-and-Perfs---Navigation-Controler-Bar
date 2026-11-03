@@ -100,7 +100,7 @@ class PCBSettingsDialog(QDialog):
         painter.fillPath(path,glass)
         painter.setClipPath(path)
         # Trace pattern is deliberately static. It never consumes a frame timer.
-        painter.setPen(QPen(QColor(primary+"60"),1.15))
+        painter.setPen(QPen(QColor(primary),1.15))
         w=rect.width();h=rect.height()
         for i in range(13):
             x=rect.left()+25+i*max(44,w/13)
@@ -110,7 +110,7 @@ class PCBSettingsDialog(QDialog):
             trace.lineTo(x+16,y+16)
             trace.lineTo(min(rect.right()-15,x+min(170,w*.16)),y+16)
             painter.drawPath(trace)
-            painter.setBrush(QColor(primary+"80"))
+            painter.setBrush(QColor(primary))
             painter.drawEllipse(QPointF(min(rect.right()-15,x+min(170,w*.16)),y+16),2.3,2.3)
             painter.setBrush(Qt.BrushStyle.NoBrush)
         for i in range(7):
