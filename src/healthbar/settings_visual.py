@@ -1,6 +1,9 @@
 """Painted lightweight Cyber-Neon settings shell; no texture assets, web API or timer."""
 from PySide6.QtCore import Qt, QRectF, QPointF
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QLinearGradient
+from PySide6.QtGui import QPainter, QPainterPath, QPen, QLinearGradient, QPixmap
+from PySide6.QtSvg import QSvgRenderer
+from .ui_kit import QColor
+from .theme_packs import get_pack, asset_path, recolor_qss
 from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
 from .theme_overrides import load as load_theme_overrides
@@ -9,13 +12,16 @@ from .theme_overrides import load as load_theme_overrides
 def _palette(theme):
     preset=PALETTES.get(theme, PALETTES["blue-neon"])
     custom=load_theme_overrides().get(theme,{})
-    return (custom.get("primary",preset[0]),custom.get("secondary",preset[1]),
-            custom.get("background","#041426"))
+    pack=get_pack(theme)
+    colors=pack["palette"] if pack else {}
+    return (custom.get("primary",colors.get("primary",preset[0])),
+            custom.get("secondary",colors.get("secondary",preset[1])),
+            custom.get("background",colors.get("background","#041426")))
 
 
 def settings_stylesheet(theme):
     primary,secondary,_=_palette(theme)
-    return """
+    style = """
     QDialog#novaSettings { background: transparent; color: #EAF6FF; }
     QLabel { color:#D7EDFF; background:transparent; font-size:13px; }
     QLabel#title { color:%s; font-size:27px; font-weight:700; }
@@ -66,6 +72,7 @@ def settings_stylesheet(theme):
     QDialogButtonBox {background:transparent;}
     """ % (primary,primary,secondary,secondary,primary,secondary,secondary,
             secondary,secondary,primary,secondary,primary,primary)
+    return recolor_qss(style,theme)
 
 
 class PCBSettingsDialog(QDialog):
@@ -75,9 +82,15 @@ class PCBSettingsDialog(QDialog):
         self.setObjectName("novaSettings")
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
         self._pcb_theme="blue-neon"
+        self._texture_source = None
+        self._texture_renderer = None
+        self._texture_pixmap = None
 
     def use_pcb_theme(self,theme):
         self._pcb_theme=theme
+        self._texture_source = None  # A different theme uses different assets.
+        self._texture_renderer = None
+        self._texture_pixmap = None
         self.setStyleSheet(settings_stylesheet(theme))
         self.update()
 
@@ -107,8 +120,23 @@ class PCBSettingsDialog(QDialog):
         shine.setColorAt(.38,QColor(210,242,255,4))
         shine.setColorAt(.7,QColor(210,242,255,28))
         shine.setColorAt(1,QColor(210,242,255,0))
-        painter.fillRect(QRectF(rect.left()+13,rect.top()+5,rect.width()-26,rect.height()*.12),shine)
+        # Clip BEFORE painting any highlight/texture: no opaque rectangle can
+        # leak into the transparent bevel corners on light desktops.
         painter.setClipPath(path)
+        painter.fillRect(QRectF(rect.left()+13,rect.top()+5,rect.width()-26,rect.height()*.12),shine)
+        source=asset_path(self._pcb_theme,"pcb")
+        if source:
+            if source != self._texture_source:
+                self._texture_source = source
+                self._texture_renderer = QSvgRenderer(str(source)) if source.suffix.lower()==".svg" else None
+                self._texture_pixmap = QPixmap(str(source)) if source.suffix.lower()!=".svg" else None
+            painter.save()
+            painter.setOpacity(.16)
+            if self._texture_renderer and self._texture_renderer.isValid():
+                self._texture_renderer.render(painter,rect)
+            elif self._texture_pixmap and not self._texture_pixmap.isNull():
+                painter.drawPixmap(rect.toRect(),self._texture_pixmap)
+            painter.restore()
         # Original, asymmetric PCB: irregular routes from all four corners,
         # short branches, vias and polished light wells. No tiling or looped
         # identical rows. Fully static => zero idle animation CPU.

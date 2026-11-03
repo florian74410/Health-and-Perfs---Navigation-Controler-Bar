@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QColor
+from .ui_kit import QColor
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFormLayout, QComboBox,
     QSpinBox, QSlider, QCheckBox, QDialogButtonBox, QPushButton, QFileDialog,
     QMessageBox, QListWidget, QHBoxLayout, QTabWidget, QWidget, QLineEdit, QScrollArea, QColorDialog)

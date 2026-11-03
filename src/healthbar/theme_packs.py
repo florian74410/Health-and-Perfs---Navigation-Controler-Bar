@@ -125,5 +125,5 @@ def recolor_qss(source: str, theme: str) -> str:
         return match.group(1) + ",".join(str(c) for c in new_rgb) + match.group(5) + ")"
 
     return re.sub(
-        r"(rgba?\\(\\s*)(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})(\\s*(?:,\\s*(?:[0-9.]+|[0-9]+%)\\s*)?)\\)",
+        r"(rgba?\(\s*)(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(\s*(?:,\s*(?:[0-9.]+|[0-9]+%)\s*)?)\)",
         rgb_match, source, flags=re.IGNORECASE)
