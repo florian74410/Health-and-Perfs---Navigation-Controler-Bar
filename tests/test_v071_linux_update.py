@@ -1,4 +1,4 @@
-"""NovaBar 0.7.1: Linux GVFS and verified APT update regressions."""
+"""NovaBar 0.7.6: Linux GVFS and verified APT update regressions."""
 import json
 import os
 import runpy
@@ -9,18 +9,18 @@ from pathlib import Path
 from unittest.mock import patch
 
 from healthbar.system_env import native_env
-from healthbar.updates import check_native_release,prepare_native_update
+from healthbar.updates import check_native_release,prepare_native_update,NATIVE_LINEAGE
 
 REPO="florian74410/Health-and-Perfs---Navigation-Controler-Bar"
-BASE=f"https://github.com/{REPO}/releases/download/v0.7.1/"
-DEB="NovaBar_0.7.1_amd64.deb"
+BASE=f"https://github.com/{REPO}/releases/download/v0.7.6/"
+DEB="NovaBar_0.7.6_amd64.deb"
 ASSET={"name":DEB,"format":".deb","url":BASE+DEB,
        "sha256":"a"*64}
-RELEASE={"tag_name":"v0.7.1","prerelease":False,"draft":False,
+RELEASE={"tag_name":"v0.7.6","prerelease":False,"draft":False,
          "assets":[{"name":"novabar-bootstrap-manifest.json",
                     "browser_download_url":BASE+"novabar-bootstrap-manifest.json"},
                    {"name":DEB,"browser_download_url":BASE+DEB}]}
-MANIFEST={"schema_version":1,"version":"0.7.1","packages":{"linux-x86_64":[ASSET]}}
+MANIFEST={"schema_version":1,"version":"0.7.6","lineage":NATIVE_LINEAGE,"packages":{"linux-x86_64":[ASSET]}}
 
 class NativeUpdateTests(unittest.TestCase):
     def test_next_patch_selected_and_verified(self):
@@ -28,24 +28,32 @@ class NativeUpdateTests(unittest.TestCase):
                    "assets":RELEASE["assets"]},RELEASE]
         with patch("healthbar.updates.read_url",side_effect=[
             json.dumps(releases).encode(),json.dumps(MANIFEST).encode()]), \
-            patch("healthbar.updates.__version__","0.7.0"):
+            patch("healthbar.updates.__version__","0.7.1"):
             result=check_native_release()
-        self.assertEqual(result["version"],"0.7.1")
+        self.assertEqual(result["version"],"0.7.6")
         self.assertTrue(result["native"])
         self.assertEqual(result["asset"]["url"],BASE+DEB)
+
+    def test_historical_tags_are_not_offered(self):
+        stale={"tag_name":"v0.7.5","prerelease":False,"draft":False,
+               "assets":RELEASE["assets"]}
+        with patch("healthbar.updates.read_url",
+                   return_value=json.dumps([stale]).encode()), \\
+             patch("healthbar.updates.__version__","0.7.1"):
+            self.assertIsNone(check_native_release())
 
     def test_prerelease_is_not_offered(self):
         release=dict(RELEASE,prerelease=True)
         with patch("healthbar.updates.read_url",
                    return_value=json.dumps([release]).encode()), \
-             patch("healthbar.updates.__version__","0.7.0"):
+             patch("healthbar.updates.__version__","0.7.1"):
             self.assertIsNone(check_native_release())
 
     def test_reject_deb_not_in_official_asset_list(self):
         bad=dict(RELEASE,assets=RELEASE["assets"][:1])
         with patch("healthbar.updates.read_url",side_effect=[
             json.dumps([bad]).encode(),json.dumps(MANIFEST).encode()]), \
-            patch("healthbar.updates.__version__","0.7.0"):
+            patch("healthbar.updates.__version__","0.7.1"):
             with self.assertRaises(ValueError):
                 check_native_release()
 
@@ -74,19 +82,19 @@ class NativeUpdateTests(unittest.TestCase):
 
     def test_deb_install_requires_identical_package_identity(self):
         from unittest.mock import Mock
-        response=Mock(stdout="another-package\\n0.7.1\\namd64\\n")
+        response=Mock(stdout="another-package\\n0.7.6\\namd64\\n")
         with patch.dict(os.environ,{"NOVABAR_PACKAGED":"deb"}), \
              patch("healthbar.bootstrapper.download") as download, \
              patch("healthbar.bootstrapper.install_package") as install, \
              patch("healthbar.updates.subprocess.run",return_value=response), \
-             patch("healthbar.updates.__version__","0.7.0"):
+             patch("healthbar.updates.__version__","0.7.1"):
             def fake_download(asset, directory):
                 path=Path(directory)/DEB
                 path.write_bytes(b"fake")
                 return path
             download.side_effect=fake_download
             with self.assertRaises(ValueError):
-                prepare_native_update({"version":"0.7.1","asset":ASSET,"native":True},lambda *args:None)
+                prepare_native_update({"version":"0.7.6","asset":ASSET,"native":True},lambda *args:None)
             install.assert_not_called()
 
 if __name__=="__main__":
