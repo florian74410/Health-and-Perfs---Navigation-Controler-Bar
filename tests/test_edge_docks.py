@@ -41,7 +41,7 @@ class DockTests(unittest.TestCase):
             fake.write_text("#!/bin/sh\n")
             self.assertEqual(normalized_drop([folder, valid, fake], "folders"), [str(folder.resolve())])
             with patch("healthbar.edge_docks.sys.platform", "linux"):
-                self.assertEqual(normalized_drop([folder, valid, fake], "apps"), [str(valid.resolve())])
+                self.assertEqual(normalized_drop([folder, valid, fake], "apps"), [str(folder.resolve()), str(valid.resolve())])
                 self.assertEqual(launcher_metadata(valid), ("Firefox", "firefox"))
                 self.assertIsNone(launcher_metadata(not_app))
                 self.assertFalse(launch_item(str(fake), "apps"))
