@@ -250,6 +250,9 @@ def dock_colors(theme):
 
 
 def dock_stylesheet(theme):
+    if theme=="blue-night-083":
+        from .blue_night_shell import control_stylesheet as night_stylesheet
+        return night_stylesheet()
     if redblack_active(theme):
         return """
         QFrame#dockBody {background:transparent;border:0;}
@@ -307,6 +310,16 @@ class PCBDockFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self, event):
+        if self.settings.theme=="blue-night-083":
+            from .blue_night_shell import paint_surface as night_surface
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            night_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                          "dock",self.phase,opacity=.90)
+            p.end()
+            return
         if redblack_active(self.settings.theme):
             p=QPainter(self)
             p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
