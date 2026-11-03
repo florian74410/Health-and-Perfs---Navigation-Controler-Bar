@@ -32,6 +32,8 @@ def QColor(*args):
     color = QtColor(*args)
     if len(args)==1 and isinstance(args[0],str):
         name=color.name().lower()
+        if _active=="blue-night-083" and name in ("#061224","#061020","#040d1b"):
+            chosen=QtColor("#080D14");chosen.setAlpha(color.alpha());return chosen
         if _active=="redblack-0822" and name in ("#061224","#061020","#040d1b"):
             chosen=QtColor("#08050A");chosen.setAlpha(color.alpha());return chosen
         if name in ("#061224","#061020","#040d1b") and _custom.get("background"):
