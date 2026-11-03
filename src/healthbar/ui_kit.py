@@ -5,7 +5,7 @@ from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QPainter
 
-THEMES = {"redblack-0822": "NOVA REDBLACK 0.8.2.2", "blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
+THEMES = {"blue-night-083": "Blue Neon Dark Night 0.8.3", "redblack-0822": "NOVA REDBLACK 0.8.2.2", "blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
 _active = "blue-neon"
 _custom = {}
 
@@ -47,7 +47,7 @@ def QColor(*args):
             chosen=QtColor(_custom["primary"])
             chosen.setAlphaF(alpha)
             return chosen
-        if _active not in ("blue-neon","cyber-futuriste"):
+        if _active not in ("blue-neon","blue-night-083","cyber-futuriste"):
             color.setHsvF(.37 if _active=="green-matrix" else .98,saturation,value,alpha)
     return color
 
