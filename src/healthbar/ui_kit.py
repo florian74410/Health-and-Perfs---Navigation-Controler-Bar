@@ -45,7 +45,7 @@ def QColor(*args):
 
 def holo_background():
     """Uniform theme-tinted glass: 85% opaque, 15% desktop visible."""
-    color = QColor('#061224')
+    color = QColor('#11151B' if _active in ('blue-neon','cyber-futuriste') else '#061224')
     color.setAlpha(217)
     return color
 

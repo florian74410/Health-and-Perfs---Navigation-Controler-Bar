@@ -8,6 +8,7 @@ on:
       - work/novabar-v0.8.1-linux-visual-xfce
       - work/novabar-v0.8.1-holo-cyber-pcb
       - work/novabar-v0.8.1-linux-polish-shortcuts
+      - work/novabar-blue-neon-graphite-fx
     paths:
       - 'src/**'
       - 'tests/**'
