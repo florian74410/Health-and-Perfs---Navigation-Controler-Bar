@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 0.8.2.2REDBLACK
+      - work/novabar-redblack-r1-asset-refactor
     paths:
       - 'src/**'
       - 'tests/**'
