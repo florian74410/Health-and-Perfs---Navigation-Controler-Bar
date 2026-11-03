@@ -23,9 +23,15 @@ class CockpitFrame(QFrame):
     def __init__(self,theme='blue-neon',parent=None):
         super().__init__(parent);self.theme=theme;self.phase=0;self.glass_opacity=55
         self.setObjectName('cockpit');self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground,False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+        self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
-        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p=QPainter(self)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+        p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w,h=self.width(),self.height();primary,secondary,_=PALETTES.get(self.theme,PALETTES['blue-neon'])
         outer=cut_path(QRectF(2,2,w-4,h-4),19)
         metal=QLinearGradient(0,0,0,h)
