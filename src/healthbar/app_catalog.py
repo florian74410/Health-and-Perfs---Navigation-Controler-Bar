@@ -2,10 +2,10 @@
 import configparser
 import os
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
-from PySide6.QtCore import Qt,QSize,Signal
-from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QListWidget,QListWidgetItem,QPushButton,QAbstractItemView,QApplication)
+from PySide6.QtCore import Qt,QSize,Signal,QTimer
+from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QListWidget,QListWidgetItem,QPushButton,QAbstractItemView,QApplication,QMenu)
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon
 from .edge_docks import launch_item
 from .xfce_panel_skin import PALETTES
@@ -58,6 +58,7 @@ def catalog(roots=None):
 
 class ApplicationLauncher(QWidget):
     settings_requested=Signal();quit_requested=Signal()
+    shortcut_requested=Signal(str,str)  # destination: bottom or sidebar
     def __init__(self,theme,favorites=None,entries=None,parent=None):
         super().__init__(parent,Qt.WindowType.Popup|Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);self.setWindowTitle('NEXUS · Applications')
@@ -96,7 +97,15 @@ class ApplicationLauncher(QWidget):
             QPushButton {{background:#102d40;border:1px solid {secondary};border-radius:4px;padding:7px;}} QPushButton:hover {{border-color:{primary};}}
             QScrollBar:vertical {{background:#071724;width:7px;}} QScrollBar::handle:vertical {{background:{secondary};min-height:25px;}} QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {{height:0;}}''')
         self.search.textChanged.connect(self.filter);self.categories.currentItemChanged.connect(self.select_category)
-        self.grid.itemClicked.connect(self.launch);self.grid.itemActivated.connect(self.launch);self.filter()
+        self._queued_path=None
+        self._click_timer=QTimer(self)
+        self._click_timer.setSingleShot(True)
+        self._click_timer.timeout.connect(self.launch_queued)
+        self.grid.itemClicked.connect(self.queue_launch)
+        self.grid.itemDoubleClicked.connect(self.show_item_context)
+        self.grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.grid.customContextMenuRequested.connect(self.show_context_at)
+        self.filter()
         self.resize(790,510)
 
     def select_category(self,current,previous):
@@ -113,6 +122,71 @@ class ApplicationLauncher(QWidget):
 
     def launch(self,item):
         if launch_item(item.data(Qt.ItemDataRole.UserRole),'apps'):self.close()
+
+    def queue_launch(self,item):
+        self._queued_path=item.data(Qt.ItemDataRole.UserRole)
+        delay=max(260,QApplication.styleHints().mouseDoubleClickInterval()+35)
+        self._click_timer.start(delay)
+
+    def launch_queued(self):
+        path=self._queued_path
+        self._queued_path=None
+        if path and launch_item(path,"apps"):
+            self.close()
+
+    def show_context_at(self,pos):
+        item=self.grid.itemAt(pos)
+        if item:
+            self.show_item_context(item)
+
+    def show_item_context(self,item):
+        """Right-click or double-click reveals exactly the selected app actions."""
+        if item is None:
+            return
+        self._click_timer.stop()
+        self._queued_path=None
+        path=item.data(Qt.ItemDataRole.UserRole)
+        if not path:
+            return
+        app=next((a for a in self.entries if a.path==path),None)
+        if app is None:
+            return
+        menu=QMenu(self)
+        primary,secondary,_=PALETTES.get(self.frame.theme,PALETTES["blue-neon"])
+        menu.setStyleSheet(
+            "QMenu {background:#06172A;color:#E9F6FF;border:1px solid "+primary+
+            ";padding:6px;} QMenu::item {padding:8px 16px;}"
+            "QMenu::item:selected {background:#144761;}")
+        start=menu.addAction("▶ Ouvrir l'application")
+        rename=menu.addAction("✎ Renommer le raccourci…")
+        favorite=menu.addAction("★ Ajouter aux favoris (barre latérale)")
+        pin=menu.addAction("◈ Ajouter à la barre de navigation")
+        menu.addSeparator()
+        remove=menu.addAction("Désinstaller… (APT / gestionnaire Mint)")
+        result=menu.exec(self.grid.mapToGlobal(self.grid.visualItemRect(item).bottomLeft()))
+        if result==start:
+            if launch_item(path,"apps"):self.close()
+        elif result==rename:
+            from .desktop_actions import rename_launcher
+            target=rename_launcher(path,self)
+            if target:
+                metadata=__import__("healthbar.edge_docks",fromlist=["launcher_metadata"]).launcher_metadata(Path(target))
+                self.entries=[replace(a,path=target,name=metadata[0]) if a.path==path and metadata else a
+                              for a in self.entries]
+                if path in self.favorites:
+                    self.favorites.remove(path)
+                    self.favorites.add(target)
+                    self.shortcut_requested.emit("sidebar",target)
+                self.filter()
+        elif result==favorite:
+            self.favorites.add(path)
+            self.shortcut_requested.emit("sidebar",path)
+            self.filter()
+        elif result==pin:
+            self.shortcut_requested.emit("bottom",path)
+        elif result==remove:
+            from .desktop_actions import request_uninstall
+            request_uninstall(path,self)
 
     def show_above(self,button):
         screen=QApplication.screenAt(button.mapToGlobal(button.rect().center())) or QApplication.primaryScreen();bounds=screen.availableGeometry()
