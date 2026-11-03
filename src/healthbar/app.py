@@ -377,6 +377,28 @@ class Bar(QWidget):
             self.bottom_dock.apply_settings(self.settings)
         self.sync_sidebars()
 
+    def rename_app_shortcut(self,old_path,new_path):
+        """Replace references after writing a user-local .desktop override."""
+        from .edge_docks import normalized_drop
+        if new_path not in normalized_drop([new_path],"apps"):
+            return
+        changed=False
+        for key in ("dock_app_paths","bottom_pinned_apps"):
+            paths=getattr(self.settings,key)
+            if paths is None or old_path not in paths:
+                continue
+            setattr(self.settings,key,list(dict.fromkeys(
+                new_path if item==old_path else item for item in paths)))
+            changed=True
+        if old_path in self.settings.dock_aliases:
+            self.settings.dock_aliases[new_path]=self.settings.dock_aliases.pop(old_path)
+            changed=True
+        if changed:
+            self.settings.save()
+            if self.bottom_dock is not None:
+                self.bottom_dock.apply_settings(self.settings)
+            self.sync_sidebars()
+
     def sync_xfce_skin(self):
         """Manage the native Xfce panel without taking ownership of its icons."""
         from .xfce_panel_skin import apply_skin, remove_skin, backup_path
@@ -392,6 +414,7 @@ class Bar(QWidget):
                 self.bottom_dock.settings_requested.connect(self.preferences)
                 self.bottom_dock.quit_requested.connect(self.quit_app)
                 self.bottom_dock.shortcut_requested.connect(self.add_dock_shortcut)
+                self.bottom_dock.shortcut_renamed.connect(self.rename_app_shortcut)
             else:self.bottom_dock.apply_settings(self.settings)
             self.xfce_skin_status="Barre inférieure NovaBar active · original XFCE masqué pendant la session"
             return
