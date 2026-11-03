@@ -125,8 +125,8 @@ def main():
     parser.add_argument("format", choices=("deb", "flatpak"))
     parser.add_argument("--version", required=True)
     args = parser.parse_args()
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", args.version):
-        parser.error("Version must be MAJOR.MINOR.PATCH")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?", args.version):
+        parser.error("Version must be MAJOR.MINOR.PATCH[.BUILD]")
     if not sys.platform.startswith("linux"):
         parser.error("Packages are built only on Linux")
     path = build_deb(args.version) if args.format == "deb" else build_flatpak(args.version)

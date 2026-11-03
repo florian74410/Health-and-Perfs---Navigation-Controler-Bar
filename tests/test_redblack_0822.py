@@ -9,6 +9,10 @@ class RedBlackTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app=QApplication.instance() or QApplication(["redblack-test"])
 
+    def test_packager_accepts_four_part_version(self):
+        import re
+        self.assertTrue(re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?", "0.8.2.2"))
+
     def test_four_segment_version_upgrade_ordering(self):
         from healthbar.updates import version
         from healthbar.install_engine import version_tuple
