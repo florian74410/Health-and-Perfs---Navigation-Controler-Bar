@@ -559,7 +559,7 @@ class SettingsDialog(PCBSettingsDialog):
         nav.setObjectName("settingsNavigation")
         nav.setFixedWidth(258 if settings.theme in ("redblack-0822","blue-night-083") else 230)
         entries=(("⌂  GÉNÉRAL","◈  APPARENCE","▣  PLUGINS","◉  CPU","⟲  MISE À JOUR","ⓘ  À PROPOS")
-                 if settings.theme=="redblack-0822" else
+                 if settings.theme in ("redblack-0822","blue-night-083") else
                  ("GÉNÉRALE","THÈMES & COULEURS","EXTENSIONS","CPU","MISE À JOUR","À PROPOS"))
         for name in entries:nav.addItem(name)
         for name in MODULES:
