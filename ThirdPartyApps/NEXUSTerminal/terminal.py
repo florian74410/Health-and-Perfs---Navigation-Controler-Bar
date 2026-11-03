@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+import shlex
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QProcess, QTimer, Signal
@@ -19,6 +20,8 @@ from PySide6.QtWidgets import (
     QSizePolicy, QSplitter, QTabWidget, QToolButton, QVBoxLayout, QWidget,
 )
 from pyside6_qtermwidget import QTermWidget
+from nexus_dialogs import SettingsDialog, SessionsDialog
+from web_inspector import WebInspector
 
 VERSION = "0.2.0-dev"
 APP_DIR = Path(__file__).resolve().parent
@@ -286,6 +289,9 @@ class NexusTerminalWidget(QWidget):
             self.mode_picker.addItem(label, key)
         self.mode_picker.currentIndexChanged.connect(self.layout_selected)
         h.addWidget(self.mode_picker)
+        h.addWidget(button("◈ Sessions", self.open_sessions))
+        h.addWidget(button("⚙ Paramètres", self.open_settings))
+        h.addWidget(button("↗ Web Inspector", self.open_web))
         h.addWidget(button("+ Onglet", self.new_tab, "primary"))
         outer.addWidget(header)
 
@@ -308,6 +314,9 @@ class NexusTerminalWidget(QWidget):
         sb.addWidget(self.section("◈  ACTIONS RAPIDES"))
         sb.addWidget(button("＋ Nouvelle console", self.new_tab))
         sb.addWidget(button("⌘  Scripts / Macros", self.choose_macro))
+        sb.addWidget(button("◈  Sessions / SSH", self.open_sessions))
+        sb.addWidget(button("↗  Web Inspector", self.open_web))
+        sb.addWidget(button("⚙  Paramètres", self.open_settings))
         sb.addWidget(button("🔒  Saisie confidentielle", self.secret_demo))
         sb.addWidget(self.section("◈  DISPOSITIONS"))
         for mode, (label, _) in MODES.items():
@@ -406,6 +415,53 @@ class NexusTerminalWidget(QWidget):
         self.toast.show()
         self._toast_timer.start(duration)
         self.event.emit("terminal.notification", {"kind": kind.lower(), "message": str(message)})
+
+    def open_settings(self):
+        dialog=SettingsDialog(self)
+        dialog.changed.connect(self.apply_settings)
+        dialog.exec()
+
+    def apply_settings(self,options):
+        font=QFont("DejaVu Sans Mono",int(options.get("font_size",10)))
+        for i in range(self.tabs.count()):
+            page=self.tabs.widget(i)
+            if isinstance(page,TerminalPage):
+                for shell in page.shells:
+                    shell.setTerminalFont(font)
+        self.notify("Success","Préférences enregistrées.")
+
+    def open_sessions(self):
+        dialog=SessionsDialog(self)
+        dialog.connect_ssh.connect(self.start_ssh_session)
+        dialog.exec()
+
+    def start_ssh_session(self,args):
+        """Run validated ssh argv as quoted interactive command in a new PTY."""
+        if not args or args[0]!="ssh":
+            self.notify("Error","Commande SSH refusée.")
+            return
+        self.new_tab()
+        page=self.current_page()
+        if page is None or not page.shells:
+            self.notify("Error","Impossible de créer la session.")
+            return
+        # Quotes are essential: never concatenate raw profile fields into shell code.
+        command=shlex.join(args)
+        page.shells[0].sendText(command+"\\n")
+        self.notify("Info","Connexion SSH démarrée dans un nouvel onglet.")
+
+    def open_web(self):
+        # Separate Qt window in this older source. The v0.5 host can dock the
+        # same WebInspector(QWidget) into its own multi-pane layout.
+        if not hasattr(self,"_web_inspectors"):
+            self._web_inspectors=[]
+        panel=WebInspector()
+        panel.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose,True)
+        panel.resize(860,620)
+        panel.show()
+        self._web_inspectors.append(panel)
+        panel.destroyed.connect(lambda:self._web_inspectors.remove(panel)
+                                if panel in self._web_inspectors else None)
 
     def choose_macro(self):
         MACRO_DIR.mkdir(parents=True, exist_ok=True)
