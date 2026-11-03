@@ -92,7 +92,11 @@ def _set_panel_setting(panel_id, name, value):
 def render_css(theme="blue-neon", delay_seconds=10):
     primary, secondary, rgb = PALETTES.get(theme, PALETTES["blue-neon"])
     ms = max(1000, min(120000, int(delay_seconds)*1000))
-    # GTK panel classes are scoped; desktop icon themes / native plugins stay intact.
+    # Native XFCE panel remains intact: only the existing managed stylesheet is changed.
+    redblack=theme=="redblack-0822"
+    pane_bg="7, 5, 9" if redblack else "4, 13, 27"
+    pane_lower="5, 4, 8" if redblack else "3, 13, 27"
+    button_bg="22, 7, 13" if redblack else "3, 17, 33"
     return f"""{START}
 /* XFCE retains all launchers, Wi-Fi, notifications, tasklist and system tray.
    Only the shell/background/buttons are retinted. Never touch plugin-ids.
@@ -104,10 +108,10 @@ def render_css(theme="blue-neon", delay_seconds=10):
   -XfcePanelWindow-autohide-size: 1;
 }}
 .xfce4-panel.background {{
-  background-color: rgba(4, 13, 27, 0.91);
+  background-color: rgba({pane_bg}, 0.95);
   background-image: linear-gradient(to bottom,
-    rgba({rgb}, 0.28), rgba(4, 19, 33, .99) 13%,
-    rgba(3, 13, 27, .97) 38%, rgba(1, 6, 18, .98) 80%,
+    rgba({rgb}, 0.28), rgba({pane_bg}, .99) 13%,
+    rgba({pane_lower}, .97) 38%, rgba(1, 4, 7, .98) 80%,
     rgba({rgb}, .25));
   border-style: solid;
   border-width: 1px 0 2px 0;
@@ -119,7 +123,7 @@ def render_css(theme="blue-neon", delay_seconds=10):
   color: #e3f6ff;
   border: 1px solid rgba({rgb}, .22);
   border-radius: 5px;
-  background-color: rgba(3, 17, 33, .56);
+  background-color: rgba({button_bg}, .72);
   background-image: none;
   box-shadow: inset 0 1px rgba({rgb}, .19);
   padding: 1px;

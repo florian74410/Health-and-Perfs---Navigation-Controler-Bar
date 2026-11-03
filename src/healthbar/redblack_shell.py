@@ -267,7 +267,8 @@ def control_stylesheet(scope="window"):
     QLabel {color:#E7D9DC;background:transparent;}
     QLabel#title, QLabel#launcherTitle {color:#FF5E73;font-size:22px;font-weight:900;}
     QLabel#sectionHeader {color:#FF7585;font-size:15px;font-weight:800;padding:11px 5px 7px;}
-    QDialog {background:transparent;color:#FFE8EC;}
+    QDialog {background:#090609;color:#FFE8EC;}
+    QDialog#novaSettings {background:transparent;color:#FFE8EC;}
     QWidget#generalContent, QWidget#settingsPages {
       background:rgba(9,5,9,236);border:1px solid #8C1C31;}
     QListWidget#settingsNavigation {

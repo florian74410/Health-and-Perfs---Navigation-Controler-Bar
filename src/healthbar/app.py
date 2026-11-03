@@ -90,51 +90,42 @@ class NeonButton(QPushButton):
         self.setStyleSheet("background:transparent;border:0;")
 
     def paintEvent(self, event):
+        from .redblack_shell import active as redblack_active, paint_button as draw_redblack_button
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        background = QColor("#061020")
-        background.setAlpha(round(255 * self.panel_opacity / 100))
-        edge = QColor("#33dfff" if self.underMouse() else "#068cff")
-        p.setBrush(background)
-        p.setPen(QPen(edge, 1.6))
-        panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
-        # Consistent clipped hexagonal footprint with ARGB corners.
-        cut=min(8.0,panel.height()*.27,panel.width()*.25)
-        shape=QPainterPath()
-        shape.moveTo(panel.left()+cut,panel.top())
-        for cx,cy in ((panel.right()-cut,panel.top()),
-                      (panel.right(),panel.top()+cut),
-                      (panel.right(),panel.bottom()-cut),
-                      (panel.right()-cut,panel.bottom()),
-                      (panel.left()+cut,panel.bottom()),
-                      (panel.left(),panel.bottom()-cut),
-                      (panel.left(),panel.top()+cut)):
-            shape.lineTo(cx,cy)
-        shape.closeSubpath()
-        p.fillPath(shape,background)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.setPen(QPen(edge,1.6))
-        p.drawPath(shape)
-        from PySide6.QtGui import QLinearGradient
-        glass=QLinearGradient(0,2,0,22)
-        glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
-        glass.setColorAt(1,QColor(0,0,0,0))
-        p.fillPath(shape,glass)
-        light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
-        p.setPen(QPen(light,.65));p.drawPath(shape)
-        icon = self.icon()
+        if redblack_active():
+            draw_redblack_button(p,self)
+        else:
+            background=QColor("#061020")
+            background.setAlpha(round(255*self.panel_opacity/100))
+            edge=QColor("#33dfff" if self.underMouse() else "#068cff")
+            panel=QRectF(self.rect()).adjusted(1.2,1.2,-1.2,-1.2)
+            cut=min(8.0,panel.height()*.27,panel.width()*.25)
+            path=QPainterPath()
+            path.moveTo(panel.left()+cut,panel.top())
+            for x,y in ((panel.right()-cut,panel.top()),
+                        (panel.right(),panel.top()+cut),
+                        (panel.right(),panel.bottom()-cut),
+                        (panel.right()-cut,panel.bottom()),
+                        (panel.left()+cut,panel.bottom()),
+                        (panel.left(),panel.bottom()-cut),
+                        (panel.left(),panel.top()+cut)):
+                path.lineTo(x,y)
+            path.closeSubpath()
+            p.fillPath(path,background)
+            p.setPen(QPen(edge,1.6));p.setBrush(Qt.BrushStyle.NoBrush);p.drawPath(path)
+        icon=self.icon()
         if not icon.isNull():
-            size = min(32, max(18, min(self.width(), self.height()) - 14))
-            x = 8 if self.text() else (self.width() - size)//2
-            icon.paint(p, QRect(x, (self.height()-size)//2, size, size))
+            size=min(32,max(18,min(self.width(),self.height())-14))
+            x=8 if self.text() else (self.width()-size)//2
+            icon.paint(p,QRect(x,(self.height()-size)//2,size,size))
         if self.text():
-            p.setPen(QColor("#e7f3ff"))
+            p.setPen(QColor("#FFE6EA" if redblack_active() else "#e7f3ff"))
             p.setFont(self.font())
-            left = 43 if not icon.isNull() else 4
-            p.drawText(QRect(left, 0, max(0, self.width()-left-2), self.height()),
-                       Qt.AlignmentFlag.AlignVCenter, self.text())
+            left=43 if not icon.isNull() else 4
+            p.drawText(QRect(left,0,max(0,self.width()-left-2),self.height()),
+                       Qt.AlignmentFlag.AlignVCenter,self.text())
         p.end()
-
 
 class Bar(QWidget):
     def __init__(self, settings):
@@ -564,8 +555,8 @@ class Bar(QWidget):
             action.setChecked(getattr(self.settings, setting))
             action.triggered.connect(lambda checked=False, k=key: self.tray_toggle(k))
         themes = menu.addMenu("🎨 Thème couleur")
-        for key, title in (("blue-neon", "Blue Neon"), ("green-matrix", "Green Matrix"),
-                           ("red-blood", "Red Blood")):
+        from .ui_kit import THEMES
+        for key, title in THEMES.items():
             act = themes.addAction(title)
             act.setCheckable(True)
             act.setChecked(self.settings.theme == key or
@@ -755,7 +746,11 @@ class Bar(QWidget):
         from .ui_kit import set_theme
         set_theme(self.settings.theme)
         from .ui_kit import stylesheet
-        self.setStyleSheet(stylesheet(STYLE))
+        from .redblack_shell import active as redblack_active, control_stylesheet
+        self.setStyleSheet(control_stylesheet() if redblack_active() else stylesheet(STYLE))
+        if hasattr(self,"holo"):
+            for panel in [self.holo,*getattr(self,"module_holos",{}).values()]:
+                panel.apply_visual_theme()
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, self.settings.always_on_top)
         self.animation.stop()
         self.retracted = False
@@ -787,10 +782,9 @@ class Bar(QWidget):
         self.expand_button.panel_opacity = self.settings.opacity
         self.expand_button.update()
         alpha = round(255*self.settings.opacity/100)
-        self.actions.setStyleSheet(f"""
-            QPushButton#nav {{ background: rgba(2,15,34,{alpha}); }}
-            QPushButton#nav:hover {{ background: rgba(11,52,90,{alpha}); }}
-        """)
+        self.actions.setStyleSheet("background:transparent;border:0;" if redblack_active()
+            else f"""QPushButton#nav {{ background: rgba(2,15,34,{alpha}); }}
+            QPushButton#nav:hover {{ background: rgba(11,52,90,{alpha}); }}""")
         self.root.setDirection(QHBoxLayout.Direction.TopToBottom if vertical else QHBoxLayout.Direction.LeftToRight)
         self.actions.setFixedWidth(thickness-12 if vertical else min(400, max(290, g.width()//5)))
         if vertical:
@@ -868,8 +862,10 @@ class Bar(QWidget):
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
         p.fillRect(self.rect(), Qt.GlobalColor.transparent)
         from .ui_kit import pcb
+        from .redblack_shell import active as redblack_active
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
-        pcb(p, self.rect())
+        if not redblack_active():
+            pcb(p, self.rect())
         p.end()
 
     def arm_hide(self):
@@ -1000,7 +996,7 @@ class Bar(QWidget):
             from .ui_kit import stylesheet
             for panel in [self.holo, *self.module_holos.values()]:
                 panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,self.settings.always_on_top)
-                panel.setStyleSheet(stylesheet(panel.base_style))
+                panel.apply_visual_theme()
                 panel.update()
             self.hotkeys.configure(self.settings.shortcuts)
             self.tray.setIcon(novabar_icon(self.settings.theme))
