@@ -167,8 +167,10 @@ class ShellTests(unittest.TestCase):
             self.assertNotIn("wiki",kinds)
             self.assertNotIn("folder",kinds)
             self.assertEqual(self.bar.height(),height)
-        with patch("healthbar.app.shutil.which",return_value="/usr/bin/exo-open"), \\
-             patch("healthbar.app.subprocess.Popen") as launching:
+        with (
+            patch("healthbar.app.shutil.which",return_value="/usr/bin/exo-open"),
+            patch("healthbar.app.subprocess.Popen") as launching,
+        ):
             self.bar.open_terminal()
             launching.assert_called_once()
             self.assertEqual(launching.call_args.args[0],
