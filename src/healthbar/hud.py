@@ -232,8 +232,8 @@ def battery_meter(p,bounds,percent,kind):
     valid=isinstance(percent,(int,float)) and math.isfinite(percent)
     fraction=min(1,max(0,percent/100)) if valid else 0
     count=12
-    margin=3
-    size=max(.5,(w-2*margin-2*(count-1))/count)
+    margin=4
+    size=max(.5,(w-2*margin-(count-1))/count)
     tones=("#25c7ff","#38e2b2","#4dee7b","#78e46e",
            "#a4db63","#b5d95b","#dbd353","#ffb650",
            "#ff9c48","#ff8249","#ff6463","#ff436c")
@@ -241,7 +241,7 @@ def battery_meter(p,bounds,percent,kind):
     for i in range(count):
         filled=valid and (i+.5)/count<=fraction
         p.setBrush(QColor(tones[i] if filled else "#10374a"))
-        left=x+margin+i*(size+2)
+        left=x+margin+i*(size+1)
         p.drawRoundedRect(QRectF(left,y+3,size,max(4,h-6)),1,1)
     p.setPen(QPen(QColor("#20c7ee"),.8))
     p.drawLine(QPointF(x+4,y+h-1),QPointF(x+min(w-3,w*.34),y+h-1))
