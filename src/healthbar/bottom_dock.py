@@ -1,5 +1,6 @@
 """CYBER NEXUS cockpit taskbar with large app icons, categorized launcher and live tray."""
 import os
+import time
 import shutil
 import subprocess
 import sys
@@ -42,13 +43,49 @@ def favorite_apps(settings):
     return unique
 
 
-def pinned_apps(settings):return favorite_apps(settings)[:4]
+def pinned_apps(settings):
+    custom=settings.bottom_pinned_apps
+    return list(custom)[:10] if custom is not None else favorite_apps(settings)[:4]
+
+
+def draw_electron(p,path,phase):
+    """One tiny moving white/cyan spark; no continuous widget-local timer."""
+    a=path.pointAtPercent(phase)
+    b=path.pointAtPercent((phase+.025)%1)
+    if (b-a).manhattanLength()>80:
+        return  # Crossing the path seam.
+    for thickness,alpha in ((6,60),(3,150),(1.5,255)):
+        col=QColor(190,255,255,alpha)
+        p.setPen(QPen(col,thickness))
+        p.drawLine(a,b)
+
+
+class ElectronToolButton(QToolButton):
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        self.flash_phase=0.0
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+    def enterEvent(self,event):
+        dock=self.window()
+        if hasattr(dock,"fx_timer"):
+            dock.fx_timer.start(55)
+        super().enterEvent(event)
+    def paintEvent(self,event):
+        super().paintEvent(event)
+        if not self.underMouse() or self.width()<10 or self.height()<10:
+            return
+        p=QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        trace=cut_path(QRectF(2,2,self.width()-4,self.height()-4),7)
+        draw_electron(p,trace,self.flash_phase)
+        p.end()
 
 
 class TaskButton(QToolButton):
     def __init__(self,row,icon,theme,parent=None):
         super().__init__(parent);self.row=row;self.icon=icon;self.theme=theme
         self.setToolTip(row['name']);self.setAccessibleName(row['name']);self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.flash_phase=0.0
         self.setMinimumWidth(128);self.setMaximumWidth(480)
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -61,11 +98,14 @@ class TaskButton(QToolButton):
         text=p.fontMetrics().elidedText(self.row['name'],Qt.TextElideMode.ElideRight,max(0,self.width()-size-32))
         p.drawText(QRect(20+size,0,self.width()-size-30,self.height()),Qt.AlignmentFlag.AlignVCenter,text)
         if active:p.setPen(QPen(QColor(primary),2));p.drawLine(18,self.height()-5,self.width()-18,self.height()-5)
+        if self.underMouse():
+            draw_electron(p,shape,self.flash_phase)
         p.end()
 
 
 class BottomDock(QWidget):
-    settings_requested=Signal();quit_requested=Signal()
+    settings_requested=Signal();quit_requested=Signal();shortcut_requested=Signal(str,str)
+    shortcut_renamed=Signal(str,str)
     def __init__(self,settings,parent=None):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
         self.settings=settings;self.backend=DesktopBackend();self.native=NativePanelGuard(self.backend)
@@ -78,7 +118,7 @@ class BottomDock(QWidget):
         self.body=CockpitFrame(settings.theme);root.addWidget(self.body)
         self.row=QHBoxLayout(self.body);self.row.setContentsMargins(23,20,23,20);self.row.setSpacing(8)
         self.launchers=QWidget();self.pins=QHBoxLayout(self.launchers);self.pins.setContentsMargins(0,0,0,0);self.pins.setSpacing(4)
-        self.menu_button=QToolButton();self.menu_button.setObjectName('nexus');self.menu_button.setIcon(lookup_icon('linuxmint-logo') if not lookup_icon('linuxmint-logo').isNull() else symbol_icon('apps','#3ee5ff'));self.menu_button.setToolTip('NEXUS · Applications et favoris');self.menu_button.setAccessibleName('NEXUS · Applications')
+        self.menu_button=ElectronToolButton();self.menu_button.setObjectName('nexus');self.menu_button.setIcon(lookup_icon('linuxmint-logo') if not lookup_icon('linuxmint-logo').isNull() else symbol_icon('apps','#3ee5ff'));self.menu_button.setToolTip('NEXUS · Applications et favoris');self.menu_button.setAccessibleName('NEXUS · Applications')
         self.menu_button.clicked.connect(self.open_menu);self.pins.addWidget(self.menu_button);self.row.addWidget(self.launchers)
         self.tasks_area=QScrollArea();self.tasks_area.setWidgetResizable(True);self.tasks_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.tasks_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff);self.tasks_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -107,10 +147,18 @@ class BottomDock(QWidget):
         self.hide_timer=QTimer(self);self.hide_timer.setSingleShot(True);self.hide_timer.timeout.connect(self.collapse)
         self.timer=QTimer(self);self.timer.setInterval(120);self.timer.timeout.connect(self.check_pointer);self.timer.start()
         self.tasks_timer=QTimer(self);self.tasks_timer.setInterval(1000);self.tasks_timer.timeout.connect(self.refresh);self.tasks_timer.start()
-        self.fx_timer=QTimer(self);self.fx_timer.setInterval(160);self.fx_timer.timeout.connect(self.animate)
+        self._electron_phase=0.0
+        self._last_ambient_update=0.0
+        self.fx_timer=QTimer(self);self.fx_timer.setInterval(1100);self.fx_timer.timeout.connect(self.animate)
         self.body.regions=self.housing_regions
         self.apply_settings(settings);self.refresh()
         QTimer.singleShot(0,self.refresh)
+
+    def pin_context_menu(self,button,path):
+        menu=self.themed_menu()
+        remove=menu.addAction("Retirer de la navigation")
+        if menu.exec(button.mapToGlobal(button.rect().bottomLeft()))==remove:
+            self.shortcut_requested.emit("unpin",path)
 
     def housing_regions(self):
         regions=[self.launchers.geometry().adjusted(-7,-7,7,7)]
@@ -121,7 +169,25 @@ class BottomDock(QWidget):
         return regions
 
     def animate(self):
-        if self.isVisible():self.body.phase+=.2;self.body.update()
+        if not self.isVisible() or self.collapsed:
+            self.fx_timer.stop()
+            return
+        hover=[button for button in self.findChildren(QToolButton)
+               if button.isVisible() and button.underMouse()]
+        if hover:
+            self._electron_phase=(self._electron_phase+.09)%1.0
+            for button in hover:
+                button.flash_phase=self._electron_phase
+                button.update()
+        now=time.monotonic()
+        if now-self._last_ambient_update>=1.0:
+            self._last_ambient_update=now
+            # Slow diffused rail glow is updated ~once/sec, even while hovering.
+            self.body.phase=(self.body.phase+.18)%(6.283)
+            self.body.update()
+        cadence=55 if hover else 1100
+        if self.fx_timer.interval()!=cadence:
+            self.fx_timer.setInterval(cadence)
 
     def apply_settings(self,settings):
         if getattr(self,'_screen',settings.screen)!=settings.screen:self.native.restore()
@@ -146,9 +212,19 @@ class BottomDock(QWidget):
                 item=self.pins.takeAt(1)
                 if item.widget():item.widget().hide();item.widget().deleteLater()
             for path in key:
-                info=launcher_metadata(Path(path))
+                target=Path(path)
+                folder=target.is_dir()
+                info=(target.name or "Dossier","folder") if folder else launcher_metadata(target)
                 if not info:continue
-                button=QToolButton();button.setIcon(app_icon(info[1]));button.setToolTip(info[0]);button.setAccessibleName(info[0]);button.clicked.connect(lambda checked=False,p=path:launch_item(p,'apps'));self.pins.addWidget(button)
+                button=QToolButton()
+                button.setIcon(app_icon(info[1]))
+                button.setToolTip(info[0]);button.setAccessibleName(info[0])
+                button.clicked.connect(
+                    lambda checked=False,p=path,k=("folders" if folder else "apps"):launch_item(p,k))
+                button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+                button.customContextMenuRequested.connect(
+                    lambda pos,b=button,p=path:self.pin_context_menu(b,p))
+                self.pins.addWidget(button)
         self._task_key=None
         for button in self.launchers.findChildren(QToolButton):button.setFixedSize(height-36,height-40);button.setIconSize(QSize(min(42,height-48),min(42,height-48)))
         for button in self.indicators.values():button.setFixedSize(34,height-40);button.setIconSize(QSize(27,27))
@@ -284,7 +360,7 @@ class BottomDock(QWidget):
         menu=self.themed_menu();menu.addAction('Activer',lambda:self.backend.action(row['id']));menu.addAction('Fermer',lambda:self.backend.action(row['id'],close=True));menu.exec(button.mapToGlobal(button.rect().topLeft()))
     def open_menu(self):
         if self.launcher:self.launcher.close();self.launcher.deleteLater()
-        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.show_above(self.menu_button)
+        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.shortcut_requested.connect(self.shortcut_requested.emit);self.launcher.shortcut_renamed.connect(self.shortcut_renamed.emit);self.launcher.show_above(self.menu_button)
     def network_menu(self):
         menu=self.themed_menu();state=self.desktop_state.get('network');menu.addAction(state['name'] if state else 'État réseau indisponible').setEnabled(False)
         if state:menu.addAction('Interface : '+state.get('device','—')).setEnabled(False)

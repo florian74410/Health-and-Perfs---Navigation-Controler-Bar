@@ -37,6 +37,8 @@ class Settings:
     bottom_dock_height: int = 84
     bottom_tabs_max: int = 3
     bottom_nav_opacity: int = 55
+    bottom_pinned_apps: list | None = None
+    dock_aliases: dict = field(default_factory=dict)
     top_reserved: bool = True
     top_hover_ms: int = 1000
     top_trigger_px: int = 10
@@ -103,13 +105,18 @@ class Settings:
             raise ValueError("Délai ou intensité des effets XFCE invalide")
         if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
             raise ValueError("Un dock Dossiers et un dock Applications sont requis")
-        for key in ("dock_folder_paths", "dock_app_paths"):
+        for key in ("dock_folder_paths", "dock_app_paths", "bottom_pinned_apps"):
             values = getattr(self, key)
             if values is None:
                 continue
             if not isinstance(values, list) or len(values) > 128 or any(
                     not isinstance(p, str) or len(p) > 2048 or "\\x00" in p for p in values):
                 raise ValueError(f"Favoris de dock invalides : {key}")
+        if (not isinstance(self.dock_aliases,dict) or len(self.dock_aliases)>256 or
+                any(not isinstance(k,str) or len(k)>2048 or "\\x00" in k or
+                    not isinstance(v,str) or not 1<=len(v)<=80 or
+                    any(ord(c)<32 for c in v) for k,v in self.dock_aliases.items())):
+            raise ValueError("Alias des raccourcis invalides")
         if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]

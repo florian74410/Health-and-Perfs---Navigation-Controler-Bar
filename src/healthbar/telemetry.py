@@ -7,6 +7,8 @@ from pathlib import Path
 from .network_detail import NetworkSampler, PingProbe
 from .cpu_detail import cpu_identity, sample_cpu_cores, PackagePower
 from .hardware_identity import read_ram_identity, fan_maxima
+from .storage_identity import read_storage_identity
+from .config import data_dir
 from .power_sensors import power_sensor_snapshot
 try:
     import psutil
@@ -96,6 +98,7 @@ class Telemetry:
         self.package_power = PackagePower()
         self.cpu_model = cpu_identity()
         self.ram_inventory = read_ram_identity()
+        self.storage_identity = read_storage_identity(data_dir()/"ssd_specs.json")
         self.fan_rpm_limits = fan_maxima()
         # Cache expensive hardware/backend probes between shared sampling passes.
         self.module_intervals = {'gpu': 3, 'fans': 5, 'power': 5}
@@ -125,6 +128,7 @@ class Telemetry:
         data["fans"] = []
         data["cpu_cores"] = []
         data["cpu_architecture"] = platform.machine()
+        data.update(self.storage_identity)
         data["ram_modules"] = self.ram_inventory["modules"]
         data["ram_module_count"] = self.ram_inventory["count"]
         # Unsupported readings stay None; wall power is never estimated from TDP.

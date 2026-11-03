@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import subprocess
+import shutil
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,7 +34,7 @@ def button_icon(kind):
     pix.fill(Qt.GlobalColor.transparent)
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setPen(QPen(QColor("#24dbff"), 2))
+    p.setPen(QPen(QColor("#F25067"), 2))
     if kind == "terminal":
         p.drawLine(10, 11, 18, 19)
         p.drawLine(18, 19, 10, 27)
@@ -83,6 +84,10 @@ class NeonButton(QPushButton):
         super().__init__(parent)
         self.panel_opacity = 88
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground,True)
+        self.setAutoFillBackground(False)
+        self.setStyleSheet("background:transparent;border:0;")
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -93,16 +98,30 @@ class NeonButton(QPushButton):
         p.setBrush(background)
         p.setPen(QPen(edge, 1.6))
         panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
-        p.drawRoundedRect(panel, 9, 9)
+        # Consistent clipped hexagonal footprint with ARGB corners.
+        cut=min(8.0,panel.height()*.27,panel.width()*.25)
+        shape=QPainterPath()
+        shape.moveTo(panel.left()+cut,panel.top())
+        for cx,cy in ((panel.right()-cut,panel.top()),
+                      (panel.right(),panel.top()+cut),
+                      (panel.right(),panel.bottom()-cut),
+                      (panel.right()-cut,panel.bottom()),
+                      (panel.left()+cut,panel.bottom()),
+                      (panel.left(),panel.bottom()-cut),
+                      (panel.left(),panel.top()+cut)):
+            shape.lineTo(cx,cy)
+        shape.closeSubpath()
+        p.fillPath(shape,background)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(edge,1.6))
+        p.drawPath(shape)
         from PySide6.QtGui import QLinearGradient
         glass=QLinearGradient(0,2,0,22)
         glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
         glass.setColorAt(1,QColor(0,0,0,0))
-        shine=QPainterPath();shine.addRoundedRect(panel,9,9)
-        p.fillPath(shine,glass)
-        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.fillPath(shape,glass)
         light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
-        p.setPen(QPen(light,.65));p.drawRoundedRect(panel.adjusted(1,1,-1,-1),8,8)
+        p.setPen(QPen(light,.65));p.drawPath(shape)
         icon = self.icon()
         if not icon.isNull():
             size = min(32, max(18, min(self.width(), self.height()) - 14))
@@ -167,12 +186,9 @@ class Bar(QWidget):
         self.turbo.setIcon(QIcon())
         self.turbo.setFixedWidth(155)
         self.turbo.setObjectName("cpuModeButton")
-        self.make_button("terminal", "Console • emplacement réservé", self.console_info)
-        self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
+        self.make_button("terminal", "Ouvrir un terminal système", self.open_terminal)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
-        self.wiki_button = self.make_button("wiki", "Ouvrir le Wiki NovaBar", self.open_wiki)
-        self.wiki_button.setAccessibleName("Ouvrir le Wiki NovaBar")
         self.action_layout.addWidget(self.buttons)
         self.expand_button = NeonButton()
         self.expand_button.setObjectName("nav")
@@ -283,6 +299,8 @@ class Bar(QWidget):
                 dock.moved_to_other_side.connect(self.move_dock)
                 dock.entries_changed.connect(self.save_dock_entries)
                 dock.settings_requested.connect(self.preferences)
+                dock.shortcut_requested.connect(self.add_dock_shortcut)
+                dock.alias_changed.connect(self.save_dock_alias)
                 self.sidebars[side] = dock
             else:
                 existing.settings = self.settings
@@ -315,6 +333,72 @@ class Bar(QWidget):
             if dock.kind == kind:
                 dock.set_items(dock.default_items())
 
+    def save_dock_alias(self,path,name):
+        if not isinstance(path,str) or not isinstance(name,str):
+            return
+        self.settings.dock_aliases[path]=name
+        self.settings.save()
+        for dock in self.sidebars.values():
+            dock.set_items(dock.default_items())
+
+    def add_dock_shortcut(self,destination,path):
+        """Persist one explicit user-selected shortcut; never install anything."""
+        from .edge_docks import normalized_drop
+        from .bottom_dock import pinned_apps
+        if destination not in ("bottom","sidebar","unpin") or not isinstance(path,str):
+            return
+        if destination=="unpin":
+            paths=(self.settings.bottom_pinned_apps if self.settings.bottom_pinned_apps is not None
+                   else pinned_apps(self.settings))
+            self.settings.bottom_pinned_apps=[p for p in paths if p!=path]
+        else:
+            target=Path(path).expanduser()
+            if target.is_dir():
+                clean=normalized_drop([str(target)],"folders")
+            else:
+                clean=normalized_drop([str(target)],"apps")
+            if not clean:
+                QMessageBox.warning(self,"NovaBar / Raccourcis","Le raccourci sélectionné est inaccessible.")
+                return
+            value=clean[0]
+            if destination=="bottom":
+                paths=(list(self.settings.bottom_pinned_apps) if self.settings.bottom_pinned_apps is not None
+                       else pinned_apps(self.settings))
+                self.settings.bottom_pinned_apps=list(dict.fromkeys([*paths,value]))[:10]
+            else:
+                # Freeze inherited dock pins before editing independent sidebar
+                # favourites: adding a right-side favourite must not pin bottom.
+                if self.settings.bottom_pinned_apps is None:
+                    self.settings.bottom_pinned_apps=pinned_apps(self.settings)
+                paths=list(self.settings.dock_app_paths or [])
+                self.settings.dock_app_paths=list(dict.fromkeys([*paths,value]))[:128]
+        self.settings.save()
+        if self.bottom_dock is not None:
+            self.bottom_dock.apply_settings(self.settings)
+        self.sync_sidebars()
+
+    def rename_app_shortcut(self,old_path,new_path):
+        """Replace references after writing a user-local .desktop override."""
+        from .edge_docks import normalized_drop
+        if new_path not in normalized_drop([new_path],"apps"):
+            return
+        changed=False
+        for key in ("dock_app_paths","bottom_pinned_apps"):
+            paths=getattr(self.settings,key)
+            if paths is None or old_path not in paths:
+                continue
+            setattr(self.settings,key,list(dict.fromkeys(
+                new_path if item==old_path else item for item in paths)))
+            changed=True
+        if old_path in self.settings.dock_aliases:
+            self.settings.dock_aliases[new_path]=self.settings.dock_aliases.pop(old_path)
+            changed=True
+        if changed:
+            self.settings.save()
+            if self.bottom_dock is not None:
+                self.bottom_dock.apply_settings(self.settings)
+            self.sync_sidebars()
+
     def sync_xfce_skin(self):
         """Manage the native Xfce panel without taking ownership of its icons."""
         from .xfce_panel_skin import apply_skin, remove_skin, backup_path
@@ -329,6 +413,8 @@ class Bar(QWidget):
                 self.bottom_dock=BottomDock(self.settings)
                 self.bottom_dock.settings_requested.connect(self.preferences)
                 self.bottom_dock.quit_requested.connect(self.quit_app)
+                self.bottom_dock.shortcut_requested.connect(self.add_dock_shortcut)
+                self.bottom_dock.shortcut_renamed.connect(self.rename_app_shortcut)
             else:self.bottom_dock.apply_settings(self.settings)
             self.xfce_skin_status="Barre inférieure NovaBar active · original XFCE masqué pendant la session"
             return
@@ -730,15 +816,15 @@ class Bar(QWidget):
             width = self.actions.width()
             turbo_width = 148 if width >= 350 else 90
             utility_width = 28
-            count = self.button_layout.count() - 3  # turbo, expand, hidden quit
+            count = self.button_layout.count() - 3  # turbo, expand, optional quit
             size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("NORMAL MODE")
             self._set_turbo_indicator(False,force=True)
             for index in range(1, 1+count):
-                self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
-            self.expand_button.setFixedSize(utility_width,button_height)
-            self.quit_button.setFixedSize(utility_width,button_height)
+                self.button_layout.itemAt(index).widget().setFixedSize(min(size,button_height),min(size,button_height))
+            self.expand_button.setFixedSize(utility_width,utility_width)
+            self.quit_button.setFixedSize(utility_width,utility_width)
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
             length = max(290, round(g.width()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.width()-length)//2,
@@ -937,28 +1023,23 @@ class Bar(QWidget):
         data_dir().mkdir(parents=True, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
 
-    def console_info(self):
-        folder = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
-            Path.home() / "Scripts" / "HardwareHealth")
-        folder.mkdir(parents=True, exist_ok=True)
-        allowed = {".py", ".sh", ".command"} if os.name != "nt" else {
-            ".py", ".bat", ".cmd", ".ps1"}
-        files = [p for p in sorted(folder.iterdir()) if p.is_file() and p.suffix.lower() in allowed]
-        menu = QMenu(self)
-        if not files:
-            menu.addAction("Aucun script • sélectionnez un dossier dans Générale").setEnabled(False)
-        for script in files[:40]:
-            menu.addAction(script.name, lambda checked=False, p=script: self.run_script(p))
-        menu.addSeparator()
-        menu.addAction("Ouvrir le dossier", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))))
-        self.busy = True
-        self.hide_timer.stop()
+    def open_terminal(self):
+        """Open the user's terminal emulator, never a themed stub."""
+        commands=(
+            ["exo-open","--launch","TerminalEmulator"],
+            ["xfce4-terminal"], ["x-terminal-emulator"], ["konsole"],
+            ["gnome-terminal"], ["xterm"])
+        cmd=next((c for c in commands if shutil.which(c[0])),None)
+        if cmd is None:
+            QMessageBox.warning(self,"NovaBar / Terminal",
+                                "Aucun émulateur de terminal disponible sur le système.")
+            return
         try:
-            menu.exec(self.sender().mapToGlobal(self.sender().rect().bottomLeft())
-                      if isinstance(self.sender(), QWidget) else QCursor.pos())
-        finally:
-            self.busy = False
-            self.arm_hide()
+            subprocess.Popen(cmd,env=native_env(),stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        except OSError as exc:
+            QMessageBox.warning(self,"NovaBar / Terminal",str(exc))
 
     def run_script(self, path):
         root = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (

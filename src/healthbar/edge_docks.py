@@ -18,7 +18,7 @@ from PySide6.QtGui import (QCursor, QDesktopServices, QIcon, QPainter, QPen,
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,
-    QMenu, QFileDialog, QVBoxLayout, QWidget,
+    QMenu, QFileDialog, QVBoxLayout, QWidget, QInputDialog,
 )
 
 from .system_env import native_env
@@ -83,7 +83,7 @@ def normalized_drop(paths, kind):
         p = Path(path).expanduser()
         if kind == "folders" and p.is_dir():
             value = str(p.resolve())
-        elif kind == "apps" and (
+        elif kind == "apps" and (p.is_dir() or
                 p.is_file() and p.suffix.lower() in ((".lnk", ".url") if sys.platform == "win32" else (".desktop",))
                 or sys.platform == "darwin" and p.is_dir() and p.suffix.lower() == ".app"):
             value = str(p.resolve())
@@ -145,6 +145,8 @@ def launch_item(value: str, kind: str) -> bool:
             return True
         except OSError:
             return False
+    if target.is_dir():
+        return QDesktopServices.openUrl(QUrl.fromLocalFile(str(target)))
     if not target.is_file() or target.suffix.lower() != ".desktop" or launcher_metadata(target) is None:
         return False
     if sys.platform.startswith("linux"):
@@ -285,9 +287,16 @@ class PCBDockFrame(QFrame):
         self.phase = 0.0
         self.setObjectName("dockBody")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAutoFillBackground(False)
 
     def paintEvent(self, event):
         p = QPainter(self)
+        # Explicit ARGB clear: the cut-off corners must reveal the desktop,
+        # not uninitialised black pixels or a rectangular QFrame backing.
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+        p.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         if w < 40 or h < 30:
@@ -343,6 +352,8 @@ class EdgeDock(QWidget):
     moved_to_other_side = Signal(str)
     entries_changed = Signal(str, list)
     settings_requested = Signal()
+    shortcut_requested = Signal(str,str)
+    alias_changed = Signal(str,str)
 
     def __init__(self, side: str, kind: str, settings, parent=None):
         super().__init__(None)
@@ -369,9 +380,10 @@ class EdgeDock(QWidget):
         self.content = PCBDockFrame(settings)
         self.content.setStyleSheet(dock_stylesheet(settings.theme))
         layout = QVBoxLayout(self.content)
-        layout.setContentsMargins(7, 9, 7, 8)
+        layout.setContentsMargins(13, 9, 13, 8)
         layout.setSpacing(6)
         title = QHBoxLayout()
+        title.setSpacing(4)
         self.grip = DockGrip(side)
         self.grip.switch_requested.connect(lambda: self.moved_to_other_side.emit(self.side))
         title.addWidget(self.grip, 1)
@@ -380,18 +392,19 @@ class EdgeDock(QWidget):
         self.swap.setFixedWidth(28)
         self.swap.clicked.connect(lambda: self.moved_to_other_side.emit(self.side))
         title.addWidget(self.swap)
-        self.options = QPushButton("⚙")
-        self.options.setToolTip("Préférences NovaBar")
-        self.options.setFixedWidth(27)
-        self.options.clicked.connect(self.settings_requested.emit)
-        title.addWidget(self.options)
         layout.addLayout(title)
         self.heading = QLabel("DOSSIERS" if kind == "folders" else "APPLICATIONS")
         self.heading.setStyleSheet(f"color: {dock_colors(settings.theme)[0]}; "
                                    "font-size: 13px; font-weight: bold; letter-spacing: 1px;")
         layout.addWidget(self.heading)
         self.items = DockItems(kind)
-        self.items.itemClicked.connect(self.open_item)
+        self._open_pending = None
+        self._open_timer = QTimer(self)
+        self._open_timer.setSingleShot(True)
+        self._open_timer.timeout.connect(self.launch_pending)
+        self.items.itemClicked.connect(self.queue_open_item)
+        self.items.itemDoubleClicked.connect(
+            lambda item:self.show_item_menu(self.items.visualItemRect(item).center()))
         self.items.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.items.customContextMenuRequested.connect(self.show_item_menu)
         self.items.changed.connect(lambda values: self.entries_changed.emit(self.kind, values))
@@ -464,34 +477,80 @@ class EdgeDock(QWidget):
                     if ico.isNull(): ico = provider.icon(QFileInfo(str(p)))
                 else:
                     label, ico = p.stem, provider.icon(QFileInfo(str(p)))
+            label=self.settings.dock_aliases.get(value,label)
             item = QListWidgetItem(ico, label)
             item.setData(Qt.ItemDataRole.UserRole, value)
             item.setToolTip(value)
             self.items.addItem(item)
 
-    def open_item(self, item):
-        launch_item(item.data(Qt.ItemDataRole.UserRole), self.kind)
+    def queue_open_item(self,item):
+        self._open_pending=item.data(Qt.ItemDataRole.UserRole)
+        delay=max(260,QApplication.styleHints().mouseDoubleClickInterval()+35)
+        self._open_timer.start(delay)
+
+    def launch_pending(self):
+        path=self._open_pending
+        self._open_pending=None
+        if path:
+            launch_item(path,self.kind)
+            self.hide_timer.start(3000)
+
+    def open_item(self,item):
+        launch_item(item.data(Qt.ItemDataRole.UserRole),self.kind)
         self.hide_timer.start(3000)
 
-    def show_item_menu(self, pos):
-        menu = QMenu(self.items)
-        add = menu.addAction("Ajouter un raccourci…")
-        selected = self.items.itemAt(pos)
-        remove = menu.addAction("Retirer ce raccourci") if selected else None
-        action = menu.exec(self.items.mapToGlobal(pos))
-        if action == add:
-            if self.kind == "folders":
-                chosen = QFileDialog.getExistingDirectory(self, "Ajouter un dossier", str(Path.home()))
+    def show_item_menu(self,pos):
+        # Both right-click and double-click open this menu. A pending single
+        # click must not open the folder before a double click is recognised.
+        self._open_timer.stop()
+        self._open_pending=None
+        menu=QMenu(self.items)
+        menu.setStyleSheet(dock_stylesheet(self.settings.theme)+
+            "QMenu {background:#071B2B;color:#E9F7FF;border:1px solid #14BDEB;}"
+            "QMenu::item {padding:8px 16px;}"
+            "QMenu::item:selected {background:#124969;}")
+        selected=self.items.itemAt(pos)
+        open_action=menu.addAction("Ouvrir") if selected else None
+        rename_action=menu.addAction("✎ Renommer le raccourci…") if selected else None
+        pin_action=menu.addAction("◈ Ajouter à la barre de navigation") if selected else None
+        fav_action=menu.addAction("★ Ajouter aux favoris (Applications)") if selected else None
+        add=menu.addAction("Ajouter un raccourci…")
+        remove=menu.addAction("Retirer ce raccourci") if selected else None
+        action=menu.exec(self.items.mapToGlobal(pos))
+        if selected is not None:
+            path=selected.data(Qt.ItemDataRole.UserRole)
+            if action==open_action:
+                launch_item(path,self.kind)
+                return
+            if action==pin_action:
+                self.shortcut_requested.emit("bottom",path)
+                return
+            if action==fav_action:
+                self.shortcut_requested.emit("sidebar",path)
+                return
+            if action==rename_action:
+                alias,ok=QInputDialog.getText(self,"Renommer le raccourci",
+                                             "Nom affiché (le dossier original reste intact) :",
+                                             text=selected.text())
+                if ok:
+                    alias=alias.strip()
+                    if 1<=len(alias)<=80 and all(ord(c)>=32 for c in alias):
+                        self.alias_changed.emit(path,alias)
+                return
+        if action==add:
+            if self.kind=="folders":
+                chosen=QFileDialog.getExistingDirectory(self,"Ajouter un dossier",str(Path.home()))
             else:
-                filters = "Raccourcis (*.desktop)" if sys.platform.startswith("linux") else (
-                    "Raccourcis (*.lnk *.url)" if sys.platform == "win32" else "Applications (*.app)")
-                chosen, _ = QFileDialog.getOpenFileName(self, "Ajouter une application", str(xdg_folder("DESKTOP")), filters)
+                filters="Raccourcis (*.desktop)" if sys.platform.startswith("linux") else (
+                    "Raccourcis (*.lnk *.url)" if sys.platform=="win32" else "Applications (*.app)")
+                chosen,_=QFileDialog.getOpenFileName(self,"Ajouter une application",
+                                                      str(xdg_folder("DESKTOP")),filters)
             if chosen:
-                self.entries_changed.emit(self.kind, self.items.values() + [chosen])
-        elif remove is not None and action == remove:
-            values = self.items.values()
+                self.entries_changed.emit(self.kind,self.items.values()+[chosen])
+        elif remove is not None and action==remove:
+            values=self.items.values()
             values.remove(selected.data(Qt.ItemDataRole.UserRole))
-            self.entries_changed.emit(self.kind, values)
+            self.entries_changed.emit(self.kind,values)
 
     def place(self):
         screens = QApplication.screens()

@@ -1,5 +1,6 @@
 """Resolution-independent metallic cockpit: bevels, luminous rails and real icon fallback."""
 from pathlib import Path
+import math
 from PySide6.QtCore import Qt,QRectF,QPointF,QSize
 from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QLinearGradient,QPolygonF,QIcon,QPixmap
 from PySide6.QtWidgets import QFrame
@@ -23,9 +24,15 @@ class CockpitFrame(QFrame):
     def __init__(self,theme='blue-neon',parent=None):
         super().__init__(parent);self.theme=theme;self.phase=0;self.glass_opacity=55
         self.setObjectName('cockpit');self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground,False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+        self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
-        p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p=QPainter(self)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+        p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w,h=self.width(),self.height();primary,secondary,_=PALETTES.get(self.theme,PALETTES['blue-neon'])
         outer=cut_path(QRectF(2,2,w-4,h-4),19)
         metal=QLinearGradient(0,0,0,h)
@@ -34,7 +41,10 @@ class CockpitFrame(QFrame):
         p.setOpacity(max(.12,min(1,self.glass_opacity/100)))
         p.fillPath(outer,metal)
         p.restore()
-        p.setBrush(Qt.BrushStyle.NoBrush);glow(p,outer,secondary,1.5)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.save();p.setOpacity(.68+.23*(.5+.5*math.sin(self.phase)))
+        glow(p,outer,secondary,1.5)
+        p.restore()
         inner=cut_path(QRectF(9,9,w-18,h-18),14);glow(p,inner,primary,1.7)
         cavity=cut_path(QRectF(16,16,w-32,h-32),11)
         glass=QLinearGradient(0,16,0,h-16)

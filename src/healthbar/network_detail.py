@@ -20,6 +20,20 @@ def format_rate(mbs):
     return f'{mbs:.2f} MB/s'
 
 
+
+def format_compact_rate(mbs):
+    """Ultra-compact HUD rate: decimal MB (Mo) per second, one decimal only."""
+    if not isinstance(mbs,(int,float)) or not math.isfinite(mbs) or mbs<0:
+        return "— Mo/s"
+    return f"{mbs:.1f} Mo/s"
+
+
+def format_compact_ping(data):
+    latency=data.get("net_ping_ms") if isinstance(data,dict) else None
+    if not isinstance(latency,(int,float)) or not math.isfinite(latency) or latency<0:
+        return "—"
+    return str(round(latency))+"ms"
+
 def format_ping(data):
     value = data.get('net_ping_ms')
     if value is None:
