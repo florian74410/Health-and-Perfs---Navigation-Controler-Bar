@@ -105,7 +105,9 @@ class CpuHoloPanel(QWidget):
             QScrollBar:vertical {width:6px;background:transparent;}
             QScrollBar::handle:vertical {background:#129BD8;border-radius:3px;}
         """
-        self.setStyleSheet(holo_stylesheet() if redblack_active() else stylesheet(self.base_style))
+        from .blue_night_shell import active as night_active, control_stylesheet as night_stylesheet
+        self.setStyleSheet(holo_stylesheet() if redblack_active() else
+                           night_stylesheet() if night_active() else stylesheet(self.base_style))
         root = QVBoxLayout(self)
         root.setContentsMargins(*( (29,30,29,26) if redblack_active() else (24,22,24,20) ))
         root.setSpacing(6)
