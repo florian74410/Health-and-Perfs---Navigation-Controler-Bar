@@ -8,7 +8,7 @@ from .autostart import set_enabled
 from .plugins import PluginRegistry
 from .module_preferences import load as load_module_prefs, save as save_module_prefs, FIELDS, MODULES
 from .theme_overrides import load as load_theme_overrides, save as save_theme_overrides
-from .settings_visual import PCBSettingsDialog
+from .settings_visual import PCBSettingsDialog, BarPreview
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
@@ -348,6 +348,9 @@ class SettingsDialog(PCBSettingsDialog):
         self.turbo_auth_enabled.setChecked(settings.turbo_auth_enabled)
         grid.addRow("CPU Turbo",self.turbo_auth_enabled)
         general_all_box.addWidget(controls)
+        self.live_bar_preview=BarPreview(settings.theme)
+        self.theme.currentIndexChanged.connect(lambda:self.live_bar_preview.change_theme(self.theme.currentData()))
+        general_all_box.addWidget(self.live_bar_preview)
         for heading, section in (
             ("Démarrage et actualisation", general),
             ("Position, dimensions et affichage", display),
@@ -523,6 +526,8 @@ class SettingsDialog(PCBSettingsDialog):
         note.setWordWrap(True)
         box.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        reset_button=buttons.addButton("↺ Rétablir",QDialogButtonBox.ButtonRole.ResetRole)
+        reset_button.clicked.connect(self.reset_display)
         buttons.button(QDialogButtonBox.StandardButton.Save).setText("Installer et ouvrir" if first_run else "✓ Appliquer")
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
         buttons.accepted.connect(self.save)
@@ -607,6 +612,12 @@ class SettingsDialog(PCBSettingsDialog):
             self.shell_dir.setText(chosen)
 
     def reset_display(self):
+        self.top_hover_ms.setValue(1000)
+        self.top_trigger_px.setValue(10)
+        self.top_reserved.setChecked(True)
+        self.bottom_dock_height.setValue(84)
+        self.bottom_tabs_max.setValue(3)
+        self.turbo_auth_enabled.setChecked(True)
         self.length_percent.setValue(100)
         self.thickness.setValue(72)
         self.opacity.setValue(88)
