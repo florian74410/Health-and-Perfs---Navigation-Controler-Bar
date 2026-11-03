@@ -362,7 +362,7 @@ class SensorHoloPanel(CpuHoloPanel):
             else:
                 heading.setText("◈ RAM  ·  barrettes non identifiées")
         elif self.slot == "storage":
-            heading.setText("◈ STOCKAGE / SSD")
+            heading.setText("◈ "+str(data.get("storage_model") or "SSD · modèle non identifié")[:72])
         elif self.slot == "fans":
             count=len(data.get("fans") or [])
             heading.setText(f"◈ VENTILATEURS DÉTECTÉS : {count}")
@@ -382,6 +382,15 @@ class SensorHoloPanel(CpuHoloPanel):
         if self.slot in totals:
             key, label = totals[self.slot]
             rows.append((label, readout(data.get(key), "GB")))
+        if self.slot == "storage":
+            technology=str(data.get("storage_technology") or "Interface non identifiée")
+            speed_read=data.get("storage_datasheet_read_mbs")
+            speed_write=data.get("storage_datasheet_write_mbs")
+            if speed_read is not None and speed_write is not None:
+                self.cpu_name.setText(
+                    f"{technology} · FICHE : L {speed_read:g} / É {speed_write:g} Mo/s")
+            else:
+                self.cpu_name.setText(technology+" · Débits théoriques : fiche constructeur indisponible")
         if self.slot == "network":
             self.cpu_name.setText("INTERFACES CONNECTÉES UNIQUEMENT")
             rows = [("Réception", format_rate(data.get('net_down_mbs'))),
