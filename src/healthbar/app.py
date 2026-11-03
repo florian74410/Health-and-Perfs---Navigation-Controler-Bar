@@ -1087,7 +1087,8 @@ class Bar(QWidget):
         if not force and getattr(self,"_shown_turbo",None)==enabled:
             return
         self._shown_turbo=bool(enabled)
-        accent="#FF5972" if enabled else "#36DFFF"
+        from .blue_graphite_settings import enabled as blue_graphite_enabled
+        accent=("#39E6FF" if enabled else "#2589FF") if blue_graphite_enabled(self.settings.theme) else ("#FF5972" if enabled else "#36DFFF")
         self.turbo.setText("TURBO ON" if enabled else "NORMAL MODE")
         self.turbo.setStyleSheet(
             "QPushButton#cpuModeButton {color:"+accent+
@@ -1100,6 +1101,9 @@ class Bar(QWidget):
         self.busy=True
         self.hide_timer.stop()
         menu=QMenu(self)
+        from .blue_graphite_settings import enabled as blue_graphite_enabled, control_stylesheet as blue_graphite_css
+        if blue_graphite_enabled(self.settings.theme):
+            menu.setStyleSheet(blue_graphite_css())
         menu.setTitle("CPU / privilèges administrateur")
         if not self.settings.turbo_auth_enabled:
             disabled=menu.addAction("Turbo désactivé dans les Paramètres")
@@ -1116,12 +1120,30 @@ class Bar(QWidget):
             self.busy=False
             self.arm_hide()
 
+    def show_blue_graphite_notice(self,title,message,success=True):
+        """Non-modal Qt notice; no change to polkit or hardware behavior."""
+        from .blue_graphite_settings import enabled as blue_graphite_enabled, BlueGraphiteNotice
+        if not blue_graphite_enabled(self.settings.theme):
+            return False
+        old=getattr(self,"_blue_graphite_notice",None)
+        if old is not None:
+            old.close()
+        self._blue_graphite_notice=BlueGraphiteNotice.create(title,message,self,success)
+        screen=self.screen()
+        if screen is not None:
+            area=screen.availableGeometry()
+            self._blue_graphite_notice.move(area.right()-450,area.bottom()-164)
+        self._blue_graphite_notice.show()
+        return True
+
     def select_cpu_mode(self,mode):
         if mode not in ("on","off"):
-            QMessageBox.warning(self,"CPU Turbo","Choisir NORMAL MODE ou TURBO ON")
+            if not self.show_blue_graphite_notice("CPU MODE","Choisir NORMAL MODE ou TURBO ON",False):
+                QMessageBox.warning(self,"CPU Turbo","Choisir NORMAL MODE ou TURBO ON")
             return
         if not self.settings.turbo_auth_enabled:
-            QMessageBox.information(self,"CPU Turbo","Autoriser le Turbo dans Paramètres → Général")
+            if not self.show_blue_graphite_notice("CPU MODE","Autoriser le Turbo dans Paramètres → Général",False):
+                QMessageBox.information(self,"CPU Turbo","Autoriser le Turbo dans Paramètres → Général")
             return
         from .turbo_polkit import request_turbo
         self.turbo.setEnabled(False)
@@ -1131,10 +1153,12 @@ class Bar(QWidget):
             self.cpu_controller.mode=None  # Never poll/write privileged sysfs in background.
             self.last_sensor_request=0
             if not success:
-                QMessageBox.warning(self,"Autorisation Turbo",message)
+                if not self.show_blue_graphite_notice("TURBO NON APPLIQUÉ",message,False):
+                    QMessageBox.warning(self,"Autorisation Turbo",message)
             else:
                 self._set_turbo_indicator(mode=="on")
                 self.turbo.setToolTip(message)
+                self.show_blue_graphite_notice("TURBO ACTIVÉ" if mode=="on" else "MODE NORMAL",message,True)
         self._turbo_worker=request_turbo(mode=="on",finished)
 
     def contextMenuEvent(self, event):
