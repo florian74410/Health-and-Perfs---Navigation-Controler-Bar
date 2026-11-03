@@ -151,6 +151,18 @@ def meter(p, x, y, w, ratio):
         line(p, [(x+9+i*12, y+3), (x+4+i*12, y+12)], "#b1ffff", 1)
 
 
+def progressive_gauge_color(fraction):
+    """Continuous colour progression, sampled per illuminated segment."""
+    value=min(1,max(0,float(fraction)))
+    stops=((0,(36,190,255)),(.34,(45,224,158)),(.67,(255,170,69)),(1,(255,73,100)))
+    for i in range(len(stops)-1):
+        left,start=stops[i];right,end=stops[i+1]
+        if value<=right:
+            weight=(value-left)/(right-left)
+            return QColor(*(round(a+(b-a)*weight) for a,b in zip(start,end)))
+    return QColor(255,73,100)
+
+
 def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
@@ -165,9 +177,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
         fraction = j / 38
         lo, hi = ((2/3.5, 3/3.5) if warm is True else
                   (.60, .85) if warm == "gpu" else (1, 1))
-        color = QColor("#25bfff" if fraction < .24 else
-                       "#31d79e" if fraction < .52 else
-                       "#ffa948" if fraction < .78 else "#ff5169")
+        color = progressive_gauge_color(fraction)
         if j < 18 or warm:
             p.setPen(QPen(color, 4))
         else:
@@ -194,7 +204,7 @@ def tachometer(p, bounds, value, maximum, unit, show_value=True):
     p.drawEllipse(center, radius + 1, radius + 1)
     for i in range(29):
         angle = math.radians(140 + i * 260 / 28)
-        color = ("#29c5ff" if i/28 < .24 else "#34e2aa" if i/28 < .50 else "#ffa846" if i/28 < .76 else "#ff5969")
+        color = progressive_gauge_color(i/28)
         if fraction is None or i / 28 > fraction:
             color = "#17456d"
         p.setPen(QPen(QColor(color), max(1.5, min(2.6, radius * .095))))
