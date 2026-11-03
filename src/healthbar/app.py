@@ -366,7 +366,10 @@ class Bar(QWidget):
                        else pinned_apps(self.settings))
                 self.settings.bottom_pinned_apps=list(dict.fromkeys([*paths,value]))[:10]
             else:
-                # The right-hand applications bar is the Favorites destination.
+                # Freeze inherited dock pins before editing independent sidebar
+                # favourites: adding a right-side favourite must not pin bottom.
+                if self.settings.bottom_pinned_apps is None:
+                    self.settings.bottom_pinned_apps=pinned_apps(self.settings)
                 paths=list(self.settings.dock_app_paths or [])
                 self.settings.dock_app_paths=list(dict.fromkeys([*paths,value]))[:128]
         self.settings.save()
