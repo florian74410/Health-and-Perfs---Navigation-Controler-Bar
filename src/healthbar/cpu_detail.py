@@ -7,15 +7,20 @@ import time
 from pathlib import Path
 
 def cpu_identity():
-    model = platform.processor().strip() or platform.uname().processor.strip()
-    if not model and sys.platform.startswith("linux"):
+    # On Linux platform.processor() often returns just 'x86_64'; prefer
+    # the actual branded model name offered by /proc/cpuinfo.
+    if sys.platform.startswith("linux"):
         try:
             for line in Path("/proc/cpuinfo").read_text(errors="replace").splitlines():
                 if line.lower().startswith(("model name", "hardware")) and ":" in line:
-                    return line.split(":", 1)[1].strip()[:128]
+                    model=line.split(":", 1)[1].strip()
+                    if model:
+                        return model[:128]
         except OSError:
             pass
+    model = platform.processor().strip() or platform.uname().processor.strip()
     return model[:128] or None
+
 
 def topology(cpu_index):
     """Physical package/core ID, Linux only. Never infer mapping on other platforms."""
