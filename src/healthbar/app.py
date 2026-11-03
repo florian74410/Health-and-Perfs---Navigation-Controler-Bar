@@ -84,6 +84,10 @@ class NeonButton(QPushButton):
         super().__init__(parent)
         self.panel_opacity = 88
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground,True)
+        self.setAutoFillBackground(False)
+        self.setStyleSheet("background:transparent;border:0;")
 
     def paintEvent(self, event):
         p = QPainter(self)
