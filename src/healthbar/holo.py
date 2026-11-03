@@ -448,12 +448,13 @@ class SensorHoloPanel(CpuHoloPanel):
         # Apply persisted per-module visibility without additional sensor polls.
         allowed = self.detail_fields
         if self.slot == "ram":
-            # Separate displayed configured DIMM speed from live DRAM frequency.
-            # SMBIOS never supplies live MHz or verified CAS latency.
-            for module in data.get("ram_modules") or []:
-                rows.append(("DIMM "+str(module.get("slot","")),
-                             "Configurée : "+str(module.get("speed") or "—")+
-                             "  ·  Direct : —  ·  CL : —"))
+            # Per-DIMM configured transfer rate directly below memory load.
+            # SMBIOS cannot supply actual live clock or verified CAS latency.
+            dimms=[("DIMM "+str(module.get("slot","")),
+                    "Configurée : "+str(module.get("speed") or "—")+
+                    "  ·  Direct : —  ·  CL : —")
+                   for module in (data.get("ram_modules") or [])]
+            rows=rows[:1]+dimms+rows[1:]
         if self.slot in ("gpu","ram","storage"):
             label_to_field = {value:key for key,value in labels.items()}
             label_to_field.update({
