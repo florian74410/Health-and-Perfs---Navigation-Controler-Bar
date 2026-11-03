@@ -221,37 +221,32 @@ def tachometer(p, bounds, value, maximum, unit, show_value=True):
     p.restore()
 
 
-def battery_meter(p, bounds, percent, kind):
-    """Segmented battery-shaped utilization bar for RAM and SSD (no circular dial)."""
+def battery_meter(p,bounds,percent,kind):
+    """Twelve tiny PCB LED cells in lieu of an old battery-shaped gauge."""
     p.save()
-    x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
-    body = QRectF(x+1, y+1, max(6, w-8), max(8, h-2))
-    frame = QPainterPath()
-    frame.addRoundedRect(body, 3, 3)
-    p.fillPath(frame, QColor("#071727"))
-    p.setPen(QPen(QColor("#528dab"), 1))
-    p.drawPath(frame)
+    x,y,w,h=bounds.x(),bounds.y(),bounds.width(),bounds.height()
+    p.setPen(QPen(QColor("#1e678d"),1))
+    p.setBrush(QColor("#061e32"))
+    p.drawRoundedRect(QRectF(x,y,w,h),4,4)
+    valid=isinstance(percent,(int,float)) and math.isfinite(percent)
+    fraction=min(1,max(0,percent/100)) if valid else 0
+    count=12
+    margin=3
+    size=max(.5,(w-2*margin-2*(count-1))/count)
+    tones=("#25c7ff","#38e2b2","#4dee7b","#78e46e",
+           "#a4db63","#b5d95b","#dbd353","#ffb650",
+           "#ff9c48","#ff8249","#ff6463","#ff436c")
     p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor("#6394a8"))
-    p.drawRoundedRect(QRectF(x+w-7, y+h*.32, 5, h*.36), 1, 1)
-    valid = isinstance(percent, (float, int)) and math.isfinite(percent)
-    fraction = max(0, min(1, percent / 100)) if valid else 0
-    cells = 7
-    gap = 2.0
-    available = max(7.0, body.width()-6)
-    cell_width = max(1, (available-gap*(cells-1))/cells)
-    for i in range(cells):
-        filled = valid and (i+1)/cells <= fraction + .001
-        active = "#00dfac" if kind == "ram" else "#3ebcff"
-        if fraction >= .90:
-            active = "#ff6579"
-        elif fraction >= .75:
-            active = "#ffbc62"
-        p.setBrush(QColor(active if filled else "#16384b"))
-        p.drawRoundedRect(QRectF(body.left()+3+i*(cell_width+gap), body.top()+3,
-                                 cell_width, max(2, body.height()-6)), 1, 1)
+    for i in range(count):
+        filled=valid and (i+.5)/count<=fraction
+        p.setBrush(QColor(tones[i] if filled else "#10374a"))
+        left=x+margin+i*(size+2)
+        p.drawRoundedRect(QRectF(left,y+3,size,max(4,h-6)),1,1)
+    p.setPen(QPen(QColor("#20c7ee"),.8))
+    p.drawLine(QPointF(x+4,y+h-1),QPointF(x+min(w-3,w*.34),y+h-1))
+    p.drawEllipse(QPointF(x+3,y+h/2),1,1)
+    p.drawEllipse(QPointF(x+w-3,y+h/2),1,1)
     p.restore()
-
 
 class HudCanvas(QWidget):
     layout_changed = Signal(list)
