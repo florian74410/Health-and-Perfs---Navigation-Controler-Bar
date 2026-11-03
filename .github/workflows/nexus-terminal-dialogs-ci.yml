@@ -1,0 +1,27 @@
+name: NEXUS Terminal dialogs smoke
+
+on:
+  push:
+    branches: [work/nexus-terminal-settings-sessions-web]
+  pull_request:
+
+jobs:
+  qt-dialogs:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Qt system libs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 openssh-client
+      - name: Python Qt tests
+        run: |
+          python -m pip install PySide6 pytest pytest-qt
+          python -m compileall -q ThirdPartyApps/NEXUSTerminal
+          cd ThirdPartyApps/NEXUSTerminal
+          python -m pytest -q tests/test_nexus_dialogs.py
