@@ -34,7 +34,7 @@ class Settings:
     dock_left_enabled: bool = True
     dock_right_enabled: bool = True
     bottom_dock_enabled: bool = sys.platform.startswith("linux")
-    bottom_dock_height: int = 78
+    bottom_dock_height: int = 84
     bottom_tabs_max: int = 3
     top_reserved: bool = True
     top_hover_ms: int = 1000
