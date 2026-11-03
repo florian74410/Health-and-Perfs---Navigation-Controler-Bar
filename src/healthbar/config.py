@@ -104,7 +104,7 @@ class Settings:
             raise ValueError("Délai ou intensité des effets XFCE invalide")
         if sorted((self.dock_left_kind, self.dock_right_kind)) != ["apps", "folders"]:
             raise ValueError("Un dock Dossiers et un dock Applications sont requis")
-        for key in ("dock_folder_paths", "dock_app_paths"):
+        for key in ("dock_folder_paths", "dock_app_paths", "bottom_pinned_apps"):
             values = getattr(self, key)
             if values is None:
                 continue
