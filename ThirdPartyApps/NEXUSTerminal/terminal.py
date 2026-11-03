@@ -1,34 +1,105 @@
 #!/usr/bin/env python3
-"""NEXUS Terminal — independent compact Qt terminal, not a NovaBar plugin."""
+"""NEXUS Terminal 0.2 — native Qt terminal, standalone or embedded.
+
+The terminal engine is QTermWidget/PTTY. UI chrome never intercepts the PTY
+output or pretends to know a shell command's return code.
+"""
+from __future__ import annotations
+
+import os
 import sys
-from PySide6.QtCore import Qt
+from pathlib import Path
+
+from PySide6.QtCore import Qt, QProcess, QTimer, Signal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QMenu, QMessageBox, QSplitter,
-    QTabWidget, QToolBar, QVBoxLayout, QWidget,
+    QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+    QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+    QMainWindow, QMenu, QMessageBox, QPushButton, QScrollArea,
+    QSizePolicy, QSplitter, QTabWidget, QToolButton, QVBoxLayout, QWidget,
 )
 from pyside6_qtermwidget import QTermWidget
 
-VERSION = "0.1.0-dev"
+VERSION = "0.2.0-dev"
+APP_DIR = Path(__file__).resolve().parent
+MACRO_DIR = Path.home() / ".config" / "nexus-terminal" / "macros"
+MODES = {
+    "one": ("1 panneau", 1),
+    "two-columns": ("2 colonnes", 2),
+    "two-rows": ("2 lignes", 2),
+    "grid": ("Grille 2×2", 4),
+    "two-plus-one": ("2 + 1", 3),
+    "one-plus-two": ("1 + 2", 3),
+}
 STYLE = """
-QMainWindow, QWidget#central { background: #061320; color: #e0f3fc; }
-QToolBar { background: #092436; border-bottom: 1px solid #00b6e8; spacing: 3px; padding: 2px; }
-QToolButton { color: #e0f3fc; background: #0b3042; border: 1px solid #146e8a; padding: 3px 7px; }
-QToolButton:hover { background: #14506a; border-color: #13e4ff; }
-QTabWidget::pane { background: #071522; border: 1px solid #14728e; }
-QTabBar::tab { color: #b2eafa; background: #09283c; border: 1px solid #16526b; padding: 4px 10px; }
-QTabBar::tab:selected { color: white; background: #0a4358; border-bottom: 2px solid #09d7ff; }
-QSplitter::handle { background: #126781; }
-QMenu { background: #081e2d; color: #ecf7fd; border: 1px solid #1487a3; }
-QMenu::item:selected { background: #0a465c; }
+* { font-family: "DejaVu Sans", sans-serif; font-size: 11px; color: #d8f3fd; }
+QWidget#nexusRoot, QMainWindow { background: #040d17; }
+QFrame#header { background: #071c2b; border: 1px solid #13b4df;
+                border-top: 2px solid #4de4ff; border-radius: 5px; }
+QLabel#brand { font-size: 17px; font-weight: bold; color: #f2fcff; }
+QLabel#subtle { color: #78a6bb; }
+QLabel#section { color: #5edfff; font-weight: bold; padding: 5px 2px; }
+QFrame#side, QFrame#footer { background: #061824; border: 1px solid #15738c;
+                            border-radius: 5px; }
+QFrame#pane { background: #03131f; border: 1px solid #1598ba;
+              border-radius: 5px; }
+QFrame#paneHeader { background: #092236; border: 0;
+                    border-bottom: 1px solid #20b8dc; }
+QPushButton, QToolButton, QComboBox {
+    background: #0a293b; border: 1px solid #146a83;
+    border-radius: 4px; padding: 6px 9px; color: #d8f3fd;
+}
+QPushButton:hover, QToolButton:hover, QComboBox:hover {
+    background: #124055; border-color: #42dfff;
+}
+QPushButton:pressed, QToolButton:pressed { background: #17627b; }
+QPushButton#primary { background: #0b5368; border-color: #36d9f9; }
+QPushButton#danger { border-color: #a93a4a; color: #ffcbd0; }
+QTabWidget::pane { background: #03111b; border: 1px solid #126e88; }
+QTabBar::tab { background: #09283a; border: 1px solid #126784;
+                color: #b9dfec; padding: 8px 15px; margin-right: 2px; }
+QTabBar::tab:selected { background: #0c4056; color: white;
+                        border-bottom: 2px solid #4be3ff; }
+QSplitter::handle { background: #125b71; }
+QSplitter::handle:hover { background: #39d8f6; }
+QMenu { background: #061b2a; border: 1px solid #21b6dd; }
+QMenu::item { padding: 6px 16px; }
+QMenu::item:selected { background: #15516b; }
+QLineEdit { background: #061c2a; border: 1px solid #2386a1;
+            border-radius: 4px; padding: 7px; }
+QScrollArea { border: 0; background: transparent; }
+QLabel#toastSuccess { background: #072b26; color: #a9ffe4;
+                      border: 1px solid #20c98f; border-radius: 5px; padding: 10px; }
+QLabel#toastError { background: #30121f; color: #ffe0e4;
+                    border: 1px solid #e54e68; border-radius: 5px; padding: 10px; }
+QLabel#toastInfo { background: #082b40; color: #b6efff;
+                   border: 1px solid #33c6ee; border-radius: 5px; padding: 10px; }
 """
 
+def row(*widgets, spacing=6):
+    layout = QHBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(spacing)
+    for widget in widgets:
+        layout.addWidget(widget)
+    return layout
+
+
+def button(text, callback, name=None):
+    b = QPushButton(text)
+    if name:
+        b.setObjectName(name)
+    b.clicked.connect(callback)
+    return b
+
+
 class Shell(QTermWidget):
-    """One terminal backed by the upstream Qt PTY engine."""
+    """Each shell owns its real PTY and keeps it when moved between layouts."""
+
     def __init__(self, parent=None):
         super().__init__(0, parent)
         self.setTerminalFont(QFont("DejaVu Sans Mono", 10))
-        self.setHistorySize(4000)
+        self.setHistorySize(6000)
         self.setTerminalSizeHint(False)
         self.setShellProgram("/bin/bash")
         self.setColorScheme("DarkPastels")
@@ -52,117 +123,394 @@ class Shell(QTermWidget):
         menu.exec(self.mapToGlobal(point))
 
 
-def panes(mode):
-    """Compact responsive nested QSplitters, one PTY per leaf."""
-    def split(orientation, children):
-        widget = QSplitter(orientation)
-        widget.setChildrenCollapsible(False)
-        widget.setHandleWidth(3)
-        for child in children:
-            widget.addWidget(child)
-        widget.setSizes([100] * len(children))
-        return widget
+class TerminalPane(QFrame):
+    def __init__(self, shell=None, title="Local Bash"):
+        super().__init__()
+        self.setObjectName("pane")
+        self.shell = shell or Shell()
+        v = QVBoxLayout(self)
+        v.setContentsMargins(2, 2, 2, 2)
+        v.setSpacing(1)
+        bar = QFrame()
+        bar.setObjectName("paneHeader")
+        hdr = QHBoxLayout(bar)
+        hdr.setContentsMargins(8, 2, 5, 2)
+        label = QLabel("◉  " + title)
+        label.setStyleSheet("color: #89ebff; font-weight: bold;")
+        hdr.addWidget(label)
+        hdr.addStretch()
+        v.addWidget(bar)
+        v.addWidget(self.shell, 1)
 
+
+def make_split(orientation, children):
+    s = QSplitter(orientation)
+    s.setChildrenCollapsible(False)
+    s.setHandleWidth(4)
+    for w in children:
+        s.addWidget(w)
+    s.setSizes([100] * len(children))
+    return s
+
+
+def make_layout(mode, shells):
     h, v = Qt.Orientation.Horizontal, Qt.Orientation.Vertical
-    if mode == "one": return Shell()
-    if mode == "two-columns": return split(h, [Shell(), Shell()])
-    if mode == "two-rows": return split(v, [Shell(), Shell()])
+    panes = [TerminalPane(shell, f"Console {i + 1} — Bash") for i, shell in enumerate(shells)]
+    if mode == "one":
+        return panes[0]
+    if mode == "two-columns":
+        return make_split(h, panes)
+    if mode == "two-rows":
+        return make_split(v, panes)
     if mode == "grid":
-        return split(v, [split(h, [Shell(), Shell()]), split(h, [Shell(), Shell()])])
+        return make_split(v, [make_split(h, panes[:2]), make_split(h, panes[2:])])
     if mode == "two-plus-one":
-        return split(h, [split(v, [Shell(), Shell()]), Shell()])
+        return make_split(h, [make_split(v, panes[:2]), panes[2]])
     if mode == "one-plus-two":
-        return split(h, [Shell(), split(v, [Shell(), Shell()])])
-    raise ValueError("Unsupported layout")
+        return make_split(h, [panes[0], make_split(v, panes[1:])])
+    raise ValueError("Unknown terminal layout: " + mode)
 
 
-class Window(QMainWindow):
+class TerminalPage(QWidget):
+    """An open tab: retains shell objects across layout changes."""
+
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"NOVA NEXUS / TERMINAL — {VERSION}")
-        self.resize(1050, 650)
-        self.setMinimumSize(540, 320)
+        self.mode = "one"
+        self.shells = [Shell()]
+        self.root = None
+        self.layout_box = QVBoxLayout(self)
+        self.layout_box.setContentsMargins(3, 3, 3, 3)
+        self.layout_box.setSpacing(0)
+        self.rebuild()
+
+    def rebuild(self):
+        # Reparent shell widgets before deleting old decorative chrome.
+        # A shell continues to run its PTY while its owning QSplitter changes.
+        for shell in self.shells:
+            shell.setParent(self)
+        old = self.root
+        if old:
+            self.layout_box.removeWidget(old)
+            old.hide()
+        self.root = make_layout(self.mode, self.shells)
+        self.layout_box.addWidget(self.root)
+        if old:
+            old.deleteLater()
+
+    def change_mode(self, mode, parent):
+        wanted = MODES[mode][1]
+        current = len(self.shells)
+        if wanted < current:
+            answer = QMessageBox.question(
+                parent, "Réduire les consoles",
+                f"Cette disposition ferme {current - wanted} session(s) Bash. Continuer ?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
+            for shell in self.shells[wanted:]:
+                shell.setParent(None)
+                shell.close()
+                shell.deleteLater()
+            self.shells = self.shells[:wanted]
+        elif wanted > current:
+            self.shells.extend(Shell() for _ in range(wanted - current))
+        self.mode = mode
+        self.rebuild()
+        return True
+
+
+class SecretDialog(QDialog):
+    """Only for NEXUS-managed operations; never captures arbitrary PTY passwords."""
+
+    def __init__(self, description="Saisie confidentielle", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("NEXUS • Saisie sécurisée")
+        self.setModal(True)
+        self.setMinimumWidth(360)
+        v = QVBoxLayout(self)
+        v.addWidget(QLabel(description))
+        self.edit = QLineEdit()
+        self.edit.setEchoMode(QLineEdit.EchoMode.Password)
+        v.addWidget(self.edit)
+        reveal = QCheckBox("Afficher temporairement")
+        reveal.toggled.connect(
+            lambda yes: self.edit.setEchoMode(
+                QLineEdit.EchoMode.Normal if yes else QLineEdit.EchoMode.Password
+            )
+        )
+        v.addWidget(reveal)
+        actions = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        actions.accepted.connect(self.accept)
+        actions.rejected.connect(self.reject)
+        v.addWidget(actions)
+
+    @staticmethod
+    def request(description, parent=None):
+        dlg = SecretDialog(description, parent)
+        return dlg.edit.text() if dlg.exec() == QDialog.DialogCode.Accepted else None
+
+
+class NexusTerminalWidget(QWidget):
+    """Embeddable component: no QApplication or QMainWindow is created here."""
+
+    event = Signal(str, object)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("nexusRoot")
         self.setStyleSheet(STYLE)
-        central = QWidget()
-        central.setObjectName("central")
-        box = QVBoxLayout(central)
-        box.setContentsMargins(4, 4, 4, 4)
-        box.setSpacing(2)
+        self._jobs = set()
+        self._toast_timer = QTimer(self)
+        self._toast_timer.setSingleShot(True)
+        self._toast_timer.timeout.connect(lambda: self.toast.hide())
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(8, 8, 8, 7)
+        outer.setSpacing(6)
+
+        header = QFrame()
+        header.setObjectName("header")
+        h = QHBoxLayout(header)
+        h.setContentsMargins(12, 7, 12, 7)
+        logo = QLabel("⬡  NEXUS TERMINAL")
+        logo.setObjectName("brand")
+        h.addWidget(logo)
+        h.addStretch()
+        h.addWidget(QLabel("MULTI CONSOLE"))
+        self.mode_picker = QComboBox()
+        for key, (label, _) in MODES.items():
+            self.mode_picker.addItem(label, key)
+        self.mode_picker.currentIndexChanged.connect(self.layout_selected)
+        h.addWidget(self.mode_picker)
+        h.addWidget(button("+ Onglet", self.new_tab, "primary"))
+        outer.addWidget(header)
+
+        body = QSplitter(Qt.Orientation.Horizontal)
+        body.setChildrenCollapsible(False)
+        body.setHandleWidth(4)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.close_tab)
-        box.addWidget(self.tabs)
-        self.setCentralWidget(central)
-        toolbar = QToolBar("Disposition")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
-        self.action(toolbar, "+ Onglet", self.new_tab, "Ctrl+Shift+T")
-        for label, mode in (
-            ("1", "one"), ("2 │", "two-columns"), ("2 ─", "two-rows"),
-            ("2×2", "grid"), ("2+1", "two-plus-one"), ("1+2", "one-plus-two"),
-        ):
-            self.action(toolbar, label, lambda checked=False, m=mode: self.change_layout(m))
-        self.new_tab()
+        self.tabs.currentChanged.connect(self.sync_picker)
+        body.addWidget(self.tabs)
 
-    def action(self, toolbar, label, fn, shortcut=None):
-        act = QAction(label, self)
-        act.triggered.connect(fn)
-        if shortcut:
-            act.setShortcut(QKeySequence(shortcut))
-            self.addAction(act)
-        toolbar.addAction(act)
+        sidebar = QFrame()
+        sidebar.setObjectName("side")
+        sidebar.setMinimumWidth(175)
+        sidebar.setMaximumWidth(265)
+        sb = QVBoxLayout(sidebar)
+        sb.setContentsMargins(9, 9, 9, 9)
+        sb.addWidget(self.section("◈  ACTIONS RAPIDES"))
+        sb.addWidget(button("＋ Nouvelle console", self.new_tab))
+        sb.addWidget(button("⌘  Scripts / Macros", self.choose_macro))
+        sb.addWidget(button("🔒  Saisie confidentielle", self.secret_demo))
+        sb.addWidget(self.section("◈  DISPOSITIONS"))
+        for mode, (label, _) in MODES.items():
+            sb.addWidget(button(label, lambda checked=False, m=mode: self.set_layout(m)))
+        sb.addStretch()
+        sb.addWidget(self.section("NEXUS • ElectroBlueNEON"))
+        body.addWidget(sidebar)
+        body.setStretchFactor(0, 1)
+        body.setSizes([850, 208])
+        outer.addWidget(body, 1)
+
+        self.toast = QLabel()
+        self.toast.setObjectName("toastInfo")
+        self.toast.setWordWrap(True)
+        self.toast.hide()
+        outer.addWidget(self.toast)
+        footer = QFrame()
+        footer.setObjectName("footer")
+        foot = QHBoxLayout(footer)
+        foot.setContentsMargins(10, 4, 10, 4)
+        self.session_count = QLabel("●  Sessions : 0")
+        foot.addWidget(self.session_count)
+        foot.addStretch()
+        foot.addWidget(QLabel("PTY natif • Bash • Qt6"))
+        outer.addWidget(footer)
+        self.new_tab()
+        self._shortcuts = []
+        shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
+        shortcut.activated.connect(self.new_tab)
+        self._shortcuts.append(shortcut)
+
+    @staticmethod
+    def section(text):
+        label = QLabel(text)
+        label.setObjectName("section")
+        return label
+
+    def current_page(self):
+        return self.tabs.currentWidget()
+
+    def update_status(self):
+        total = sum(len(self.tabs.widget(i).shells) for i in range(self.tabs.count()))
+        self.session_count.setText(f"●  Sessions : {total}")
 
     def new_tab(self):
-        index = self.tabs.addTab(panes("one"), f"Terminal {self.tabs.count()+1}")
+        page = TerminalPage()
+        index = self.tabs.addTab(page, f"Terminal {self.tabs.count() + 1}")
         self.tabs.setCurrentIndex(index)
+        self.update_status()
+        self.event.emit("terminal.session.created", {"count": self.tabs.count()})
 
-    def change_layout(self, mode):
-        index = self.tabs.currentIndex()
-        if index < 0:
+    def sync_picker(self, index):
+        page = self.current_page()
+        if page:
+            pos = self.mode_picker.findData(page.mode)
+            self.mode_picker.blockSignals(True)
+            self.mode_picker.setCurrentIndex(pos)
+            self.mode_picker.blockSignals(False)
+
+    def layout_selected(self, index):
+        mode = self.mode_picker.itemData(index)
+        if mode:
+            self.set_layout(mode)
+
+    def set_layout(self, mode):
+        page = self.current_page()
+        if page and page.change_mode(mode, self):
+            self.update_status()
+            self.event.emit("terminal.layout.changed", {"mode": mode})
+        self.sync_picker(self.tabs.currentIndex())
+
+    def close_tab(self, index):
+        page = self.tabs.widget(index)
+        if not page:
             return
         answer = QMessageBox.question(
-            self, "Changer de disposition",
-            "Changer de format ferme les sessions de cet onglet. Continuer ?",
+            self, "Fermer l'onglet", "Fermer les sessions Bash de cet onglet ?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
-        old = self.tabs.widget(index)
-        label = self.tabs.tabText(index)
-        new = panes(mode)
         self.tabs.removeTab(index)
-        old.deleteLater()
-        self.tabs.insertTab(index, new, label)
-        self.tabs.setCurrentIndex(index)
+        page.deleteLater()
+        if self.tabs.count() == 0:
+            self.new_tab()
+        self.update_status()
 
-    def close_tab(self, index):
-        if self.tabs.count() == 1:
-            self.close()
+    def notify(self, kind, message, duration=5500):
+        kind = kind if kind in {"Success", "Error", "Info"} else "Info"
+        symbols = {"Success": "✓", "Error": "⚠", "Info": "ⓘ"}
+        self.toast.setObjectName("toast" + kind)
+        self.toast.setText(symbols[kind] + "  " + str(message))
+        self.toast.style().unpolish(self.toast)
+        self.toast.style().polish(self.toast)
+        self.toast.show()
+        self._toast_timer.start(duration)
+        self.event.emit("terminal.notification", {"kind": kind.lower(), "message": str(message)})
+
+    def choose_macro(self):
+        MACRO_DIR.mkdir(parents=True, exist_ok=True)
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Choisir un script shell", str(MACRO_DIR),
+            "Scripts Bash (*.sh);;Tous les fichiers (*)",
+        )
+        if filename:
+            self.run_script(Path(filename))
+
+    def run_script(self, path):
+        """Run explicit script in QProcess, not within an arbitrary interactive PTY.
+
+        Exit codes are reliable here, so success/error notifications are accurate.
+        """
+        path = Path(path).expanduser().resolve()
+        if not path.is_file() or path.suffix != ".sh":
+            self.notify("Error", "Seuls les fichiers .sh existants sont acceptés.")
             return
-        old = self.tabs.widget(index)
-        self.tabs.removeTab(index)
-        old.deleteLater()
+        answer = QMessageBox.question(
+            self, "Exécuter un script", f"Exécuter ce script avec Bash ?\n{path}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        process = QProcess(self)
+        process.setProgram("/bin/bash")
+        process.setArguments([str(path)])
+        process.setWorkingDirectory(str(path.parent))
+        self._jobs.add(process)
+        process.errorOccurred.connect(
+            lambda error, p=process: self.notify("Error", f"Impossible de lancer : {p.errorString()}")
+        )
+        process.finished.connect(
+            lambda code, status, p=process: self._finished_script(p, path.name, code, status)
+        )
+        process.start()
+        self.notify("Info", f"Exécution : {path.name}", 2300)
+        self.event.emit("terminal.script.started", {"name": path.name})
+
+    def _finished_script(self, process, name, code, status):
+        ok = code == 0 and status == QProcess.ExitStatus.NormalExit
+        self.notify("Success" if ok else "Error",
+                    f"{name} : {'terminé avec succès' if ok else 'échec'} (code {code})")
+        self.event.emit("terminal.script.finished", {"name": name, "code": code, "success": ok})
+        self._jobs.discard(process)
+        process.deleteLater()
+
+    def secret_demo(self):
+        # This dialog is an example of a safe managed action. It does not
+        # forward or save a password to the shell, clipboard or event bus.
+        result = SecretDialog.request("Démonstration : saisir une donnée masquée", self)
+        if result is not None:
+            self.notify("Info", "Saisie confirmée (non enregistrée et non transmise).")
+
+    def shutdown_confirmed(self):
+        """Call only after the host has asked the user to close this component."""
+        for process in list(self._jobs):
+            process.terminate()
+        self._jobs.clear()
+
+
+class Window(QMainWindow):
+    """Standalone wrapper. The same NexusTerminalWidget embeds in a host MDI."""
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(f"NEXUS Terminal — ElectroBlueNEON {VERSION}")
+        self.resize(1200, 750)
+        self.setMinimumSize(640, 420)
+        self.terminal = NexusTerminalWidget(self)
+        self.setCentralWidget(self.terminal)
 
     def closeEvent(self, event):
         answer = QMessageBox.question(
-            self, "Quitter NEXUS Terminal", "Fermer toutes les sessions terminal ?",
+            self, "Quitter NEXUS Terminal", "Fermer toutes les sessions et scripts actifs ?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if answer == QMessageBox.StandardButton.Yes:
+            self.terminal.shutdown_confirmed()
             event.accept()
         else:
             event.ignore()
 
 
+def create_widget(context=None, parent=None):
+    """Host integration: create QWidget within the existing QApplication.
+
+    If context has an event/publish API, bridge only structured NEXUS events.
+    """
+    widget = NexusTerminalWidget(parent)
+    if context is not None and hasattr(context, "publish"):
+        widget.event.connect(lambda name, payload: context.publish(name, payload))
+    return widget
+
+
 def main():
-    app = QApplication(sys.argv)
+    app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("NEXUS Terminal")
     window = Window()
     window.show()
     return app.exec()
+
 
 if __name__ == "__main__":
     sys.exit(main())
