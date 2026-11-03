@@ -165,8 +165,9 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
         fraction = j / 38
         lo, hi = ((2/3.5, 3/3.5) if warm is True else
                   (.60, .85) if warm == "gpu" else (1, 1))
-        color = QColor("#00d7ff" if fraction <= lo else
-                       "#ffca62" if fraction <= hi else "#ff4c56")
+        color = QColor("#25bfff" if fraction < .24 else
+                       "#31d79e" if fraction < .52 else
+                       "#ffa948" if fraction < .78 else "#ff5169")
         if j < 18 or warm:
             p.setPen(QPen(color, 4))
         else:
