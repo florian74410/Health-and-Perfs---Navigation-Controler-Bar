@@ -118,6 +118,6 @@ if __name__=='__main__':
     import tomllib
     root=Path(__file__).resolve().parents[1]
     version=tomllib.loads((root/'pyproject.toml').read_text())['project']['version']
-    if not re.fullmatch(r'\d+\.\d+\.\d+',version):raise SystemExit('Invalid project version')
+    if not re.fullmatch(r'\d+\.\d+\.\d+(?:\.\d+)?',version):raise SystemExit('Invalid project version')
     for path in assemble(sys.argv[1],root/'Executable',version,os.getenv('NEXUS_BUILD_SHA','')):
         print(f'{path.relative_to(root)}: {path.stat().st_size/1024/1024:.1f} MiB')

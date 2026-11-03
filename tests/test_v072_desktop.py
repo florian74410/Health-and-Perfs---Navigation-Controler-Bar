@@ -31,7 +31,7 @@ class V072DesktopTests(unittest.TestCase):
 
     def test_neon_settings_has_no_grey_default_and_genuine_controls(self):
         with tempfile.TemporaryDirectory() as root,patch.dict(os.environ,HEALTHBAR_DATA_DIR=root):
-            dialog=SettingsDialog(Settings(configured=True),self.app.screens())
+            dialog=SettingsDialog(Settings(configured=True,theme="blue-neon"),self.app.screens())
             try:
                 self.assertGreaterEqual(dialog.width(),650)
                 self.assertIsNotNone(dialog.findChild(QListWidget,"settingsNavigation"))

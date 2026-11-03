@@ -6,6 +6,7 @@ from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QLinearGradient,QPol
 from PySide6.QtWidgets import QFrame
 from PySide6.QtSvg import QSvgRenderer
 from .xfce_panel_skin import PALETTES
+from .redblack_shell import active as redblack_active, paint_surface
 
 
 def cut_path(rect,cut=12):
@@ -28,6 +29,15 @@ class CockpitFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
+        if redblack_active(self.theme):
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                          "dock",self.phase,self.underMouse())
+            p.end()
+            return
         p=QPainter(self)
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
         p.fillRect(self.rect(),Qt.GlobalColor.transparent)

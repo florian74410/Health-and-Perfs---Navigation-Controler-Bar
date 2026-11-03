@@ -1,0 +1,85 @@
+name: NOVA REDBLACK 0.8.2.2 / Linux QA and installer
+on:
+  push:
+    branches:
+      - 0.8.2.2REDBLACK
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/redblack_visual_qa.py'
+      - 'pyproject.toml'
+      - '.github/workflows/redblack-0822-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  unit-and-visual:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0 xvfb
+          python -m pip install .
+      - name: Python code compilation and all existing regressions
+        env:
+          QT_QPA_PLATFORM: offscreen
+          HEALTHBAR_DATA_DIR: ${{ runner.temp }}/redblack-all
+        run: |
+          python -m compileall -q src tests scripts/redblack_visual_qa.py
+          python -m unittest discover -s tests -v
+      - name: Render geometrical QA without changing XFCE
+        env:
+          QT_QPA_PLATFORM: offscreen
+          HEALTHBAR_DATA_DIR: ${{ runner.temp }}/redblack-paint
+        run: |
+          mkdir -p redblack-qa
+          python scripts/redblack_visual_qa.py redblack-qa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NovaBar-0.8.2.2-REDBLACK-VISUAL-QA
+          path: redblack-qa/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+  linux-deb:
+    name: Debian package - preview, not stable
+    needs: unit-and-visual
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0
+          python -m pip install . pyinstaller==6.16.0
+      - name: Build Qt runtime
+        run: python scripts/build.py
+      - name: Check isolated GIO and version
+        env:
+          QT_QPA_PLATFORM: offscreen
+          HEALTHBAR_DATA_DIR: ${{ runner.temp }}/redblack-runtime
+        run: |
+          test -f dist/HealthPerfsBar/_internal/healthbar/assets/gio-empty/.keep
+          test -f dist/HealthPerfsBar/_internal/healthbar/assets/redblack/pcb-layers.svg
+          dist/HealthPerfsBar/HealthPerfsBar --self-test --expect-version 0.8.2.2 > "${{ runner.temp }}/run.log" 2>&1
+          if grep -q 'Failed to load module.*libgvfsdbus' "${{ runner.temp }}/run.log"; then cat "${{ runner.temp }}/run.log"; exit 1; fi
+      - name: Build Debian preview package
+        run: |
+          python scripts/package_linux_desktop.py deb --version 0.8.2.2
+          dpkg-deb --info dist/linux/NovaBar_0.8.2.2_amd64.deb
+          sha256sum dist/linux/NovaBar_0.8.2.2_amd64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NovaBar-0.8.2.2-REDBLACK-LINUX-QA
+          path: dist/linux/NovaBar_0.8.2.2_amd64.deb
+          if-no-files-found: error
+          retention-days: 14

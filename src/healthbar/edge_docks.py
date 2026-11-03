@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 from .system_env import native_env
 from .overlay import apply_priority, apply_all_workspaces
 from .xfce_panel_skin import PALETTES
+from .redblack_shell import active as redblack_active, paint_surface as redblack_surface
 
 
 def xdg_folder(name: str) -> Path:
@@ -249,6 +250,21 @@ def dock_colors(theme):
 
 
 def dock_stylesheet(theme):
+    if redblack_active(theme):
+        return """
+        QFrame#dockBody {background:transparent;border:0;}
+        QFrame#dockBody QLabel {color:#FFDDE2;background:transparent;font-weight:700;}
+        QFrame#dockBody QPushButton {color:#FFE7EB;background:#250912;
+           border:1px solid #E02443;padding:5px;}
+        QFrame#dockBody QPushButton:hover {background:#681529;border-color:#FF6374;}
+        QFrame#dockBody QListWidget {background:#090508;color:#FFF0F2;
+           border:1px solid #8D1730;outline:0;padding:4px;}
+        QFrame#dockBody QListWidget::item {min-height:45px;margin:2px;
+           padding:5px;border-bottom:1px solid #40101C;}
+        QFrame#dockBody QListWidget::item:hover {background:#380D1C;}
+        QFrame#dockBody QListWidget::item:selected {
+           background:#6E1027;color:white;border-left:3px solid #FF3753;}
+        """
     accent, secondary = dock_colors(theme)
     return f"""
         QFrame#dockBody {{ background: transparent; border: none; }}
@@ -291,6 +307,15 @@ class PCBDockFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self, event):
+        if redblack_active(self.settings.theme):
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            redblack_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                             "dock",self.phase)
+            p.end()
+            return
         p = QPainter(self)
         # Explicit ARGB clear: the cut-off corners must reveal the desktop,
         # not uninitialised black pixels or a rectangular QFrame backing.

@@ -9,6 +9,7 @@ from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPainterPath, QPen, Q
 COLORS = {
     "blue-neon": "#23e6e8", "cyber-futuriste": "#23e6e8",
     "green-matrix": "#5df68c", "red-blood": "#ff4c76",
+    "redblack-0822": "#FF2945",
 }
 
 
@@ -20,10 +21,11 @@ def painted_icon(size=64, theme="blue-neon"):
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     p.scale(size / 128, size / 128)
     accent = QColor(COLORS.get(theme, COLORS["blue-neon"]))
-    p.setPen(QPen(QColor("#175067"), 3))
-    p.setBrush(QColor("#041324"))
+    redblack=theme=="redblack-0822"
+    p.setPen(QPen(QColor("#D0193A" if redblack else "#175067"),3))
+    p.setBrush(QColor("#090508" if redblack else "#041324"))
     p.drawRoundedRect(QRectF(7, 7, 114, 114), 24, 24)
-    p.setPen(QPen(QColor("#12869b"), 4))
+    p.setPen(QPen(QColor("#E5344F" if redblack else "#12869b"),4))
     for x in (40, 64, 88):
         p.drawLine(x, 4, x, 17)
         p.drawLine(x, 111, x, 124)
@@ -36,7 +38,7 @@ def painted_icon(size=64, theme="blue-neon"):
     body.addPolygon(QPolygonF([QPointF(*xy) for xy in pts]))
     body.closeSubpath()
     p.setPen(QPen(accent, 5))
-    p.setBrush(QColor("#08283b"))
+    p.setBrush(QColor("#210810" if redblack else "#08283b"))
     p.drawPath(body)
     n = QPainterPath(QPointF(40, 86))
     n.lineTo(40, 42); n.lineTo(86, 87); n.lineTo(86, 43)
@@ -44,8 +46,8 @@ def painted_icon(size=64, theme="blue-neon"):
     p.setPen(QPen(accent, 8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
     p.drawPath(n)
     bolt = QPolygonF([QPointF(*xy) for xy in [(69,34),(51,64),(66,64),(59,94),(85,58),(69,58)]])
-    p.setPen(QPen(QColor("#143d31"), 2))
-    p.setBrush(QColor("#a3ff72"))
+    p.setPen(QPen(QColor("#9A1530" if redblack else "#143d31"), 2))
+    p.setBrush(QColor("#FF7C8C" if redblack else "#a3ff72"))
     p.drawPolygon(bolt)
     p.end()
     return image

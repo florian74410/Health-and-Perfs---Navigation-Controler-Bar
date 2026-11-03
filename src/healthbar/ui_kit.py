@@ -5,9 +5,12 @@ from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QPainter
 
-THEMES = {"blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
+THEMES = {"redblack-0822": "NOVA REDBLACK 0.8.2.2", "blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
 _active = "blue-neon"
 _custom = {}
+
+def active_theme():
+    return _active
 
 def set_theme(theme):
     global _active, _custom
@@ -29,12 +32,17 @@ def QColor(*args):
     color = QtColor(*args)
     if len(args)==1 and isinstance(args[0],str):
         name=color.name().lower()
+        if _active=="redblack-0822" and name in ("#061224","#061020","#040d1b"):
+            chosen=QtColor("#08050A");chosen.setAlpha(color.alpha());return chosen
         if name in ("#061224","#061020","#040d1b") and _custom.get("background"):
             chosen=QtColor(_custom["background"])
             chosen.setAlpha(color.alpha())
             return chosen
     h,saturation,value,alpha=color.getHsvF()
     if .46 <= h <= .70 and saturation > .12:
+        if _active=="redblack-0822":
+            color.setHsvF(QtColor("#FF2647").hueF(),saturation,value,alpha)
+            return color
         if _custom.get("primary"):
             chosen=QtColor(_custom["primary"])
             chosen.setAlphaF(alpha)

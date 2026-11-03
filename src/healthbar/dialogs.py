@@ -62,10 +62,14 @@ class SettingsDialog(PCBSettingsDialog):
         box = QVBoxLayout(self)
         box.setContentsMargins(36, 35, 36, 30)
         box.setSpacing(13)
-        title = QLabel("◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES")
+        title = QLabel(("◈ NOVA / REDBLACK 0.8.2.2 — CONTROL CENTER"
+                        if settings.theme=="redblack-0822" else
+                        "◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES"))
         title.setObjectName("title")
         box.addWidget(title)
-        intro = QLabel("NovaBar / Health & Perfs  —  Linux XFCE  /  Contrôleur des barres, modules et effets PCB")
+        intro = QLabel(("CYBERPUNK ELECTRONIC SYSTEM / PARAMÈTRES & MODULES ACTIFS"
+                        if settings.theme=="redblack-0822" else
+                        "NovaBar / Health & Perfs  —  Linux XFCE  /  Contrôleur des barres, modules et effets PCB"))
         intro.setWordWrap(True)
         box.addWidget(intro)
         form = QFormLayout()
@@ -438,7 +442,35 @@ class SettingsDialog(PCBSettingsDialog):
         colors_box = QVBoxLayout(colors_page)
         colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
         colors_box.addWidget(QLabel("Sélectionnez la palette dans Générale. Aperçu de son rendu et de ses accents."))
-        colors_box.addWidget(QLabel("Le design original 0.6.11 reste actif ; seul son thème change."))
+        colors_box.addWidget(QLabel("NOVA REDBLACK 0.8.2.2 : cadres, HUD, Holo et panneaux reconstruits."))
+        wallpaper_row=QHBoxLayout()
+        apply_wallpaper_button=QPushButton("◈  Appliquer le fond REDBLACK")
+        restore_wallpaper_button=QPushButton("↶  Restaurer le fond précédent")
+        def set_wallpaper():
+            try:
+                from .redblack_wallpaper import apply_wallpaper
+                output=apply_wallpaper()
+                QMessageBox.information(self,"REDBLACK • Fond d'écran",
+                    "Fond REDBLACK appliqué sur XFCE. Sauvegarde du fond précédent conservée.\n"+output)
+            except (OSError,ValueError) as error:
+                QMessageBox.warning(self,"REDBLACK • Fond d'écran",str(error))
+        def undo_wallpaper():
+            try:
+                from .redblack_wallpaper import restore_wallpaper
+                total=restore_wallpaper()
+                QMessageBox.information(self,"REDBLACK • Fond d'écran",
+                    f"Fond d'écran XFCE restauré pour {total} espace(s) de travail.")
+            except (OSError,ValueError) as error:
+                QMessageBox.warning(self,"REDBLACK • Restauration",str(error))
+        apply_wallpaper_button.clicked.connect(set_wallpaper)
+        restore_wallpaper_button.clicked.connect(undo_wallpaper)
+        apply_wallpaper_button.setEnabled(settings.theme=="redblack-0822")
+        self.theme.currentIndexChanged.connect(
+            lambda:apply_wallpaper_button.setEnabled(self.theme.currentData()=="redblack-0822"))
+        wallpaper_row.addWidget(apply_wallpaper_button)
+        wallpaper_row.addWidget(restore_wallpaper_button)
+        colors_box.addLayout(wallpaper_row)
+        colors_box.addWidget(QLabel("Fond XFCE facultatif : sauvegarde puis restauration explicite, aucune suppression de panneau."))
         from .cockpit_style import PALETTES
         self.palette_preview = QLabel()
         self.palette_preview.setMinimumHeight(68)
@@ -523,9 +555,11 @@ class SettingsDialog(PCBSettingsDialog):
         tabs.tabBar().hide()
         nav = QListWidget()
         nav.setObjectName("settingsNavigation")
-        nav.setFixedWidth(230)
-        for name in ("GÉNÉRALE", "THÈMES & COULEURS", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
-            nav.addItem(name)
+        nav.setFixedWidth(258 if settings.theme=="redblack-0822" else 230)
+        entries=(("⌂  GÉNÉRAL","◈  APPARENCE","▣  PLUGINS","◉  CPU","⟲  MISE À JOUR","ⓘ  À PROPOS")
+                 if settings.theme=="redblack-0822" else
+                 ("GÉNÉRALE","THÈMES & COULEURS","EXTENSIONS","CPU","MISE À JOUR","À PROPOS"))
+        for name in entries:nav.addItem(name)
         for name in MODULES:
             nav.addItem("↳ " + name.upper())
         nav.currentRowChanged.connect(tabs.setCurrentIndex)

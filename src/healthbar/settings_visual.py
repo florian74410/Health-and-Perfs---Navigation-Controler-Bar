@@ -1,9 +1,10 @@
 """Painted lightweight Cyber-Neon settings shell; no texture assets, web API or timer."""
-from PySide6.QtCore import Qt, QRectF, QPointF
+from PySide6.QtCore import Qt, QRectF, QPointF, QTimer
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QLinearGradient
 from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
 from .theme_overrides import load as load_theme_overrides
+from .redblack_shell import active as redblack_active, paint_surface as paint_redblack, control_stylesheet
 
 
 def _palette(theme):
@@ -14,6 +15,7 @@ def _palette(theme):
 
 
 def settings_stylesheet(theme):
+    if redblack_active(theme):return control_stylesheet()
     primary,secondary,_=_palette(theme)
     return """
     QDialog#novaSettings { background: transparent; color: #EAF6FF; }
@@ -75,13 +77,42 @@ class PCBSettingsDialog(QDialog):
         self.setObjectName("novaSettings")
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
         self._pcb_theme="blue-neon"
+        self._redblack_phase=0.0
+        self._redblack_timer=QTimer(self)
+        self._redblack_timer.setInterval(85)
+        self._redblack_timer.timeout.connect(self._animate_redblack)
 
     def use_pcb_theme(self,theme):
         self._pcb_theme=theme
         self.setStyleSheet(settings_stylesheet(theme))
+        if redblack_active(theme) and self.isVisible():self._redblack_timer.start()
+        else:self._redblack_timer.stop()
         self.update()
 
+    def _animate_redblack(self):
+        if self.isVisible() and redblack_active(self._pcb_theme):
+            self._redblack_phase=(self._redblack_phase+.007)%1
+            self.update()
+        else:self._redblack_timer.stop()
+
+    def showEvent(self,event):
+        super().showEvent(event)
+        if redblack_active(self._pcb_theme):self._redblack_timer.start()
+
+    def hideEvent(self,event):
+        self._redblack_timer.stop()
+        super().hideEvent(event)
+
     def paintEvent(self,event):
+        if redblack_active(self._pcb_theme):
+            painter=QPainter(self)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_redblack(painter,QRectF(self.rect()).adjusted(7,7,-7,-7),
+                           "settings",self._redblack_phase)
+            painter.end()
+            return
         painter=QPainter(self)
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
         painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
@@ -182,6 +213,18 @@ class BarPreview(QWidget):
         self.update()
 
     def paintEvent(self,event):
+        if redblack_active(self._theme):
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_redblack(p,QRectF(self.rect()).adjusted(5,5,-5,-5),"hud",0)
+            p.setPen(QColor("#FF6374"))
+            p.drawText(self.rect().adjusted(16,8,-16,-8),
+                       Qt.AlignmentFlag.AlignVCenter|Qt.AlignmentFlag.AlignHCenter,
+                       "NOVA  /  REDBLACK 0.8.2.2")
+            p.end()
+            return
         p=QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing,True)
         primary,secondary,_=_palette(self._theme)

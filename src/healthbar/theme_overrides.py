@@ -10,7 +10,7 @@ import re
 import tempfile
 from .config import data_dir
 
-THEMES=("cyber-futuriste","blue-neon","green-matrix","red-blood")
+THEMES=("cyber-futuriste","blue-neon","green-matrix","red-blood","redblack-0822")
 PARTS=("primary","secondary","background")
 HEX=re.compile(r"^#[0-9A-Fa-f]{6}$")
 

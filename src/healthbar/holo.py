@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrol
                                QGridLayout, QPushButton, QGraphicsOpacityEffect, QSizePolicy, QStyleOptionButton, QStyle)
 
 from .ui_kit import QColor, holo_background
+from .redblack_shell import active as redblack_active, paint_surface, holo_stylesheet
 
 BLUE = "#007CFF"
 CYAN = "#5EEBFF"
@@ -104,9 +105,9 @@ class CpuHoloPanel(QWidget):
             QScrollBar:vertical {width:6px;background:transparent;}
             QScrollBar::handle:vertical {background:#129BD8;border-radius:3px;}
         """
-        self.setStyleSheet(stylesheet(self.base_style))
+        self.setStyleSheet(holo_stylesheet() if redblack_active() else stylesheet(self.base_style))
         root = QVBoxLayout(self)
-        root.setContentsMargins(24, 22, 24, 20)
+        root.setContentsMargins(*( (29,30,29,26) if redblack_active() else (24,22,24,20) ))
         root.setSpacing(6)
         top = QHBoxLayout()
         title = HoloLabel("◈ CPU CORE MATRIX")
@@ -114,11 +115,13 @@ class CpuHoloPanel(QWidget):
         top.addWidget(title)
         top.addStretch()
         self.pin_button = HoloButton("◇  ÉPINGLER")
+        self.pin_button.setObjectName("novaPin")
         self.pin_button.setAccessibleName("Épingler ou libérer l'hologramme CPU")
         self.pin_button.setCheckable(True)
         self.pin_button.clicked.connect(self.toggle_pin)
         top.addWidget(self.pin_button)
         close = HoloButton("✕")
+        close.setObjectName("novaClose")
         close.setAccessibleName("Fermer les détails CPU")
         close.clicked.connect(self.close_panel)
         top.addWidget(close)
@@ -136,16 +139,19 @@ class CpuHoloPanel(QWidget):
         root.addWidget(self.summary)
         line = QWidget()
         line.setFixedHeight(1)
-        line.setStyleSheet("background: rgba(55,204,255,95);")
+        line.setStyleSheet("background:#EB2848;" if redblack_active() else "background: rgba(55,204,255,95);")
+        self._separator=line
         root.addWidget(line)
         self.scroll = QScrollArea()
+        self.scroll.setObjectName("novaDataScroll")
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.grid_widget = QWidget()
+        self.grid_widget.setObjectName("novaDataWidget")
         self.grid = QGridLayout(self.grid_widget)
-        self.grid.setContentsMargins(1, 6, 1, 6)
-        self.grid.setVerticalSpacing(5)
+        self.grid.setContentsMargins(*( (13,13,13,13) if redblack_active() else (1,6,1,6) ))
+        self.grid.setVerticalSpacing(10 if redblack_active() else 5)
         self.grid.setHorizontalSpacing(8)
         self.scroll.setWidget(self.grid_widget)
         self.scroll.viewport().setAutoFillBackground(False)
@@ -157,6 +163,16 @@ class CpuHoloPanel(QWidget):
         self.note.setWordWrap(True)
         root.addWidget(self.note)
         self.set_telemetry({})
+
+    def apply_visual_theme(self):
+        from .ui_kit import stylesheet
+        skin=redblack_active()
+        self.setStyleSheet(holo_stylesheet() if skin else stylesheet(self.base_style))
+        self.layout().setContentsMargins(*( (29,30,29,26) if skin else (24,22,24,20) ))
+        self.grid.setContentsMargins(*( (13,13,13,13) if skin else (1,6,1,6) ))
+        self.grid.setVerticalSpacing(10 if skin else 5)
+        self._separator.setStyleSheet("background:#EB2848;" if skin else "background:rgba(55,204,255,95);")
+        self.update()
 
     def advance_light(self):
         self._phase = (self._phase + 0.018) % 1
@@ -220,7 +236,8 @@ class CpuHoloPanel(QWidget):
 
     def _add_cell(self, value, row, col, header=False):
         label = HoloLabel(str(value))
-        label.setObjectName("holoHeading" if header else "holoValue")
+        group=header and redblack_active() and str(value).lstrip().startswith(("◈","⚡"))
+        label.setObjectName("holoGroup" if group else "holoHeading" if header else "holoValue")
         label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -265,6 +282,14 @@ class CpuHoloPanel(QWidget):
                           "TDP nominal ≠ puissance instantanée par cœur.  — = indisponible.")
 
     def paintEvent(self, event):
+        if redblack_active():
+            painter=QPainter(self)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_surface(painter,QRectF(self.rect()).adjusted(6,6,-6,-6),"holo",self._phase)
+            painter.end()
+            return
         painter = QPainter(self)
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
         painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
@@ -333,7 +358,8 @@ class SensorHoloPanel(CpuHoloPanel):
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
-        self.resize(460 if slot in ("ram","fans") else 380, 300 if slot in ("ram","fans") else 280)
+        self.resize(550 if redblack_active() else (460 if slot in ("ram","fans") else 380),
+                    450 if redblack_active() else (300 if slot in ("ram","fans") else 280))
         if slot == 'network':
             from .network_chart import NetworkChart
             self.chart = NetworkChart(self)
