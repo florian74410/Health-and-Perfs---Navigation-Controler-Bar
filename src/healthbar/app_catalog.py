@@ -92,7 +92,8 @@ class ApplicationLauncher(QWidget):
         prefs=QPushButton('Paramètres');prefs.setIcon(symbol_icon('settings'));prefs.clicked.connect(lambda:(self.close(),self.settings_requested.emit()));footer.addWidget(prefs)
         logout=QPushButton('Quitter NovaBar');logout.setIcon(symbol_icon('logout'));logout.clicked.connect(lambda:(self.close(),self.quit_requested.emit()));footer.addWidget(logout);box.addLayout(footer)
         primary,secondary,_=PALETTES.get(theme,PALETTES['blue-neon'])
-        self.setStyleSheet(control_stylesheet() if redblack_active(theme) else f'''QWidget {{font-family:Sans;color:#e1edf6;font-size:12px;}} QLabel#launcherTitle {{color:{primary};font-weight:bold;letter-spacing:2px;}}
+        from .blue_night_shell import control_stylesheet as night_stylesheet
+        self.setStyleSheet(control_stylesheet() if redblack_active(theme) else night_stylesheet() if theme=="blue-night-083" else f'''QWidget {{font-family:Sans;color:#e1edf6;font-size:12px;}} QLabel#launcherTitle {{color:{primary};font-weight:bold;letter-spacing:2px;}}
             QLineEdit {{background:#081b2c;border:1px solid {secondary};border-radius:4px;padding:10px;}}
             QListWidget {{background:transparent;border:0;outline:0;}} QListWidget::item {{padding:5px;border:1px solid transparent;}}
             QListWidget::item:selected,QListWidget::item:hover {{background:#153c53;border:1px solid {primary};border-radius:5px;}}
@@ -155,7 +156,8 @@ class ApplicationLauncher(QWidget):
             return
         menu=QMenu(self)
         primary,secondary,_=PALETTES.get(self.frame.theme,PALETTES["blue-neon"])
-        menu.setStyleSheet(control_stylesheet() if redblack_active(self.frame.theme) else
+        from .blue_night_shell import control_stylesheet as night_stylesheet
+        menu.setStyleSheet(control_stylesheet() if redblack_active(self.frame.theme) else night_stylesheet() if self.frame.theme=="blue-night-083" else
             "QMenu {background:#06172A;color:#E9F6FF;border:1px solid "+primary+
             ";padding:6px;} QMenu::item {padding:8px 16px;}"
             "QMenu::item:selected {background:#144761;}")
