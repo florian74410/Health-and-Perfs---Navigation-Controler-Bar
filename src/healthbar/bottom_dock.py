@@ -90,6 +90,19 @@ class TaskButton(QToolButton):
         self.setMinimumWidth(128);self.setMaximumWidth(480)
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self.theme=="blue-night-083":
+            from .blue_night_shell import paint_surface as night_surface
+            active=bool(self.property("active"))
+            night_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                          "task",self.flash_phase,active or self.underMouse(),.92)
+            size=min(38,self.height()-14)
+            self.icon.paint(p,QRect(10,(self.height()-size)//2,size,size))
+            p.setPen(QColor("#E1F7FF" if active else "#B5D5E9"))
+            font=p.font();font.setPixelSize(12);font.setBold(active);p.setFont(font)
+            title=p.fontMetrics().elidedText(self.row["name"],Qt.TextElideMode.ElideRight,max(0,self.width()-size-32))
+            p.drawText(QRect(20+size,0,self.width()-size-30,self.height()),Qt.AlignmentFlag.AlignVCenter,title)
+            p.end()
+            return
         if redblack_active(self.theme):
             active=bool(self.property('active'))
             redblack_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
@@ -206,7 +219,7 @@ class BottomDock(QWidget):
         if getattr(self,'_screen',settings.screen)!=settings.screen:self.native.restore()
         self._screen=settings.screen;self.settings=settings;self.body.theme=settings.theme
         primary,secondary,_=PALETTES.get(settings.theme,PALETTES['blue-neon'])
-        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
+        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if settings.theme=="blue-night-083" else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
             QToolButton:hover {{background:rgba(28,93,123,130);border-color:{primary};}}
             QToolButton#nexus {{background:rgba(15,44,60,180);border-color:{secondary};}}
             QToolButton#cockpitClock {{font-size:17px;color:#ecf7ff;}}
