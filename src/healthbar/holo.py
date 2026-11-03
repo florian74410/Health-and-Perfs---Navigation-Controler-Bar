@@ -330,7 +330,7 @@ class SensorHoloPanel(CpuHoloPanel):
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
-        self.resize(380, 280)
+        self.resize(460 if slot in ("ram","fans") else 380, 300 if slot in ("ram","fans") else 280)
         if slot == 'network':
             from .network_chart import NetworkChart
             self.chart = NetworkChart(self)
