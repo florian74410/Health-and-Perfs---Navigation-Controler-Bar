@@ -1,7 +1,7 @@
 """Painted lightweight Cyber-Neon settings shell; no texture assets, web API or timer."""
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
 from .theme_overrides import load as load_theme_overrides
 
@@ -127,3 +127,39 @@ class PCBSettingsDialog(QDialog):
             painter.setPen(QPen(color,width))
             painter.drawPath(path)
         painter.end()
+
+
+class BarPreview(QWidget):
+    """Static mini-preview. No timer, no sensors and no GPU-heavy effects."""
+    def __init__(self,theme="blue-neon",parent=None):
+        super().__init__(parent)
+        self._theme=theme
+        self.setMinimumHeight(138)
+        self.setMinimumWidth(310)
+
+    def change_theme(self,theme):
+        self._theme=theme
+        self.update()
+
+    def paintEvent(self,event):
+        p=QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing,True)
+        primary,secondary,_=_palette(self._theme)
+        rect=QRectF(self.rect()).adjusted(4,4,-4,-4)
+        p.setPen(QPen(QColor(primary),1.2))
+        p.setBrush(QColor(2,17,36,210))
+        p.drawRoundedRect(rect,11,11)
+        p.setPen(QPen(QColor(215,239,255),1))
+        font=p.font();font.setPixelSize(12);font.setBold(True);p.setFont(font)
+        p.drawText(QRectF(18,10,rect.width()-25,27),"APERÇU  /  TOP HUD + NAVIGATION")
+        for i,y in enumerate((46,91)):
+            box=QRectF(18,y,rect.width()-37,33)
+            p.setBrush(QColor(4,34,60,220))
+            p.setPen(QPen(QColor(secondary),1))
+            p.drawRoundedRect(box,8,8)
+            p.setPen(QPen(QColor(primary),1.1))
+            if i==0:
+                p.drawText(box.adjusted(12,0,-8,0),"◈ CPU   12 %     RAM  23 %      NORMAL MODE")
+            else:
+                p.drawText(box.adjusted(12,0,-8,0),"⌂ Accueil     ▦ Apps     ⚙ Réglages     +2")
+        p.end()
