@@ -29,10 +29,14 @@
 - [ ] Refuser chemins hors dossier, liens symboliques non autorisés et noms à traversal ; confirmations pour création, édition, suppression et lancement de scripts sensibles.
 - [ ] Aucune couche service, JSON, SQLite, moteur de workflow, ordonnanceur, télémétrie ou autre complexité pour ce module.
 
-## 4. NEXUS Terminal : base Qt, rendu ancien conservé
-**Décision : PySide6 + QTermWidget natif, sous réserve de validation d'intégration/packaging. Pas de comparaison xterm.js/WebEngine tant que Qt fonctionne correctement.**
+## 4. NEXUS Terminal : application tierce autonome (NON plugin)
+**Décision : application indépendante PySide6 + QTermWidget natif, sous réserve de validation de compatibilité/packaging.** Elle possède son propre lancement, ses processus et son cycle de version. **NovaBar / Cyber-Neon ne l'héberge pas** : le thème se contente de référencer son lanceur `.desktop` / sa commande et d'appliquer ou proposer l'identité graphique BlueNeon. Ne pas toucher à l'API du Plugin Manager, ne pas créer de plugin ZIP, ni de mécanisme d'exécution d'extensions.
 
-- [ ] Garder la fenêtre et les habillages de la capture `nova-v075-terminal-scrollback.png` : chrome, menus, onglets, PCB, titres/boutons. Ne changer que la zone d'émulation interne si nécessaire.
+- [ ] Partir du code source de la dernière révision 1.0.0 exacte **après identification du commit** ; construire une application terminal neuve et légère, sans restaurer l'ancien moteur/GUI défectueux. Les captures dans Assets sont uniquement des références esthétiques.
+- [ ] Fournir un lanceur système `nexus-terminal.desktop` (et un binaire/commande `nexus-terminal`) découvrable par le menu d'applications XFCE ; NovaBar peut ajouter un raccourci vers ce lanceur sans dépendance dure.
+- [ ] Distribution autonome (`.deb` dédié après validation) ; pas de modification du gestionnaire d'extensions NovaBar, ni d'installation du terminal via Paramètres > Extensions.
+
+- [ ] Recréer proprement, à partir d'éléments Qt neufs, l'esthétique de `nova-v075-terminal-scrollback.png` : chrome, menus, onglets, PCB, titres/boutons. Ne réutiliser ni l'ancien moteur ni sa GUI, jugés défectueux.
 - [ ] Vérifier la compatibilité exacte des bindings QTermWidget/PySide6, des bibliothèques natives et de l'installateur .deb avant implémentation. Si indisponible, choisir une alternative Qt éprouvée, pas un émulateur terminal fait maison.
 - [ ] Un QTermWidget par session et un QSplitter pour les dispositions : 1, vertical, horizontal, 2×2, 2+1 et colonne +2 ; séparateurs manipulables.
 - [ ] Terminal interactif réel : PTY intégré à QTermWidget, ANSI/UTF-8, ssh, sudo, vim, nano, top, htop ; resize correct sans tronquer le texte.
@@ -48,7 +52,8 @@
 - [ ] Installer et lancer sur Mint XFCE/X11 ; vérifier raccourcis/clavier FR, coller multi-lignes, application SSH interactive, vim/nano et scrollback.
 - [ ] Tester disposition 1/2/2×2/2+1, redimensionnement rapide, 100k lignes, plusieurs sessions et fermeture propre.
 - [ ] Vérifier création, lancement, modification et suppression d'un .sh, et qu'aucune macro n'est exécutée automatiquement.
-- [ ] Tests de non-régression : HUD, Paramètres, plugins, panneaux et profils existants.
+- [ ] Tests de non-régression : HUD, Paramètres, plugins, panneaux et profils existants ; confirmer que l'installation ou désinstallation du terminal autonome n'affecte pas NovaBar.
+- [ ] Tester le lancement du terminal depuis un raccourci du thème, le menu XFCE et en ligne de commande.
 - [ ] Après obtention d'une **base saine et stable**, seulement alors **proposer** des améliorations facultatives avant de les ajouter. Aucun ajout fonctionnel non demandé.
 
 ## Notes de mise en œuvre
