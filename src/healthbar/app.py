@@ -27,7 +27,7 @@ from .app_icon import novabar_icon
 from .x11_workarea import reserve_edge
 
 
-from .ui_kit import QColor
+from .ui_kit import QColor, stylesheet
 
 def button_icon(kind):
     pix = QPixmap(40, 40)
@@ -154,7 +154,7 @@ class Bar(QWidget):
         self.setWindowTitle("NovaBar • Hardware Health Controller")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setStyleSheet(STYLE + """
+        self.setStyleSheet(stylesheet(STYLE + """
             QPushButton#nav { border: 1px solid #008fff; border-radius: 9px;
                 background: rgba(2,15,34,170); padding: 3px; }
             QPushButton#nav:hover { border: 2px solid #48eaff; background: #0b345a; }
@@ -162,7 +162,7 @@ class Bar(QWidget):
             QMenu::item { padding: 12px 22px; }
             QMenu::item:selected { background: #114fe3; border-radius: 5px; }
             QMenu::item:disabled { color: #6986a3; }
-        """)
+        """))
         self.root = QHBoxLayout(self)
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
@@ -564,8 +564,8 @@ class Bar(QWidget):
             action.setChecked(getattr(self.settings, setting))
             action.triggered.connect(lambda checked=False, k=key: self.tray_toggle(k))
         themes = menu.addMenu("🎨 Thème couleur")
-        for key, title in (("blue-neon", "Blue Neon"), ("green-matrix", "Green Matrix"),
-                           ("red-blood", "Red Blood")):
+        from .ui_kit import THEMES
+        for key, title in THEMES.items():
             act = themes.addAction(title)
             act.setCheckable(True)
             act.setChecked(self.settings.theme == key or

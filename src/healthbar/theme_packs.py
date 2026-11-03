@@ -102,3 +102,28 @@ def asset_path(theme: str, role: str) -> Path | None:
         return None
     name = pack["assets"].get(role)
     return _safe_asset(Path(pack["root"]), name) if name else None
+
+def recolor_qss(source: str, theme: str) -> str:
+    """Retint old blue QSS RGB/RGBA surfaces without altering white text or warnings."""
+    pack = get_pack(theme)
+    if not pack:
+        return source
+    import colorsys
+    hue = int(pack["palette"]["primary"][1:3], 16) / 255
+    green = int(pack["palette"]["primary"][3:5], 16) / 255
+    blue = int(pack["palette"]["primary"][5:7], 16) / 255
+    target_hue = colorsys.rgb_to_hsv(hue, green, blue)[0]
+
+    def rgb_match(match):
+        channel = [int(match.group(i)) for i in (2, 3, 4)]
+        old_h, sat, val = colorsys.rgb_to_hsv(*(c/255 for c in channel))
+        # Only decorative blue shades. Keep warning red, success green,
+        # white typography and true neutral blacks entirely unchanged.
+        if not (.46 <= old_h <= .72 and sat > .12):
+            return match.group(0)
+        new_rgb = [round(255*c) for c in colorsys.hsv_to_rgb(target_hue,sat,val)]
+        return match.group(1) + ",".join(str(c) for c in new_rgb) + match.group(5) + ")"
+
+    return re.sub(
+        r"(rgba?\\(\\s*)(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})(\\s*(?:,\\s*(?:[0-9.]+|[0-9]+%)\\s*)?)\\)",
+        rgb_match, source, flags=re.IGNORECASE)

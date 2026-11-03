@@ -5,15 +5,18 @@ from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QPainter
 
+from .theme_packs import get_pack, list_packs
 THEMES = {"blue-neon": "Blue Neon", "green-matrix": "Green Matrix", "red-blood": "Red Blood"}
+THEMES.update(list_packs())  # External packs appear in Settings without changing application code.
 _active = "blue-neon"
 _custom = {}
 
 def set_theme(theme):
     global _active, _custom
-    _active = theme if theme in ("cyber-futuriste", *THEMES) else "blue-neon"
+    _active = theme if theme in ("cyber-futuriste", *THEMES) or get_pack(theme) else "blue-neon"
     from .theme_overrides import load
-    _custom = load().get(_active, {})
+    pack = get_pack(_active)
+    _custom = {**(pack["palette"] if pack else {}), **load().get(_active, {})}
     # The cockpit, docks and XFCE skin already share one native palette table.
     from .xfce_panel_skin import PALETTES
     if _custom:
@@ -34,7 +37,13 @@ def QColor(*args):
             chosen.setAlpha(color.alpha())
             return chosen
     h,saturation,value,alpha=color.getHsvF()
-    if .46 <= h <= .70 and saturation > .12:
+    if .46 <= h <= .72 and saturation > .12:
+        if get_pack(_active):
+            # Keep luminous shades and alpha while moving blue/cyan accents to
+            # the selected pack hue. Never recolor red warnings or green health.
+            accent=QtColor(_custom.get("primary","#FF233E"))
+            color.setHsvF(accent.hueF(),max(.35,saturation),value,alpha)
+            return color
         if _custom.get("primary"):
             chosen=QtColor(_custom["primary"])
             chosen.setAlphaF(alpha)
@@ -57,7 +66,9 @@ def stylesheet(text):
         if re.search(r"(?<![-\w])color\s*:\s*$",prefix):
             return match[0]
         return QColor(match[0]).name()
+    from .theme_packs import recolor_qss
     result=re.sub(r"#[0-9a-fA-F]{6}\b",retint,text)
+    result=recolor_qss(result,_active)
     # Titles are the only text role inheriting the decorative accent.
     return re.sub(r"(QLabel#holoTitle\s*\{[^}]*?\bcolor\s*:\s*)(#[0-9a-fA-F]{6})",
                   lambda m:m[1]+QColor(m[2]).name(),result)

@@ -10,14 +10,15 @@ import re
 import tempfile
 from .config import data_dir
 
-THEMES=("cyber-futuriste","blue-neon","green-matrix","red-blood")
+THEMES=("cyber-futuriste","blue-neon","green-matrix","red-blood","blackred-neon")
 PARTS=("primary","secondary","background")
 HEX=re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 def validate(raw):
     result={}
     if not isinstance(raw,dict):return result
-    for theme in THEMES:
+    from .theme_packs import list_packs
+    for theme in dict.fromkeys((*THEMES,*list_packs())):
         val=raw.get(theme)
         if not isinstance(val,dict):continue
         colors={name:val[name].upper() for name in PARTS

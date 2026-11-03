@@ -117,7 +117,8 @@ class Settings:
                     not isinstance(v,str) or not 1<=len(v)<=80 or
                     any(ord(c)<32 for c in v) for k,v in self.dock_aliases.items())):
             raise ValueError("Alias des raccourcis invalides")
-        if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
+        from .theme_packs import known_theme
+        if not known_theme(self.theme):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
         available = expected + ["power"]
