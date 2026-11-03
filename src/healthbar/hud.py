@@ -391,6 +391,14 @@ class HudCanvas(QWidget):
                 self.paint_reordered(p)
         p.resetTransform()
         if not retracted:
+            from .ui_kit import active_theme
+            if active_theme() == 'blue-neon':
+                from .blue_graphite_fx import paint_edge_fx
+                phase = (time.monotonic() * .095) % 1.0
+                for index, kind in enumerate(self.active_slots):
+                    paint_edge_fx(p, QRectF(self.module_rect(kind)),
+                                  phase + index * .13, .55)
+        if not retracted:
             for kind in self.active_slots:
                 bounds = self.module_icon_rect(kind)
                 icon(p,kind,bounds.x(),bounds.y(),bounds.width())
