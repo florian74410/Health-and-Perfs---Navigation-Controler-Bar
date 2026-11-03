@@ -6,8 +6,9 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from PySide6.QtCore import Qt, QProcess, QSettings, Signal, QPoint
+from PySide6.QtCore import Qt, QProcess, QSettings, Signal, QPoint, QUrl
 from PySide6.QtGui import QPainter, QPainterPath, QPen, QColor, QLinearGradient, QFont
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PySide6.QtWidgets import (
     QWidget, QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QTabWidget,
     QLineEdit, QLabel, QPushButton, QComboBox, QCheckBox, QSpinBox,
@@ -16,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 CONFIG_DIR=Path.home()/".config"/"nexus-terminal"
-PROFILES=CONFIG_DIR/"connections.json"
+PROFILES=CONFIG_DIR/"connections.json"\nAPI_PROFILES=CONFIG_DIR/"api_profiles.json"
 HOST_RE=re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,252}$")
 USER_RE=re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.-]{0,63}$")
 ID_RE=re.compile(r"^[a-zA-Z0-9_. -]{1,64}$")
@@ -229,13 +230,100 @@ class SessionsDialog(GlassDialog):
         tabs.addTab(ssh,"SSH / CLÉS")
         api=QWidget()
         apil=QVBoxLayout(api)
-        apil.addWidget(QLabel("Connexions API / applications"))
-        apil.addWidget(QLabel("Les secrets doivent être conservés dans le trousseau système (Secret Service)."))
-        apil.addWidget(QLabel("Cette version n'enregistre ni token, ni mot de passe dans un fichier JSON."))
+        apil.addWidget(QLabel("Connexion à une API HTTPS — profil local"))
+        api_form=QFormLayout()
+        self.api_name=QLineEdit()
+        self.api_name.setPlaceholderText("IA-TB GEN-1")
+        self.api_url=QLineEdit()
+        self.api_url.setPlaceholderText("https://example.org/api/health")
+        self.api_token=QLineEdit()
+        self.api_token.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_token.setPlaceholderText("Jeton Bearer (facultatif, jamais stocké dans JSON)")
+        api_form.addRow("Profil",self.api_name)
+        api_form.addRow("URL de test",self.api_url)
+        api_form.addRow("Token API",self.api_token)
+        apil.addLayout(api_form)
+        self.api_result=QLabel("● Non connecté")
+        self.api_result.setWordWrap(True)
+        apil.addWidget(self.api_result)
+        api_actions=QHBoxLayout()
+        save_api=QPushButton("Enregistrer le profil")
+        save_api.clicked.connect(self.save_api)
+        api_actions.addWidget(save_api)
+        test_api=QPushButton("Tester la connexion HTTPS")
+        test_api.clicked.connect(self.test_api)
+        api_actions.addWidget(test_api)
+        apil.addLayout(api_actions)
+        apil.addWidget(QLabel("Jetons conservés uniquement en mémoire, sauf si le trousseau système est disponible."))
         apil.addStretch()
+        self.net=QNetworkAccessManager(self)
+        self.api_reply=None
         tabs.addTab(api,"API / APPS")
         self.saved.itemSelectionChanged.connect(self.load_selection)
         self.refresh()
+    def save_api(self):
+        name=self.api_name.text().strip()
+        url=QUrl(self.api_url.text().strip())
+        if not ID_RE.fullmatch(name) or not url.isValid() or url.scheme()!="https" or not url.host():
+            QMessageBox.warning(self,"API","Nom de profil ou URL HTTPS invalide.")
+            return
+        try:
+            data=json.loads(API_PROFILES.read_text(encoding="utf-8")) if API_PROFILES.exists() else []
+            if not isinstance(data,list):data=[]
+        except (OSError,ValueError):
+            data=[]
+        data=[p for p in data if isinstance(p,dict) and p.get("name")!=name]
+        data.append({"name":name,"url":url.toString(QUrl.UrlFormattingOption.RemovePassword)})
+        CONFIG_DIR.mkdir(mode=0o700,parents=True,exist_ok=True)
+        temp=API_PROFILES.with_suffix(".tmp")
+        temp.write_text(json.dumps(data,indent=2,ensure_ascii=False),encoding="utf-8")
+        os.chmod(temp,0o600)
+        temp.replace(API_PROFILES)
+        token=self.api_token.text()
+        if token:
+            try:
+                import keyring
+                keyring.set_password("NEXUS-Terminal/API",name,token)
+                self.api_result.setText("✓ Profil enregistré, token conservé par le trousseau.")
+            except Exception:
+                self.api_result.setText("✓ Profil enregistré. Token non enregistré (trousseau indisponible).")
+        else:
+            self.api_result.setText("✓ Profil enregistré (sans token).")
+
+    def test_api(self):
+        if self.api_reply is not None:
+            return
+        url=QUrl(self.api_url.text().strip())
+        if not url.isValid() or url.scheme()!="https" or not url.host():
+            QMessageBox.warning(self,"API","Utiliser une URL HTTPS valide.")
+            return
+        request=QNetworkRequest(url)
+        request.setTransferTimeout(10000)
+        request.setRawHeader(b"Accept",b"application/json")
+        token=self.api_token.text()
+        if not token:
+            try:
+                import keyring
+                token=keyring.get_password("NEXUS-Terminal/API",self.api_name.text().strip()) or ""
+            except Exception:
+                token=""
+        if token:
+            request.setRawHeader(b"Authorization",b"Bearer "+token.encode("utf-8"))
+        self.api_result.setText("◌ Vérification HTTPS en cours…")
+        self.api_reply=self.net.get(request)
+        self.api_reply.finished.connect(self.api_finished)
+
+    def api_finished(self):
+        reply=self.api_reply
+        self.api_reply=None
+        if reply is None:return
+        status=reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+        if reply.error():
+            self.api_result.setText("✕ Échec API : "+reply.errorString())
+        else:
+            self.api_result.setText(f"✓ Réponse HTTPS reçue : HTTP {status}")
+        reply.deleteLater()
+
     def refresh(self):
         self.saved.clear()
         for p in profiles_read():
