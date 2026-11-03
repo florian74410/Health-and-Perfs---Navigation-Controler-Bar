@@ -232,6 +232,18 @@ class SessionsDialog(GlassDialog):
         api=QWidget()
         apil=QVBoxLayout(api)
         apil.addWidget(QLabel("Connexion à une API HTTPS — profil local"))
+        self.api_profiles=QComboBox()
+        self.api_profiles.addItem("— Nouveau profil —",None)
+        try:
+            existing=json.loads(API_PROFILES.read_text(encoding="utf-8"))
+            if isinstance(existing,list):
+                for item in existing:
+                    if isinstance(item,dict) and item.get("name") and item.get("url"):
+                        self.api_profiles.addItem(item["name"],item)
+        except (OSError,ValueError):
+            pass
+        self.api_profiles.currentIndexChanged.connect(self.load_api)
+        apil.addWidget(self.api_profiles)
         api_form=QFormLayout()
         self.api_name=QLineEdit()
         self.api_name.setPlaceholderText("IA-TB GEN-1")
@@ -262,6 +274,15 @@ class SessionsDialog(GlassDialog):
         tabs.addTab(api,"API / APPS")
         self.saved.itemSelectionChanged.connect(self.load_selection)
         self.refresh()
+    def load_api(self,index):
+        item=self.api_profiles.itemData(index)
+        if not isinstance(item,dict):
+            return
+        self.api_name.setText(str(item.get("name","")))
+        self.api_url.setText(str(item.get("url","")))
+        self.api_token.clear()
+        self.api_result.setText("Profil chargé. Token depuis le trousseau si disponible.")
+
     def save_api(self):
         name=self.api_name.text().strip()
         url=QUrl(self.api_url.text().strip())
@@ -280,6 +301,9 @@ class SessionsDialog(GlassDialog):
         temp.write_text(json.dumps(data,indent=2,ensure_ascii=False),encoding="utf-8")
         os.chmod(temp,0o600)
         temp.replace(API_PROFILES)
+        found=self.api_profiles.findText(name)
+        if found<0:self.api_profiles.addItem(name,{"name":name,"url":url.toString()})
+        else:self.api_profiles.setItemData(found,{"name":name,"url":url.toString()})
         token=self.api_token.text()
         if token:
             try:
