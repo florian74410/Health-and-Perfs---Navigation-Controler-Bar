@@ -762,7 +762,7 @@ class Bar(QWidget):
         set_theme(self.settings.theme)
         from .ui_kit import stylesheet
         from .redblack_shell import active as redblack_active, control_stylesheet
-        self.setStyleSheet(control_stylesheet() if redblack_active() else stylesheet(STYLE))
+        self.setStyleSheet(control_stylesheet("hud") if redblack_active() else stylesheet(STYLE))
         if hasattr(self,"holo"):
             for panel in [self.holo,*getattr(self,"module_holos",{}).values()]:
                 panel.apply_visual_theme()

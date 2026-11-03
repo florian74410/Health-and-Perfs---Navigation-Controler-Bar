@@ -101,6 +101,11 @@ def paint_nine_slice(painter,filename,dest):
     dest_x=_sections(dest.width(),left,right)
     dest_y=_sections(dest.height(),top,bottom)
     painter.save()
+    # Keep the real user's assets, but let graphite own most of the area.
+    # A lower opacity prevents their bright red fill overpowering the controls.
+    painter.setOpacity(.34 if filename in (
+        "window-chrome.png","panel-chrome.png","card-chrome.png",
+        "tile-chrome.png") else .48)
     painter.setRenderHint(painter.RenderHint.SmoothPixmapTransform,True)
     for y in range(3):
         for x in range(3):

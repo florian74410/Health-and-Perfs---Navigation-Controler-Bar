@@ -206,7 +206,7 @@ class BottomDock(QWidget):
         if getattr(self,'_screen',settings.screen)!=settings.screen:self.native.restore()
         self._screen=settings.screen;self.settings=settings;self.body.theme=settings.theme
         primary,secondary,_=PALETTES.get(settings.theme,PALETTES['blue-neon'])
-        self.body.setStyleSheet(control_stylesheet() if redblack_active(settings.theme) else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
+        self.body.setStyleSheet(control_stylesheet("dock") if redblack_active(settings.theme) else f'''QToolButton {{color:#e6f1fa;background:transparent;border:1px solid transparent;border-radius:6px;padding:2px;}}
             QToolButton:hover {{background:rgba(28,93,123,130);border-color:{primary};}}
             QToolButton#nexus {{background:rgba(15,44,60,180);border-color:{secondary};}}
             QToolButton#cockpitClock {{font-size:17px;color:#ecf7ff;}}
@@ -368,7 +368,13 @@ class BottomDock(QWidget):
         populate(menu,layout);self._applet_menu=menu;menu.popup(QPoint(x,y))
 
     def themed_menu(self):
-        menu=QMenu(self);primary,secondary,_=PALETTES.get(self.settings.theme,PALETTES['blue-neon']);menu.setStyleSheet(f'QMenu {{background:#071725;color:#e9f2fa;border:1px solid {primary};padding:7px;}} QMenu::item {{padding:8px 16px;}} QMenu::item:selected {{background:#15445e;}} QMenu::item:disabled {{color:#7892a5;}}');return menu
+        menu=QMenu(self)
+        if redblack_active(self.settings.theme):
+            menu.setStyleSheet(control_stylesheet("dock"))
+        else:
+            primary,secondary,_=PALETTES.get(self.settings.theme,PALETTES['blue-neon'])
+            menu.setStyleSheet(f'QMenu {{background:#071725;color:#e9f2fa;border:1px solid {primary};padding:7px;}} QMenu::item {{padding:8px 16px;}} QMenu::item:selected {{background:#15445e;}} QMenu::item:disabled {{color:#7892a5;}}')
+        return menu
     def task_menu(self,button,row):
         menu=self.themed_menu();menu.addAction('Activer',lambda:self.backend.action(row['id']));menu.addAction('Fermer',lambda:self.backend.action(row['id'],close=True));menu.exec(button.mapToGlobal(button.rect().topLeft()))
     def open_menu(self):
