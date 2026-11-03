@@ -18,7 +18,8 @@ def compact_cpu_name(raw):
     name=re.sub(r"\s+"," ",name).strip()
     name=re.sub(r"\s+CPU\s+@.*$","",name,flags=re.IGNORECASE)
     name=re.sub(r"\s+Processor\s*$","",name,flags=re.IGNORECASE)
-    name=re.sub(r'\\s+(?:Eight|Six|Quad|Dual|Twelve|Sixteen|\\d+)-Core 7 1700X and Intel Core i7-12700K.
+    name=re.sub(r"\s+(?:Eight|Six|Quad|Dual|Twelve|Sixteen|\d+)-Core$", "", name, flags=re.IGNORECASE)
+    # Keep model identifiers such as AMD Ryzen 7 1700X and Intel Core i7-12700K.
     return name[:85] or "CPU · modèle indisponible"
 
 
