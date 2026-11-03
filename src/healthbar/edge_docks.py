@@ -285,9 +285,16 @@ class PCBDockFrame(QFrame):
         self.phase = 0.0
         self.setObjectName("dockBody")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAutoFillBackground(False)
 
     def paintEvent(self, event):
         p = QPainter(self)
+        # Explicit ARGB clear: the cut-off corners must reveal the desktop,
+        # not uninitialised black pixels or a rectangular QFrame backing.
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+        p.fillRect(self.rect(), Qt.GlobalColor.transparent)
+        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
         if w < 40 or h < 30:
