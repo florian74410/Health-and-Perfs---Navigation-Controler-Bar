@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
 from .theme_overrides import load as load_theme_overrides
 from .redblack_shell import active as redblack_active, paint_surface as paint_redblack, control_stylesheet
+from .blue_graphite_settings import enabled as blue_graphite_enabled, paint_settings as paint_blue_graphite, control_stylesheet as blue_graphite_css
 
 
 def _palette(theme):
@@ -16,6 +17,7 @@ def _palette(theme):
 
 def settings_stylesheet(theme):
     if redblack_active(theme):return control_stylesheet()
+    if blue_graphite_enabled(theme):return blue_graphite_css()
     primary,secondary,_=_palette(theme)
     return """
     QDialog#novaSettings { background: transparent; color: #EAF6FF; }
@@ -85,25 +87,33 @@ class PCBSettingsDialog(QDialog):
     def use_pcb_theme(self,theme):
         self._pcb_theme=theme
         self.setStyleSheet(settings_stylesheet(theme))
-        if redblack_active(theme) and self.isVisible():self._redblack_timer.start()
+        if (redblack_active(theme) or blue_graphite_enabled(theme)) and self.isVisible():self._redblack_timer.start()
         else:self._redblack_timer.stop()
         self.update()
 
     def _animate_redblack(self):
-        if self.isVisible() and redblack_active(self._pcb_theme):
+        if self.isVisible() and (redblack_active(self._pcb_theme) or blue_graphite_enabled(self._pcb_theme)):
             self._redblack_phase=(self._redblack_phase+.007)%1
             self.update()
         else:self._redblack_timer.stop()
 
     def showEvent(self,event):
         super().showEvent(event)
-        if redblack_active(self._pcb_theme):self._redblack_timer.start()
+        if redblack_active(self._pcb_theme) or blue_graphite_enabled(self._pcb_theme):self._redblack_timer.start()
 
     def hideEvent(self,event):
         self._redblack_timer.stop()
         super().hideEvent(event)
 
     def paintEvent(self,event):
+        if blue_graphite_enabled(self._pcb_theme):
+            painter=QPainter(self)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_blue_graphite(painter,QRectF(self.rect()).adjusted(7,7,-7,-7),self._redblack_phase)
+            painter.end()
+            return
         if redblack_active(self._pcb_theme):
             painter=QPainter(self)
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
