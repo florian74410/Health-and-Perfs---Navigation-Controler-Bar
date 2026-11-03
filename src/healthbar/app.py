@@ -763,7 +763,7 @@ class Bar(QWidget):
         if not getattr(self,"full_rect",QRect()).isValid():
             return
         if self.settings.position in ("top","bottom") and self.settings.hud_enabled:
-            reserve_edge(self,self.settings.position,self.full_rect.height(),self.settings.top_reserved)
+            reserve_edge(self,self.settings.position,self.geometry().height(),self.settings.top_reserved)
         else:
             reserve_edge(self,self.settings.position,0,False)
 
@@ -845,6 +845,8 @@ class Bar(QWidget):
         self.animation.start()
 
     def _finish_transition(self):
+        # Recompute the X11 workarea after each completed open/collapse animation.
+        self._reserve_workarea()
         if not self.retracted:
             self.root.setSpacing(8)
             self.actions.show()
