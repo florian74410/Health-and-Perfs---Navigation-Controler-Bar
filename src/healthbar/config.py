@@ -56,7 +56,7 @@ class Settings:
     alignment: str = "center"
     refresh_seconds: int = 2
     shell_dir: str = ""
-    theme: str = "redblack-0822"
+    theme: str = "blue-night-083"
     slot_order: list = None
     hidden_modules: list = field(default_factory=lambda: ["power"])
     xfce_skin_enabled: bool = False
@@ -117,7 +117,7 @@ class Settings:
                     not isinstance(v,str) or not 1<=len(v)<=80 or
                     any(ord(c)<32 for c in v) for k,v in self.dock_aliases.items())):
             raise ValueError("Alias des raccourcis invalides")
-        if self.theme not in ("redblack-0822", "cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
+        if self.theme not in ("blue-night-083", "redblack-0822", "cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
         available = expected + ["power"]
