@@ -116,6 +116,14 @@ class TaskButton(QToolButton):
         p.end()
 
 
+def _dock_control_metrics(height):
+    """UI contract: margins and real Qt hitboxes for every supported height."""
+    margin=max(5,min(14,(height-35)//2))
+    hit=max(25,min(44,height-2*margin-6))
+    glyph=max(14,min(28,hit-8))
+    return margin,hit,glyph
+
+
 class BottomDock(QWidget):
     settings_requested=Signal();quit_requested=Signal();shortcut_requested=Signal(str,str)
     shortcut_renamed=Signal(str,str)
@@ -216,7 +224,7 @@ class BottomDock(QWidget):
         if not screens:return
         bounds=screens[min(settings.screen,len(screens)-1)].geometry();height=bottom_height(settings)
         # Preserve controls and icon hitboxes at every 62–130px dock height.
-        side_margin=max(5,min(14,(height-35)//2))
+        side_margin,hit,glyph=_dock_control_metrics(height)
         self.row.setContentsMargins(17,side_margin,17,side_margin)
         self.full_rect=QRect(bounds.left(),bounds.bottom()-height+1,bounds.width(),height);self.setFixedHeight(height);self.setGeometry(self.full_rect)
         self._reserve_workarea()
@@ -242,8 +250,7 @@ class BottomDock(QWidget):
                     lambda pos,b=button,p=path:self.pin_context_menu(b,p))
                 self.pins.addWidget(button)
         self._task_key=None
-        hit=max(25,min(44,height-2*side_margin-6))
-        glyph=max(14,min(28,hit-8))
+        # Dimensions come from the same metrics contract used in layout QA.
         for button in self.launchers.findChildren(QToolButton):
             button.setFixedSize(hit,hit)
             button.setIconSize(QSize(glyph,glyph))
