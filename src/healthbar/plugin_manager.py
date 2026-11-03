@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QColor
 from .redblack_shell import active as redblack_active, control_stylesheet
+from .blue_night_shell import active as night_active, control_stylesheet as night_stylesheet
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QTabWidget,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QLabel, QLineEdit,
@@ -76,7 +77,7 @@ class SourceEditDialog(QDialog):
         super().__init__(parent)
         self.setStyleSheet(
             (control_stylesheet() + "QDialog {background:#080609;border:2px solid #FF2945;}")
-            if redblack_active() else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if __import__("healthbar.blue_night_shell",fromlist=["active"]).active() else STYLE)
+            if redblack_active() else night_stylesheet() if night_active() else STYLE)
         self.setWindowTitle("NovaBar • Source GitHub")
         self.resize(490, 265)
         root = QVBoxLayout(self)
@@ -136,7 +137,7 @@ class PluginsDialog(QDialog):
         self.setMinimumSize(590, 355)
         self.setStyleSheet(
             (control_stylesheet() + "QDialog {background:#080609;border:2px solid #FF2945;}")
-            if redblack_active() else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if __import__("healthbar.blue_night_shell",fromlist=["active"]).active() else STYLE)
+            if redblack_active() else night_stylesheet() if night_active() else STYLE)
         root = QVBoxLayout(self)
         root.setContentsMargins(13, 12, 13, 10)
         root.setSpacing(6)
