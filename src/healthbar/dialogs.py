@@ -62,7 +62,9 @@ class SettingsDialog(PCBSettingsDialog):
         box = QVBoxLayout(self)
         box.setContentsMargins(36, 35, 36, 30)
         box.setSpacing(13)
-        title = QLabel(("◈ NOVA / REDBLACK 0.8.2.2 — CONTROL CENTER"
+        title = QLabel(("◈ NOVA / BLUE GRAPHITE — CONTROL CENTER"
+                        if settings.theme in ("blue-neon","cyber-futuriste") else
+                        "◈ NOVA / REDBLACK 0.8.2.2 — CONTROL CENTER"
                         if settings.theme=="redblack-0822" else
                         "◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES"))
         title.setObjectName("title")
@@ -552,28 +554,35 @@ class SettingsDialog(PCBSettingsDialog):
         tabs.addTab(about, "À propos")
         for module in MODULES:
             tabs.addTab(self.plugin_pages[module], module.upper())
-        tabs.tabBar().hide()
-        nav = QListWidget()
-        nav.setObjectName("settingsNavigation")
-        nav.setFixedWidth(258 if settings.theme=="redblack-0822" else 230)
-        entries=(("⌂  GÉNÉRAL","◈  APPARENCE","▣  PLUGINS","◉  CPU","⟲  MISE À JOUR","ⓘ  À PROPOS")
-                 if settings.theme=="redblack-0822" else
-                 ("GÉNÉRALE","THÈMES & COULEURS","EXTENSIONS","CPU","MISE À JOUR","À PROPOS"))
-        for name in entries:nav.addItem(name)
-        for name in MODULES:
-            nav.addItem("↳ " + name.upper())
-        nav.currentRowChanged.connect(tabs.setCurrentIndex)
-        nav.setCurrentRow(0)
-        split = QHBoxLayout()
-        split.addWidget(nav)
-        split.addWidget(tabs, 1)
-        box.addLayout(split, 1)
+        if settings.theme in ("blue-neon","cyber-futuriste"):
+            # All settings remain reachable; eliminate duplicate left sidebar.
+            tabs.tabBar().setUsesScrollButtons(True)
+            tabs.tabBar().setExpanding(False)
+            tabs.tabBar().show()
+            box.addWidget(tabs,1)
+        else:
+            tabs.tabBar().hide()
+            nav = QListWidget()
+            nav.setObjectName("settingsNavigation")
+            nav.setFixedWidth(258 if settings.theme=="redblack-0822" else 230)
+            entries=(("⌂  GÉNÉRAL","◈  APPARENCE","▣  PLUGINS","◉  CPU","⟲  MISE À JOUR","ⓘ  À PROPOS")
+                     if settings.theme=="redblack-0822" else
+                     ("GÉNÉRALE","THÈMES & COULEURS","EXTENSIONS","CPU","MISE À JOUR","À PROPOS"))
+            for name in entries:nav.addItem(name)
+            for name in MODULES:nav.addItem("↳ " + name.upper())
+            nav.currentRowChanged.connect(tabs.setCurrentIndex)
+            nav.setCurrentRow(0)
+            split = QHBoxLayout()
+            split.addWidget(nav)
+            split.addWidget(tabs, 1)
+            box.addLayout(split, 1)
         note = QLabel("Mesures locales : — indique un capteur indisponible.\nPriorité d’affichage limitée par le système et son compositeur.")
         note.setWordWrap(True)
         box.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        reset_button=buttons.addButton("↺ Rétablir",QDialogButtonBox.ButtonRole.ResetRole)
-        reset_button.clicked.connect(self.reset_display)
+        if settings.theme not in ("blue-neon","cyber-futuriste"):
+            reset_button=buttons.addButton("↺ Rétablir",QDialogButtonBox.ButtonRole.ResetRole)
+            reset_button.clicked.connect(self.reset_display)
         buttons.button(QDialogButtonBox.StandardButton.Save).setText("Installer et ouvrir" if first_run else "✓ Appliquer")
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
         buttons.accepted.connect(self.save)
