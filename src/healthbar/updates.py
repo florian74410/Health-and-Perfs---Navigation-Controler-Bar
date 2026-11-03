@@ -27,6 +27,10 @@ REPO="florian74410/Health-and-Perfs---Navigation-Controler-Bar"
 API="https://api.github.com/repos/"+REPO+"/releases/latest"
 MAX_DOWNLOAD=300*1024*1024
 MAX_EXPANDED=900*1024*1024
+NATIVE_LINEAGE = "cyber-neon-rebased-from-0.6.11"
+# The original project's 0.7.1..0.7.5 tags are already published and belong
+# to a different history. Never silently migrate the rebased theme to them.
+FIRST_NATIVE_PATCH = (0, 7, 6)
 
 
 def version(value):
@@ -80,48 +84,51 @@ def check_release():
 
 
 def check_native_release():
-    """Find the next official same-series patch for an APT-installed NovaBar.
+    """Offer only newer, explicitly marked releases of this rebased theme.
 
-    Never mistake an untagged CI artifact for a stable release. In particular
-    0.7.0 -> 0.7.1 must not accidentally jump to historical v0.7.5.
+    Historical v0.7.1–v0.7.5 already exist in the original repository and
+    MUST NOT be installed over the new Cyber-Neon 0.7 work.
     """
     from .bootstrapper import package_candidates
-    latest = json.loads(read_url(
+    releases=json.loads(read_url(
         "https://api.github.com/repos/"+REPO+"/releases?per_page=50",
         limit=5*1024*1024))
-    if not isinstance(latest,list):
+    if not isinstance(releases,list):
         raise ValueError("Liste des releases GitHub invalide")
     current=version(__version__)
-    releases=[]
-    for entry in latest:
+    candidates=[]
+    for entry in releases:
         if entry.get("draft") or entry.get("prerelease"):
             continue
         try: target=version(entry.get("tag_name",""))
         except ValueError: continue
-        if target[:2]!=current[:2] or target<=current:
+        if target<=current or target<FIRST_NATIVE_PATCH:
             continue
-        releases.append((target,entry))
-    if not releases:
-        return None
-    target,selected=min(releases,key=lambda row:row[0])
-    tag=selected["tag_name"]
-    manifest_asset=next((a for a in selected.get("assets",[])
-                         if a.get("name")=="novabar-bootstrap-manifest.json"),None)
-    if not manifest_asset:
-        raise ValueError("Manifeste du paquet natif absent pour "+tag)
-    manifest_url=asset_url(manifest_asset.get("browser_download_url",""))
-    if "/releases/download/"+tag+"/" not in manifest_url:
-        raise ValueError("Manifeste natif hors de la release cible")
-    manifest=json.loads(read_url(manifest_url,limit=1024*1024))
-    if manifest.get("schema_version")!=1 or version(manifest.get("version"))!=target:
-        raise ValueError("Version du manifeste natif incohérente")
-    asset=package_candidates(manifest,platform_key(),".deb")
-    if asset.get("format")!=".deb" or "/releases/download/"+tag+"/" not in asset["url"]:
-        raise ValueError("Paquet DEB incohérent avec la release")
-    if not any(x.get("name")==asset["name"] and x.get("browser_download_url")==asset["url"]
-               for x in selected.get("assets",[])):
-        raise ValueError("Le DEB sélectionné ne figure pas dans la release officielle")
-    return {"version":tag.removeprefix("v"),"asset":asset,"native":True}
+        candidates.append((target,entry))
+    for target,selected in sorted(candidates,key=lambda row:row[0]):
+        tag=selected["tag_name"]
+        manifest_asset=next((a for a in selected.get("assets",[])
+                             if a.get("name")=="novabar-bootstrap-manifest.json"),None)
+        if not manifest_asset:
+            continue
+        manifest_url=asset_url(manifest_asset.get("browser_download_url",""))
+        if "/releases/download/"+tag+"/" not in manifest_url:
+            continue
+        manifest=json.loads(read_url(manifest_url,limit=1024*1024))
+        # Other NovaBar releases may share GitHub but not this application's
+        # native upgrade sequence. They must never be offered by its settings.
+        if manifest.get("lineage")!=NATIVE_LINEAGE:
+            continue
+        if manifest.get("schema_version")!=1 or version(manifest.get("version"))!=target:
+            raise ValueError("Version du manifeste natif incohérente")
+        asset=package_candidates(manifest,platform_key(),".deb")
+        if asset.get("format")!=".deb" or "/releases/download/"+tag+"/" not in asset["url"]:
+            raise ValueError("Paquet DEB incohérent avec la release")
+        if not any(x.get("name")==asset["name"] and x.get("browser_download_url")==asset["url"]
+                   for x in selected.get("assets",[])):
+            raise ValueError("Le DEB sélectionné ne figure pas dans la release officielle")
+        return {"version":tag.removeprefix("v"),"asset":asset,"native":True}
+    return None
 
 
 def prepare_native_update(release,progress):
