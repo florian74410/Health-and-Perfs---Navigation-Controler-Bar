@@ -36,7 +36,14 @@ class CockpitFrame(QFrame):
         w,h=self.width(),self.height();primary,secondary,_=PALETTES.get(self.theme,PALETTES['blue-neon'])
         outer=cut_path(QRectF(2,2,w-4,h-4),19)
         metal=QLinearGradient(0,0,0,h)
-        for pos,col in ((0,'#34566b'),(.12,'#07121c'),(.24,'#183f56'),(.43,'#020912'),(.75,'#071c2c'),(.87,'#294c60'),(1,'#030a12')):metal.setColorAt(pos,QColor(col))
+        # GRAPHITE 75% / electric-blue highlights 20% / chrome 5%.
+        # Change decorative paint only: no control geometry or behavior.
+        graphite = self.theme in ("blue-neon","cyber-futuriste")
+        metal_stops = ((0,'#34373f'),(.12,'#12151b'),(.24,'#1d222b'),
+            (.43,'#090d13'),(.75,'#121720'),(.87,'#292d35'),(1,'#090c12')) if graphite else (
+            (0,'#34566b'),(.12,'#07121c'),(.24,'#183f56'),(.43,'#020912'),
+            (.75,'#071c2c'),(.87,'#294c60'),(1,'#030a12'))
+        for pos,col in metal_stops: metal.setColorAt(pos,QColor(col))
         p.save()
         p.setOpacity(max(.12,min(1,self.glass_opacity/100)))
         p.fillPath(outer,metal)
@@ -48,7 +55,9 @@ class CockpitFrame(QFrame):
         inner=cut_path(QRectF(9,9,w-18,h-18),14);glow(p,inner,primary,1.7)
         cavity=cut_path(QRectF(16,16,w-32,h-32),11)
         glass=QLinearGradient(0,16,0,h-16)
-        for pos,col in ((0,'#0d2939'),(.18,'#071a29'),(.5,'#03101e'),(1,'#071625')):glass.setColorAt(pos,QColor(col))
+        glass_stops = ((0,'#20242e'),(.18,'#11151c'),(.5,'#090d12'),(1,'#141923')) if graphite else (
+            (0,'#0d2939'),(.18,'#071a29'),(.5,'#03101e'),(1,'#071625'))
+        for pos,col in glass_stops: glass.setColorAt(pos,QColor(col))
         p.save();p.setOpacity(max(.1,min(1,self.glass_opacity/100)))
         p.fillPath(cavity,glass);p.restore();p.setPen(QPen(QColor('#43829a'),.7));p.drawPath(cavity)
         p.setClipPath(outer)
@@ -56,7 +65,10 @@ class CockpitFrame(QFrame):
         for rect in self.regions() if callable(getattr(self,'regions',None)) else []:
             if rect.width()<30:continue
             r=QRectF(rect);housing=cut_path(r,12)
-            g=QLinearGradient(0,r.top(),0,r.bottom());g.setColorAt(0,QColor('#24546b'));g.setColorAt(.2,QColor('#051320'));g.setColorAt(.8,QColor('#05111c'));g.setColorAt(1,QColor('#23495e'))
+            g=QLinearGradient(0,r.top(),0,r.bottom())
+            housing_cols=('#2f353f','#10141c','#090d14','#252a33') if graphite else (
+                '#24546b','#051320','#05111c','#23495e')
+            for stop,col in zip((0,.2,.8,1),housing_cols):g.setColorAt(stop,QColor(col))
             p.fillPath(housing,g);p.setBrush(Qt.BrushStyle.NoBrush);glow(p,housing,primary,1.1)
             inset=cut_path(r.adjusted(3,3,-3,-3),9);p.setPen(QPen(QColor('#3c6e81'),.7));p.drawPath(inset)
             # Machined joints on both sides of each housing, with little light wells.
@@ -76,6 +88,12 @@ class CockpitFrame(QFrame):
             for y in (h*.34,h*.67):
                 p.setPen(QPen(QColor('#8da6b3'),.6));p.setBrush(QColor('#081420'));p.drawEllipse(QPointF(x,y),2,2)
                 p.setPen(QPen(QColor('#3a5a6a'),.7));p.drawLine(QPointF(x-1,y+1),QPointF(x+1,y-1))
+        # Thin traveling electron in the upper rail using the existing phase.
+        # No new animation timer; BottomDock.animate drives this repaint.
+        if graphite and w>160:
+            from .blue_fx import paint_electron_rail
+            p.setClipping(False)
+            paint_electron_rail(p,QRectF(20,3,w-40,10),self.phase/(2*math.pi))
         p.setClipping(False);p.end()
 
 

@@ -1,5 +1,5 @@
 """Painted lightweight Cyber-Neon settings shell; no texture assets, web API or timer."""
-from PySide6.QtCore import Qt, QRectF, QPointF
+from PySide6.QtCore import Qt, QRectF, QPointF, QTimer
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QLinearGradient
 from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
@@ -10,7 +10,7 @@ def _palette(theme):
     preset=PALETTES.get(theme, PALETTES["blue-neon"])
     custom=load_theme_overrides().get(theme,{})
     return (custom.get("primary",preset[0]),custom.get("secondary",preset[1]),
-            custom.get("background","#041426"))
+            custom.get("background","#11151B" if theme in ("blue-neon","cyber-futuriste") else "#041426"))
 
 
 def settings_stylesheet(theme):
@@ -75,11 +75,35 @@ class PCBSettingsDialog(QDialog):
         self.setObjectName("novaSettings")
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
         self._pcb_theme="blue-neon"
+        self._blue_phase=0.0
+        self._blue_timer=QTimer(self)
+        self._blue_timer.setInterval(90)
+        self._blue_timer.timeout.connect(self._animate_blue)
 
     def use_pcb_theme(self,theme):
         self._pcb_theme=theme
         self.setStyleSheet(settings_stylesheet(theme))
+        if theme in ("blue-neon","cyber-futuriste") and self.isVisible():
+            self._blue_timer.start()
+        else:
+            self._blue_timer.stop()
         self.update()
+
+    def _animate_blue(self):
+        if self.isVisible() and self._pcb_theme in ("blue-neon","cyber-futuriste"):
+            self._blue_phase=(self._blue_phase+.009)%1
+            self.update()
+        else:
+            self._blue_timer.stop()
+
+    def showEvent(self,event):
+        super().showEvent(event)
+        if self._pcb_theme in ("blue-neon","cyber-futuriste"):
+            self._blue_timer.start()
+
+    def hideEvent(self,event):
+        self._blue_timer.stop()
+        super().hideEvent(event)
 
     def paintEvent(self,event):
         painter=QPainter(self)
@@ -107,8 +131,9 @@ class PCBSettingsDialog(QDialog):
         shine.setColorAt(.38,QColor(210,242,255,4))
         shine.setColorAt(.7,QColor(210,242,255,28))
         shine.setColorAt(1,QColor(210,242,255,0))
-        painter.fillRect(QRectF(rect.left()+13,rect.top()+5,rect.width()-26,rect.height()*.12),shine)
+        # Highlight must be clipped before rendering to avoid opaque corners.
         painter.setClipPath(path)
+        painter.fillRect(QRectF(rect.left()+13,rect.top()+5,rect.width()-26,rect.height()*.12),shine)
         # Original, asymmetric PCB: irregular routes from all four corners,
         # short branches, vias and polished light wells. No tiling or looped
         # identical rows. Fully static => zero idle animation CPU.
@@ -161,6 +186,10 @@ class PCBSettingsDialog(QDialog):
             light=QColor(primary);light.setAlpha(170)
             painter.setBrush(light)
             painter.drawRoundedRect(QRectF(center.x()-rx,center.y()-1,2*rx,2),1,1)
+        if self._pcb_theme in ("blue-neon","cyber-futuriste"):
+            from .blue_fx import paint_electron_rail
+            paint_electron_rail(painter,QRectF(rect.left()+32,rect.top()+5,
+                                                rect.width()-64,7),self._blue_phase)
         painter.setClipping(False)
         for width,opacity in ((9,22),(4,64),(1.4,230)):
             color=QColor(primary);color.setAlpha(opacity)
