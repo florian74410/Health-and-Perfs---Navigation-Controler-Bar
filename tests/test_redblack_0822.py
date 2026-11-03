@@ -9,6 +9,17 @@ class RedBlackTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app=QApplication.instance() or QApplication(["redblack-test"])
 
+    def test_four_segment_version_upgrade_ordering(self):
+        from healthbar.updates import version
+        from healthbar.install_engine import version_tuple
+        self.assertEqual(version("v0.8.2.2"),(0,8,2,2))
+        self.assertEqual(version_tuple("0.8.2.2"),(0,8,2,2))
+        self.assertGreater(version("0.8.2.2"),version("0.8.1"))
+        self.assertGreater(version_tuple("0.8.2.2"),version_tuple("0.8.1"))
+        with self.assertRaises(ValueError):
+            version("0.8.2.2.9")
+        self.assertIsNone(version_tuple("not-a-version"))
+
     def test_version_theme_and_native_palette(self):
         from healthbar import __version__
         from healthbar.ui_kit import THEMES, set_theme, active_theme

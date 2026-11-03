@@ -34,7 +34,7 @@ FIRST_NATIVE_PATCH = (0, 7, 6)
 
 
 def version(value):
-    if not isinstance(value,str) or not re.fullmatch(r"v?\d+\.\d+\.\d+",value):
+    if not isinstance(value,str) or not re.fullmatch(r"v?\d+\.\d+\.\d+(?:\.\d+)?",value):
         raise ValueError("Version de publication invalide")
     return tuple(map(int,value.removeprefix("v").split(".")))
 

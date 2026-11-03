@@ -242,6 +242,9 @@ class ShellTests(unittest.TestCase):
             self.assertFalse(self.bar.grab().isNull())
 
     def test_background_is_clear_and_only_module_fills_follow_opacity(self):
+        # Legacy skin contract; the new REDBLACK has intentionally opaque
+        # data cavities and dedicated transparency tests in test_redblack_0822.
+        self.settings.theme="blue-neon"
         from PySide6.QtCore import QPoint
         for opacity in (0, 35, 100):
             self.settings.opacity = opacity
