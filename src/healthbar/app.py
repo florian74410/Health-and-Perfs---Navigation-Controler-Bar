@@ -20,6 +20,7 @@ from .hud import HudCanvas
 from .holo import CpuHoloPanel
 from .shared_telemetry import SharedTelemetry
 from .help_links import WIKI_URL
+from .system_env import native_env
 from .edge_docks import EdgeDock
 from .app_icon import novabar_icon
 
@@ -414,7 +415,7 @@ class Bar(QWidget):
         try:
             subprocess.Popen(["xfce4-panel", "--preferences"],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                             start_new_session=True)
+                             start_new_session=True, env=native_env())
         except OSError as error:
             QMessageBox.warning(None, "XFCE", str(error))
 
@@ -964,7 +965,7 @@ class Bar(QWidget):
             with log.open("wb") as output:
                 subprocess.Popen(args, cwd=path.parent, stdin=subprocess.DEVNULL,
                                  stdout=output, stderr=subprocess.STDOUT,
-                                 start_new_session=(os.name != "nt"))
+                                 start_new_session=(os.name != "nt"), env=native_env())
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Exécution impossible", str(error))
 

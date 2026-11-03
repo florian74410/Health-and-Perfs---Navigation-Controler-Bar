@@ -99,9 +99,12 @@ class BottomUpgradeTests(unittest.TestCase):
             try:
                 self.assertEqual(schedule.call_args.args[0],0)
                 release={'version':'99.0.0'};dialog.checked(release)
-                self.assertEqual(dialog.release,release);self.assertEqual(schedule.call_args.args[1],dialog.start)
+                self.assertEqual(dialog.release,release)
+                self.assertEqual(dialog.button.text(),"Installer la mise à jour")
+                self.assertEqual(schedule.call_count,1)  # Auto-check only; no silent install.
                 dialog.completed({'executable':'new-runtime'})
-                self.assertEqual(schedule.call_args.args[0],700)
+                self.assertEqual(dialog.button.text(),"Redémarrer NovaBar")
+                self.assertEqual(schedule.call_count,1)  # Restart requires confirmation.
                 dialog.failed('Checksum failed');self.assertEqual(dialog.label.text(),'Checksum failed')
             finally:dialog.close()
 
