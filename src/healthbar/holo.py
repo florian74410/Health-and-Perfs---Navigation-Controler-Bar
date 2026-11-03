@@ -130,10 +130,10 @@ class CpuHoloPanel(QWidget):
         self.summary = HoloLabel("PACKAGE   TEMP —   •   FRÉQUENCE —   •   CHARGE —   •   PUISSANCE —")
         self.summary.setObjectName("holoHeading")
         self.summary.setWordWrap(True)
-        root.addWidget(self.summary)
         self.topology = HoloLabel("Topology: —")
         self.topology.setObjectName("holoSubtitle")
         root.addWidget(self.topology)
+        root.addWidget(self.summary)
         line = QWidget()
         line.setFixedHeight(1)
         line.setStyleSheet("background: rgba(55,204,255,95);")
@@ -230,7 +230,10 @@ class CpuHoloPanel(QWidget):
     def set_telemetry(self, readings):
         self._readings = readings or {}
         data = self._readings
-        self.cpu_name.setText(str(data.get("cpu_model") or "CPU · processeur non identifié"))
+        from .hardware_identity import compact_cpu_name
+        model=compact_cpu_name(data.get("cpu_model"))
+        self.findChild(QLabel,"holoTitle").setText("◈ "+model)
+        self.cpu_name.setText("ARCHITECTURE · "+str(data.get("cpu_architecture") or "—"))
         physical = data.get("cpu_physical_cores")
         logical = data.get("cpu_logical_cores")
         self.topology.setText(f"CORES : {physical if physical is not None else '—'}  /  THREADS : {logical if logical is not None else '—'}")
@@ -344,6 +347,25 @@ class SensorHoloPanel(CpuHoloPanel):
         from .network_detail import format_rate, format_ping
         data = data or {}
         self._readings = data
+        heading=self.findChild(QLabel,"holoTitle")
+        if self.slot == "ram":
+            modules=data.get("ram_modules") or []
+            if modules:
+                sizes={m.get("size") for m in modules}
+                rates={m.get("speed") for m in modules if m.get("speed")}
+                size=next(iter(sizes)) if len(sizes)==1 else "tailles mixtes"
+                frequency=next(iter(rates)) if len(rates)==1 else "—"
+                heading.setText(f"◈ RAM  {len(modules)} × {size} / {frequency} / CL —")
+            else:
+                heading.setText("◈ RAM  ·  barrettes non identifiées")
+        elif self.slot == "storage":
+            heading.setText("◈ STOCKAGE / SSD")
+        elif self.slot == "fans":
+            count=len(data.get("fans") or [])
+            heading.setText(f"◈ VENTILATEURS DÉTECTÉS : {count}")
+        elif self.slot == "network":
+            from .hardware_identity import connected_interface_name
+            heading.setText("◈ "+connected_interface_name(data))
         labels = {"gpu_percent":"Charge GPU", "gpu_temperature_c":"Température GPU",
                   "gpu_clock_mhz":"Fréquence GPU", "vram_used_gb":"VRAM utilisée", "gpu_power_w":"Puissance GPU",
                   "ram_percent":"Charge mémoire", "ram_used_gb":"RAM utilisée", "ram_available_gb":"RAM disponible",
@@ -358,20 +380,35 @@ class SensorHoloPanel(CpuHoloPanel):
             key, label = totals[self.slot]
             rows.append((label, readout(data.get(key), "GB")))
         if self.slot == "network":
-            self.cpu_name.setText('INTERFACE : ' + (data.get('net_interface') or 'en détection'))
+            self.cpu_name.setText("INTERFACES CONNECTÉES UNIQUEMENT")
             rows = [("Réception", format_rate(data.get('net_down_mbs'))),
                     ("Envoi", format_rate(data.get('net_up_mbs'))),
                     ("Ping · " + data.get('net_ping_target', '1.1.1.1'), format_ping(data)),
                     ("État ICMP", data.get('net_ping_status', 'En attente'))]
             for interface in data.get("net_interfaces", []):
+                if interface.get("isup") is not True:
+                    continue
                 name = interface.get("name", "Interface")
                 rows.extend([(name, "CONNECTÉE" if interface.get("isup") else "DÉCONNECTÉE" if interface.get("isup") is False else "ÉTAT INCONNU"),
                              ("  Vitesse lien", readout(interface.get("speed_mbps"), "Mbit/s", 0)),
                              ("  Réception", format_rate(interface.get("down_mbs"))),
                              ("  Envoi", format_rate(interface.get("up_mbs")))])
         if self.slot == "fans":
-            rows = [(str(f.get("name", "Fan")), readout(f.get("rpm"), "RPM", 0))
-                    for f in data.get("fans", [])] or [("Ventilateurs", "—")]
+            fans=data.get("fans") or []
+            rows=[]
+            for index,fan in enumerate(fans,1):
+                percent=fan.get("percent_max")
+                percent_label=(str(percent)+" % du max") if percent is not None else "max inconnu"
+                rows.append((f"Ventilateur {index} · {fan.get('name','')}",
+                             f"Vitesse : {readout(fan.get('rpm'),'RPM',0)} / {percent_label}"))
+            if not rows:
+                rows=[("Ventilateurs", "Aucun capteur détecté")]
+            pc_temp=readout(data.get("pc_temperature_c"),"°C",0)
+            turbo=data.get("cpu_turbo_enabled")
+            self.cpu_name.setText(
+                f"T° PC : {pc_temp}    ·    TURBO : "+(
+                    "ON" if turbo is True else "OFF" if turbo is False else "—"))
+
         if self.slot == "power":
             rows = [
                 ("⚡  VUE D'ENSEMBLE", ""),
@@ -410,6 +447,13 @@ class SensorHoloPanel(CpuHoloPanel):
             # Keep the compact glass size; the power detail table is scrollable.
         # Apply persisted per-module visibility without additional sensor polls.
         allowed = self.detail_fields
+        if self.slot == "ram":
+            # Separate displayed configured DIMM speed from live DRAM frequency.
+            # SMBIOS never supplies live MHz or verified CAS latency.
+            for module in data.get("ram_modules") or []:
+                rows.append(("DIMM "+str(module.get("slot","")),
+                             "Configurée : "+str(module.get("speed") or "—")+
+                             "  ·  Direct : —  ·  CL : —"))
         if self.slot in ("gpu","ram","storage"):
             label_to_field = {value:key for key,value in labels.items()}
             label_to_field.update({
@@ -444,7 +488,10 @@ class SensorHoloPanel(CpuHoloPanel):
             self._add_cell(label, index, 0, True)
             self._add_cell(value, index, 1)
         if self.slot != "power":
-            self.summary.setText("MESURES EN DIRECT · " + self.slot.upper())
+            self.summary.setText(
+                ("T° GLOBALE / TURBO" if self.slot=="fans" else
+                 "CHARGE MÉMOIRE / BARRETTES" if self.slot=="ram" else
+                 "MESURES EN DIRECT · " + self.slot.upper()))
         if self.slot != "power":
             self.note.setText("— = capteur indisponible · données système locales" +
                           (" · Ping ICMP toutes les 10 s ; absence de réponse ≠ coupure Internet" if self.slot == "network" else
