@@ -1,12 +1,13 @@
-name: NovaBar 0.8.0 Holo and PCB Linux QA
+name: NovaBar 0.8.1 Linux polish and shortcuts QA
 
 on:
   push:
     branches:
       - work/novabar-v0.7-stable-optimized
-      - work/novabar-v0.8.0-linux-gvfs-native-update
-      - work/novabar-v0.8.0-linux-visual-xfce
-      - work/novabar-v0.8.0-holo-cyber-pcb
+      - work/novabar-v0.8.1-linux-gvfs-native-update
+      - work/novabar-v0.8.1-linux-visual-xfce
+      - work/novabar-v0.8.1-holo-cyber-pcb
+      - work/novabar-v0.8.1-linux-polish-shortcuts
     paths:
       - 'src/**'
       - 'tests/**'
@@ -67,23 +68,23 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           HEALTHBAR_DATA_DIR: ${{ runner.temp }}/novabar-runtime-preview
-        run: dist/HealthPerfsBar/HealthPerfsBar --self-test --expect-version 0.8.0
+        run: dist/HealthPerfsBar/HealthPerfsBar --self-test --expect-version 0.8.1
       - name: Check frozen app uses isolated GIO module directory
         run: |
           test -f dist/HealthPerfsBar/_internal/healthbar/assets/gio-empty/.keep
-          QT_QPA_PLATFORM=offscreen HEALTHBAR_DATA_DIR="${{ runner.temp }}/gio-qa" dist/HealthPerfsBar/HealthPerfsBar --self-test --expect-version 0.8.0 >"${{ runner.temp }}/gio.log" 2>&1
+          QT_QPA_PLATFORM=offscreen HEALTHBAR_DATA_DIR="${{ runner.temp }}/gio-qa" dist/HealthPerfsBar/HealthPerfsBar --self-test --expect-version 0.8.1 >"${{ runner.temp }}/gio.log" 2>&1
           if grep -q 'Failed to load module.*libgvfsdbus' "${{ runner.temp }}/gio.log"; then
             cat "${{ runner.temp }}/gio.log"
             exit 1
           fi
       - name: Build the test-only Debian installer
         run: |
-          python scripts/package_linux_desktop.py deb --version 0.8.0
-          dpkg-deb --info dist/linux/NovaBar_0.8.0_amd64.deb
-          sha256sum dist/linux/NovaBar_0.8.0_amd64.deb
+          python scripts/package_linux_desktop.py deb --version 0.8.1
+          dpkg-deb --info dist/linux/NovaBar_0.8.1_amd64.deb
+          sha256sum dist/linux/NovaBar_0.8.1_amd64.deb
       - uses: actions/upload-artifact@v4
         with:
-          name: NovaBar-0.8.0-HOLO-PCB-LINUX-QA
-          path: dist/linux/NovaBar_0.8.0_amd64.deb
+          name: NovaBar-0.8.1-LINUX-POLISH-QA
+          path: dist/linux/NovaBar_0.8.1_amd64.deb
           if-no-files-found: error
           retention-days: 14
