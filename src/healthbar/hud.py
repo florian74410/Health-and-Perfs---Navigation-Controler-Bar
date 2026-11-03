@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor as TextColor
 from PySide6.QtWidgets import QWidget
 
 CYAN = "#00d9ff"
-from .network_detail import format_rate, format_ping
+from .network_detail import format_rate, format_ping, format_compact_rate, format_compact_ping
 from .ui_kit import QColor
 
 BLUE = "#1860ff"
@@ -92,7 +92,7 @@ def icon(p, kind, x, y, size=36):
     p.save()
     p.translate(x, y)
     p.scale(size/40, size/40)
-    p.setPen(QPen(QColor(CYAN), 1.8))
+    p.setPen(QPen(QColor("#F45268"), 1.8))
     p.setBrush(Qt.BrushStyle.NoBrush)
     if kind in ("cpu", "gpu"):
         p.drawRoundedRect(QRectF(5, 6, 30, 28), 3, 3)
@@ -108,7 +108,7 @@ def icon(p, kind, x, y, size=36):
             p.drawLine(QPointF(14, 16), QPointF(26, 24))
             p.drawLine(QPointF(26, 16), QPointF(14, 24))
         else:
-            text(p, 16, 25, "3", 14, CYAN)
+            text(p, 16, 25, "3", 14, "#F45268")
     elif kind in ("ram", "storage"):
         p.drawRoundedRect(QRectF(7, 1, 26, 38), 3, 3)
         for i in range(3):
@@ -699,14 +699,33 @@ class HudCanvas(QWidget):
             label, datum = entries[kind]
             p.save()
             p.setClipPath(path, Qt.ClipOperation.IntersectClip)
-            if self.vertical:
-                fitted_text(p,x+7,y+min(17,h*.34),label,max(1,w-14),9,"#a8bdd0",False)
-                fitted_text(p,x+7,y+min(h-6,max(29,h*.67)),datum,max(1,w-14),10,WHITE,True)
+            if kind=="network" and not self.vertical:
+                baseline=y+max(12,min(16,h*.42))
+                bottom=y+h-5
+                p.setOpacity(.6)
+                fitted_text(p,x+6,baseline,"RÉSEAU",max(1,w*.49),9,"#FF5268",True)
+                p.setOpacity(1)
+                fitted_text(p,x+w*.52,baseline,"PING "+format_compact_ping(readings),
+                            max(1,w*.45-5),9,WHITE,True)
+                p.setPen(QPen(QColor("#FF5268"),1.2))
+                fitted_text(p,x+6,bottom,"↓",13,10,"#FF5268",True)
+                fitted_text(p,x+19,bottom,format_compact_rate(readings.get("net_down_mbs")),
+                            max(1,w*.50-17),9,WHITE,True)
+                fitted_text(p,x+w*.51,bottom,"↑",12,10,"#45DD82",True)
+                fitted_text(p,x+w*.59,bottom,format_compact_rate(readings.get("net_up_mbs")),
+                            max(1,w*.40-5),9,WHITE,True)
+            elif self.vertical:
+                p.setOpacity(.6)
+                fitted_text(p,x+7,y+min(17,h*.34),label,max(1,w-14),9,"#FF5268",False)
+                p.setOpacity(1)
+                fitted_text(p,x+7,y+min(h-6,max(29,h*.67)),datum,max(1,w-14),10,"#FFFFFF",True)
             else:
                 label_w = min(49,max(23,w*.29))
                 baseline = y+h/2+4
-                fitted_text(p,x+7,baseline,label,max(1,label_w),9,"#a8bdd0",True)
-                fitted_text(p,x+10+label_w,baseline,datum,max(1,w-label_w-19),11,WHITE,True)
+                p.setOpacity(.6)
+                fitted_text(p,x+7,baseline,label,max(1,label_w),9,"#FF5268",True)
+                p.setOpacity(1)
+                fitted_text(p,x+10+label_w,baseline,datum,max(1,w-label_w-19),11,"#FFFFFF",True)
             p.restore()
 
     def paint_compact(self, p):
