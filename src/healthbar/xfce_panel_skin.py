@@ -22,6 +22,7 @@ START = "/* NOVABAR CYBER NEXUS PANEL SKIN BEGIN (managed) */"
 END = "/* NOVABAR CYBER NEXUS PANEL SKIN END (managed) */"
 PALETTES = {
     "blue-neon": ("#18dfff", "#1765bc", "24, 220, 245"),
+    "blue-night-083": ("#25DDFF", "#0C7BD8", "37, 221, 255"),
     "cyber-futuriste": ("#18dfff", "#1765bc", "24, 220, 245"),
     "green-matrix": ("#43fa9a", "#137d59", "67, 250, 154"),
     "red-blood": ("#ff607d", "#96254e", "255, 96, 125"),
