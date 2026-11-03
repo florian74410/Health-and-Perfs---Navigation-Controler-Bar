@@ -447,7 +447,7 @@ class NexusTerminalWidget(QWidget):
             return
         # Quotes are essential: never concatenate raw profile fields into shell code.
         command=shlex.join(args)
-        page.shells[0].sendText(command+"\\n")
+        page.shells[0].sendText(command+"\n")
         self.notify("Info","Connexion SSH démarrée dans un nouvel onglet.")
 
     def open_web(self):
