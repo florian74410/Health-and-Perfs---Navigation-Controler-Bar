@@ -42,7 +42,9 @@ def favorite_apps(settings):
     return unique
 
 
-def pinned_apps(settings):return favorite_apps(settings)[:4]
+def pinned_apps(settings):
+    custom=settings.bottom_pinned_apps
+    return list(custom)[:10] if custom is not None else favorite_apps(settings)[:4]
 
 
 class TaskButton(QToolButton):
@@ -65,7 +67,7 @@ class TaskButton(QToolButton):
 
 
 class BottomDock(QWidget):
-    settings_requested=Signal();quit_requested=Signal()
+    settings_requested=Signal();quit_requested=Signal();shortcut_requested=Signal(str,str)
     def __init__(self,settings,parent=None):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
         self.settings=settings;self.backend=DesktopBackend();self.native=NativePanelGuard(self.backend)
@@ -112,6 +114,12 @@ class BottomDock(QWidget):
         self.apply_settings(settings);self.refresh()
         QTimer.singleShot(0,self.refresh)
 
+    def pin_context_menu(self,button,path):
+        menu=self.themed_menu()
+        remove=menu.addAction("Retirer de la navigation")
+        if menu.exec(button.mapToGlobal(button.rect().bottomLeft()))==remove:
+            self.shortcut_requested.emit("unpin",path)
+
     def housing_regions(self):
         regions=[self.launchers.geometry().adjusted(-7,-7,7,7)]
         widgets=[w for w in [self.tray_widget,*self.indicators.values(),self.clock,self.preferences] if w.isVisible() and w.width()>0]
@@ -146,9 +154,19 @@ class BottomDock(QWidget):
                 item=self.pins.takeAt(1)
                 if item.widget():item.widget().hide();item.widget().deleteLater()
             for path in key:
-                info=launcher_metadata(Path(path))
+                target=Path(path)
+                folder=target.is_dir()
+                info=(target.name or "Dossier","folder") if folder else launcher_metadata(target)
                 if not info:continue
-                button=QToolButton();button.setIcon(app_icon(info[1]));button.setToolTip(info[0]);button.setAccessibleName(info[0]);button.clicked.connect(lambda checked=False,p=path:launch_item(p,'apps'));self.pins.addWidget(button)
+                button=QToolButton()
+                button.setIcon(app_icon(info[1]))
+                button.setToolTip(info[0]);button.setAccessibleName(info[0])
+                button.clicked.connect(
+                    lambda checked=False,p=path,k=("folders" if folder else "apps"):launch_item(p,k))
+                button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+                button.customContextMenuRequested.connect(
+                    lambda pos,b=button,p=path:self.pin_context_menu(b,p))
+                self.pins.addWidget(button)
         self._task_key=None
         for button in self.launchers.findChildren(QToolButton):button.setFixedSize(height-36,height-40);button.setIconSize(QSize(min(42,height-48),min(42,height-48)))
         for button in self.indicators.values():button.setFixedSize(34,height-40);button.setIconSize(QSize(27,27))
@@ -284,7 +302,7 @@ class BottomDock(QWidget):
         menu=self.themed_menu();menu.addAction('Activer',lambda:self.backend.action(row['id']));menu.addAction('Fermer',lambda:self.backend.action(row['id'],close=True));menu.exec(button.mapToGlobal(button.rect().topLeft()))
     def open_menu(self):
         if self.launcher:self.launcher.close();self.launcher.deleteLater()
-        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.show_above(self.menu_button)
+        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.shortcut_requested.connect(self.shortcut_requested.emit);self.launcher.show_above(self.menu_button)
     def network_menu(self):
         menu=self.themed_menu();state=self.desktop_state.get('network');menu.addAction(state['name'] if state else 'État réseau indisponible').setEnabled(False)
         if state:menu.addAction('Interface : '+state.get('device','—')).setEnabled(False)
