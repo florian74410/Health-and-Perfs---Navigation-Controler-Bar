@@ -151,7 +151,7 @@ class ShellTests(unittest.TestCase):
             self.assertEqual(self.bar.canvas.vertical, position == "right")
             for i in range(self.bar.button_layout.count()):
                 button = self.bar.button_layout.itemAt(i).widget()
-                self.assertTrue(button.isVisible())
+                self.assertEqual(button.isVisible(),not (position=="top" and button is self.bar.quit_button))
                 self.assertTrue(self.bar.buttons.rect().contains(button.geometry()), (position, button.geometry(), self.bar.buttons.rect()))
             self.assertFalse(self.bar.grab().isNull())
 
