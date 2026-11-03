@@ -1,73 +1,56 @@
 # À faire — NovaBar 0.8.3 BlueNeon
 
-**Statut :** feuille de route / conception, aucune fonctionnalité déclarée livrée.  
-**Base cible :** code source NovaBar 0.8.2 **à identifier et vérifier** (commit/branche/artefact GitHub Actions).  
-**Dépôt :** florian74410/Health-and-Perfs---Navigation-Controler-Bar.  
-**Identité :** NOVA NEXUS HD / Cyber-Neon, fond bleu nuit, néon bleu électrique, cadres métalliques à angles coupés, traces PCB, animations discrètes.
+**Statut : conception seulement, aucune fonctionnalité livrée.** Base de développement visée : **0.8.2, commit restant à identifier**. Ne pas présumer de fonctionnalités non vérifiées. Conserver le code, les images et l'organisation existants.
 
-## 0. Préparation / garde-fous
-- [ ] Identifier le SHA exact de la version 0.8.2 et comparer son contenu à la branche de développement avant tout portage.
-- [ ] Préserver images, assets, disposition générale des panneaux, plugins, paramètres et profils ; ne pas remplacer le thème par un aplat cyan.
-- [ ] Réaliser les changements fonctionnels sur une branche de développement séparée ; préserver le runtime 0.8.2 et les chemins de retour à l'ancienne version.
-- [ ] Captures comparatives sur fond clair et sombre : pixels réellement transparents aux quatre coins, zéro halo noir ou blanc intempestif.
+## Références graphiques EXISTANTES dans le dépôt
+- `Assets/Previews/nova-v075-terminal-scrollback.png` — **référence principale de NEXUS Terminal**, inspectée : titre NOVA NEXUS / TERMINAL MANAGER, chrome bleu sombre, boutons minimiser/maximiser/fermer à symboles rouges, menus Fichier/Édition/Affichage/Aide, onglets, panneaux terminal séparables, scrollbar bleu électrique, trames PCB en fond.
+- `Assets/Previews/novabar-v0611-nexus.png` — palette et cadre NEXUS / APPLICATIONS inspectés.
+- Visuel utilisateur de notification « NOVA / NOTIFICATION — Electric Blue PCB » — référence pour fenêtres flottantes, popups et Paramètres.
+- **Ne pas remplacer les visuels existants par des images conceptuelles générées** : reproduire les éléments UI en Qt natif. Une capture conceptuelle n'est pas une capture produit.
 
-## 1. Identité visuelle BlueNeon
-- [ ] Unifier les fenêtres Paramètres, Notifications, Macros, NEXUS Terminal et fenêtres flottantes autour du visuel de référence « NOVA / NOTIFICATION » : verre bleu nuit, contour biseauté métallique, PCB animé, reflets contrôlés.
-- [ ] Réparer la régression de l'interface Paramètres observée dans la 0.8.0 : fond cyan saturé, titre illisible, contraste et espacement.
-- [ ] Utiliser de véritables zones alpha/transparence sur X11 ; contrôler les bordures avec et sans composition XFCE.
-- [ ] Animation configurable et économe en CPU/GPU ; respect du paramètre « réduire les animations ».
-- [ ] Contrastes de texte et tailles des boutons cohérents ; paddings/margins compacts et adaptatifs.
+## 1. UI BlueNeon / correctif Paramètres
+- [ ] Corriger le fond cyan saturé, le mauvais contraste et les défauts d'alpha/transparence de la 0.8.0 ; valider sur Linux Mint XFCE/X11.
+- [ ] Aligner Paramètres, notifications et popups sur le même design NEXUS sombre : contours biseautés, PCB fin, quelques reflets néon animés, texte contrasté.
+- [ ] Animation périphérique légère, pouvant être désactivée ; éviter opacité / couleurs incorrectes aux coins sur bureaux clairs.
+- [ ] Préserver disposition, contenus, plugins et réglages actuels ; réduire les marges et paddings inutiles. Les décors ne doivent jamais masquer les widgets.
 
-## 2. HUD Bar : raccourci Macros & Scripts
-- [ ] Remplacer l'emplacement du bouton Plugin Manager dans le HUD par un bouton ouvrant « Macros & Scripts » ; le gestionnaire de plugins reste accessible depuis Paramètres et éventuellement un autre emplacement.
-- [ ] Choix final parmi 4 icônes : fichier Script </>, algorithme/organigramme, .EXE + engrenage, terminal >_ + éclair/rouage. Icône paramétrable.
-- [ ] Menu déroulant compact listant les macros activées : nom, icône, type, éventuellement raccourci clavier ; entrée « Ajouter une macro » et « Gérer les macros ».
-- [ ] Exemples non préremplis avec identifiants inventés : « VPS Connect (IA-TB) », « Ouvrir NEXUS Terminal », « Connexion SFTP », « Script de synchronisation ».
-- [ ] Un clic lance l'action autorisée, avec compte rendu dans NOVA Notifications (succès/échec) ; aucun shell distant ne doit être connecté sans configuration SSH existante.
+## 2. HUD : bouton Macros & Scripts
+- [ ] À la place du bouton Plugin Manager du HUD, un bouton déroulant « Macros » (gestionnaire de plugins conservé dans Paramètres).
+- [ ] Quatre propositions d'icône : fichier script </>, algorithme, .EXE avec engrenage, terminal >_ avec engrenage ; choix utilisateur.
+- [ ] Menu listant les scripts .sh enregistrés : nom lisible, exécuter, « Ajouter » et « Gérer ».
 
-## 3. Paramètres > Macros
-- [ ] Ajouter un onglet « Macros & Scripts » à la navigation existante, sans casser les sections actuelles.
-- [ ] ListView/table scrollable avec colonnes Nom, Type, Commande (résumé), Autorisations, État et actions.
-- [ ] Boutons Créer, Modifier, Supprimer avec confirmation, activation/désactivation et tri.
-- [ ] Popup de création/édition conforme au visuel « NOVA / NOTIFICATION » : nom, description facultative, type, commande/chemin de script, répertoire de travail, terminal à utiliser, environnement autorisé, options d'exécution.
-- [ ] Options explicites : lancer dans NEXUS Terminal, laisser la fenêtre ouverte, exécuter en arrière-plan (si adapté), fichier exécutable, permission chmod +x **seulement sur un chemin utilisateur validé**.
-- [ ] Sauvegarde persistante atomique (JSON versionné ou SQLite), sauvegarde préalable lors des migrations, export/import optionnel, contrôle de duplication et schéma de validation.
-- [ ] Les macros à risque exigent confirmation ; aucune commande privilégiée ou destructrice automatique. Ne jamais enregistrer de mots de passe dans les profils.
+## 3. Macro = fichier .sh, rien de plus
+- [ ] Dossier unique de scripts sous la configuration utilisateur NovaBar : `~/.config/novabar/macros/` (à ajuster après inspection de l'arborescence réelle).
+- [ ] Chaque macro est **un fichier .sh** ; son nom affiché vient du nom de fichier (ou première ligne commentaire si besoin, sans base de données).
+- [ ] Paramètres > Macros : ListView des .sh du dossier, boutons Créer / Modifier / Supprimer et éditeur popup BlueNeon (nom + contenu du script).
+- [ ] Exécution simple et sûre : `subprocess.Popen(["bash", chemin_absolu_du_script], cwd=dossier_macros, ...)` (équivalent de `bash ./xxxx.sh` depuis le dossier). **Ne jamais concaténer une entrée dans `shell=True`**.
+- [ ] Option chmod +x possible uniquement sur le fichier choisi dans le dossier macros ; **non requis** pour `bash script.sh`.
+- [ ] Scripts exemple, facultatifs : VPS Connect via `ssh` (clé/agent SSH existant, aucun mot de passe stocké), ouvrir terminal, ouvrir FileZilla/SFTP. Ne pas intégrer d'adresse/identifiant sensible fictif.
+- [ ] Refuser chemins hors dossier, liens symboliques non autorisés et noms à traversal ; confirmations pour création, édition, suppression et lancement de scripts sensibles.
+- [ ] Aucune couche service, JSON, SQLite, moteur de workflow, ordonnanceur, télémétrie ou autre complexité pour ce module.
 
-## 4. Réintégrer NEXUS Terminal — étude technique
-**Objectif :** restaurer le rendu NOVA Terminal / fenêtre gris anthracite, coins biseautés et PCB bleu électrique, tout en remplaçant l'émulation terminal artisanale par un moteur éprouvé.
+## 4. NEXUS Terminal : base Qt, rendu ancien conservé
+**Décision : PySide6 + QTermWidget natif, sous réserve de validation d'intégration/packaging. Pas de comparaison xterm.js/WebEngine tant que Qt fonctionne correctement.**
 
-### Candidats
-- **QTermWidget + PySide6** : premier prototype, moteur Qt natif ; contrôler disponibilité des bindings pyside6-qtermwidget et des bibliothèques natives selon les cibles et PyInstaller, licences et stabilité.
-- **xterm.js + Qt WebEngine + PTY local** : prototype comparatif, très personnalisable, FitAddon/clipboard/search/renderer ; coût mémoire et sécurisation du pont WebChannel à mesurer.
-- **VTE (GTK)** : option de secours native, moins adaptée au cœur Qt/PySide6.
+- [ ] Garder la fenêtre et les habillages de la capture `nova-v075-terminal-scrollback.png` : chrome, menus, onglets, PCB, titres/boutons. Ne changer que la zone d'émulation interne si nécessaire.
+- [ ] Vérifier la compatibilité exacte des bindings QTermWidget/PySide6, des bibliothèques natives et de l'installateur .deb avant implémentation. Si indisponible, choisir une alternative Qt éprouvée, pas un émulateur terminal fait maison.
+- [ ] Un QTermWidget par session et un QSplitter pour les dispositions : 1, vertical, horizontal, 2×2, 2+1 et colonne +2 ; séparateurs manipulables.
+- [ ] Terminal interactif réel : PTY intégré à QTermWidget, ANSI/UTF-8, ssh, sudo, vim, nano, top, htop ; resize correct sans tronquer le texte.
+- [ ] Raccourcis : Ctrl+Shift+C copier, Ctrl+Shift+V coller, Ctrl+C interruption, Ctrl+Shift+T nouvel onglet ; Ctrl+Alt+T optionnel pour ouverture du NEXUS Terminal.
+- [ ] Scrollback >= 2 000 lignes, molette, Maj+Page haut/bas, scrollbar visible, historique pendant production de sortie.
+- [ ] UI compacte et responsive : barre de titre et menus fins, marge autour de la zone terminal idéalement 4–8 px, pas de grands paddings ou bandeaux vides. Les panneaux doivent exploiter presque tout l'espace disponible.
+- [ ] Conserver les boutons fermer/minimiser/maximiser, double clic titre, déplacement, mode plein écran et focus clavier correct.
+- [ ] Contrôler mémoire, fluidité, fermeture de sessions et processus orphelins ; animations limitées au chrome, jamais au rendu terminal.
+- [ ] Ne pas ajouter de serveur, WebSocket, WebEngine ni couche de synchronisation.
 
-### Exigences obligatoires
-- [ ] Véritable PTY (pseudo-terminal) par onglet/panneau ; UTF-8, ANSI/VT, prompts interactifs, sudo/ssh, nano/vim/top/htop et applications TUI.
-- [ ] Copier : Ctrl+Shift+C ; coller : Ctrl+Shift+V ; sélection, menu contextuel, Ctrl+C transmis au processus pour interruption (pas copie) ; raccourcis configurables, gestion fiable des layouts clavier.
-- [ ] Barre de défilement fonctionnelle, historique configurable (minimum 2 000 lignes), molette, Maj+Page haut/bas, recherche dans l'historique.
-- [ ] Modes : simple, deux colonnes, deux lignes, grille 2×2, vue 2+1, colonne+2 ; séparation redimensionnable, onglets indépendants, taille de fenêtre responsive.
-- [ ] Optimiser l'espace : marge interne du terminal 4–8 px (selon résolution et DPI), titres compacts, aucun padding décoratif qui rogne l'espace des caractères ; calcul dynamique lignes/colonnes (SIGWINCH/resize PTY).
-- [ ] Lancement via bouton HUD, raccourci Ctrl+Alt+T optionnel et macros ; comportement non intrusif quand une autre application gère déjà le raccourci.
-- [ ] Fenêtre flottante et maximisée : boutons Fermer/Maximiser/Minimiser intégrés au chrome NOVA ; déplacement et double clic titre ; focus correct.
-- [ ] Persistance des profils, thèmes, disposition et connexions **sans enregistrer les secrets** ; processus fermés proprement à la fermeture d'un onglet.
-- [ ] SSH vers VPS IA-TB via client OpenSSH et clés/agent SSH locaux existants ; confirmation des clés d'hôte et refus des désactivations de vérification d'hôte.
-- [ ] Tests de performance (démarrage, RAM, débit 100k lignes, scroll, redimensionnement rapide), tests raccourcis, tests X11/XFCE et packaging .deb.
+## 5. Tests avant ajout de nouvelles fonctions
+- [ ] Comparer la nouvelle interface aux deux captures Assets réelles, vérifier les angles et la transparence sur fond de bureau clair et sombre.
+- [ ] Installer et lancer sur Mint XFCE/X11 ; vérifier raccourcis/clavier FR, coller multi-lignes, application SSH interactive, vim/nano et scrollback.
+- [ ] Tester disposition 1/2/2×2/2+1, redimensionnement rapide, 100k lignes, plusieurs sessions et fermeture propre.
+- [ ] Vérifier création, lancement, modification et suppression d'un .sh, et qu'aucune macro n'est exécutée automatiquement.
+- [ ] Tests de non-régression : HUD, Paramètres, plugins, panneaux et profils existants.
+- [ ] Après obtention d'une **base saine et stable**, seulement alors **proposer** des améliorations facultatives avant de les ajouter. Aucun ajout fonctionnel non demandé.
 
-### Décision d'architecture (provisoire)
-Prototyper **QTermWidget** en priorité dans un hôte PySide6 afin de limiter la complexité. Décider après tests concrets versus xterm.js intégré. Ne pas déclarer le choix final avant tests sur Linux Mint XFCE avec la pile Qt/PyInstaller réellement utilisée.
-
-## 5. Conditions d'acceptation
-- [ ] Aucun contrôle ni page de paramètres perdus par rapport à la 0.8.2 confirmée.
-- [ ] HUD, Paramètres, Macros et Terminal visuellement fidèles à la référence NOVA Notification, visibles sur fonds de bureau clairs/sombres ; transparences et angles validés.
-- [ ] Création, édition, suppression, activation et lancement de macros fonctionnels et persistants, avec erreurs et permissions gérées.
-- [ ] Terminal interactif utilisable pour SSH, Vim/Nano, défilement, copier/coller, raccourcis et toutes les dispositions de panneaux demandées.
-- [ ] Build .deb et tests end-to-end sur Linux Mint XFCE/X11, vérification du SHA et procédure de rollback.
-- [ ] Documentation installateur, notes de version, captures réelles et distinction explicite entre fonctions existantes et nouveautés 0.8.3.
-
-## Références
-- Visuel utilisateur « NOVA / NOTIFICATION — Electric Blue PCB » fourni dans la conversation.
-- Nouveau concept « NovaBar 0.8.3 BlueNeon — Macros & Scripts » : visuel de conception, valeurs et exemples fictifs.
-- QTermWidget/PySide6 : https://pypi.org/project/pyside6-qtermwidget/
-- xterm.js : https://xtermjs.org/ et https://xtermjs.org/docs/guides/using-addons/
-- VTE : https://gnome.pages.gitlab.gnome.org/vte/gtk3/class.Terminal.html
+## Notes de mise en œuvre
+- Le projet actuel est à comparer au **commit exact 0.8.2** avant tout chantier.
+- Les exemples visuels « Macros » sont des maquettes, pas des fonctions déjà disponibles.
