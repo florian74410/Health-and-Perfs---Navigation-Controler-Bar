@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs><radialGradient id="dark"><stop stop-color="#21040a"/><stop offset=".6" stop-color="#090a0e"/><stop offset="1" stop-color="#030407"/></radialGradient><pattern id="mesh" width="76" height="66" patternUnits="userSpaceOnUse"><path d="M38 0 76 22v22L38 66 0 44V22Z" fill="none" stroke="#670a1b" stroke-opacity=".25"/></pattern></defs>
+<rect width="1920" height="1080" fill="url(#dark)"/><rect width="1920" height="1080" fill="url(#mesh)"/>
+<g fill="none" stroke="#b80823" stroke-width="2" opacity=".65"><path d="M0 160h240l100 100h280l80 80h350M0 205h210l120 120h260l70 70h350M1920 175h-220l-90 90h-200l-110 110h-240M1920 220h-200l-90 90h-240l-80 80h-230M0 880h320l110-110h280l95-95h250M1920 890h-220l-160-160h-290l-50-50h-130"/></g>
+<g fill="#ff193a"><circle cx="1050" cy="340" r="5"/><circle cx="1080" cy="390" r="5"/><circle cx="1055" cy="675" r="6"/><circle cx="1060" cy="375" r="4"/></g>
+<path d="M705 435h510l35 35v155l-35 35H705l-35-35V470Z" fill="#070407" fill-opacity=".7" stroke="#ae122b" stroke-width="3"/>
+<text x="960" y="520" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="70" letter-spacing="13" fill="#f5324e">NOVA</text><text x="960" y="575" text-anchor="middle" font-family="monospace" font-size="30" letter-spacing="8" fill="#ff8491">BLACKRED</text></svg>
