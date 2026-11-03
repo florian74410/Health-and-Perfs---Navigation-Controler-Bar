@@ -1,5 +1,6 @@
 """Resolution-independent metallic cockpit: bevels, luminous rails and real icon fallback."""
 from pathlib import Path
+import math
 from PySide6.QtCore import Qt,QRectF,QPointF,QSize
 from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QLinearGradient,QPolygonF,QIcon,QPixmap
 from PySide6.QtWidgets import QFrame
@@ -40,7 +41,10 @@ class CockpitFrame(QFrame):
         p.setOpacity(max(.12,min(1,self.glass_opacity/100)))
         p.fillPath(outer,metal)
         p.restore()
-        p.setBrush(Qt.BrushStyle.NoBrush);glow(p,outer,secondary,1.5)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.save();p.setOpacity(.68+.23*(.5+.5*math.sin(self.phase)))
+        glow(p,outer,secondary,1.5)
+        p.restore()
         inner=cut_path(QRectF(9,9,w-18,h-18),14);glow(p,inner,primary,1.7)
         cavity=cut_path(QRectF(16,16,w-32,h-32),11)
         glass=QLinearGradient(0,16,0,h-16)
