@@ -105,6 +105,7 @@ class TaskButton(QToolButton):
 
 class BottomDock(QWidget):
     settings_requested=Signal();quit_requested=Signal();shortcut_requested=Signal(str,str)
+    shortcut_renamed=Signal(str,str)
     def __init__(self,settings,parent=None):
         super().__init__(None,Qt.WindowType.Tool|Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint)
         self.settings=settings;self.backend=DesktopBackend();self.native=NativePanelGuard(self.backend)
