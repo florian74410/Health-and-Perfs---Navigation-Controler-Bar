@@ -16,6 +16,8 @@ def _palette(theme):
 
 def settings_stylesheet(theme):
     if redblack_active(theme):return control_stylesheet()
+    from .blue_night_shell import active as night_active, control_stylesheet as night_stylesheet
+    if night_active(theme):return night_stylesheet()
     primary,secondary,_=_palette(theme)
     return """
     QDialog#novaSettings { background: transparent; color: #EAF6FF; }
@@ -85,25 +87,35 @@ class PCBSettingsDialog(QDialog):
     def use_pcb_theme(self,theme):
         self._pcb_theme=theme
         self.setStyleSheet(settings_stylesheet(theme))
-        if redblack_active(theme) and self.isVisible():self._redblack_timer.start()
+        if (redblack_active(theme) or theme=="blue-night-083") and self.isVisible():self._redblack_timer.start()
         else:self._redblack_timer.stop()
         self.update()
 
     def _animate_redblack(self):
-        if self.isVisible() and redblack_active(self._pcb_theme):
+        if self.isVisible() and (redblack_active(self._pcb_theme) or self._pcb_theme=="blue-night-083"):
             self._redblack_phase=(self._redblack_phase+.007)%1
             self.update()
         else:self._redblack_timer.stop()
 
     def showEvent(self,event):
         super().showEvent(event)
-        if redblack_active(self._pcb_theme):self._redblack_timer.start()
+        if redblack_active(self._pcb_theme) or self._pcb_theme=="blue-night-083":self._redblack_timer.start()
 
     def hideEvent(self,event):
         self._redblack_timer.stop()
         super().hideEvent(event)
 
     def paintEvent(self,event):
+        if self._pcb_theme=="blue-night-083":
+            from .blue_night_shell import paint_surface as paint_night
+            painter=QPainter(self)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_night(painter,QRectF(self.rect()).adjusted(7,7,-7,-7),
+                        "settings",self._redblack_phase,opacity=.93)
+            painter.end()
+            return
         if redblack_active(self._pcb_theme):
             painter=QPainter(self)
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
@@ -213,6 +225,18 @@ class BarPreview(QWidget):
         self.update()
 
     def paintEvent(self,event):
+        if self._theme=="blue-night-083":
+            from .blue_night_shell import paint_surface as paint_night
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint_night(p,QRectF(self.rect()).adjusted(5,5,-5,-5),"panel",.42)
+            p.setPen(QColor("#D5F9FF"))
+            p.drawText(self.rect().adjusted(12,7,-12,-7),Qt.AlignmentFlag.AlignCenter,
+                       "NOVA 0.8.3 / BLUE NEON DARK NIGHT")
+            p.end()
+            return
         if redblack_active(self._theme):
             p=QPainter(self)
             p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
