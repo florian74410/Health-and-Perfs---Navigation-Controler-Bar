@@ -10,6 +10,7 @@ from healthbar.config import Settings
 from healthbar.holo import CpuHoloPanel,SensorHoloPanel
 from healthbar.hud import battery_meter,tachometer
 from healthbar.bottom_dock import BottomDock
+from healthbar.settings_visual import PCBSettingsDialog, BarPreview
 from PySide6.QtGui import QImage,QPainter
 from PySide6.QtCore import Qt,QRectF
 
@@ -101,6 +102,24 @@ Memory Device
         tachometer(painter,QRectF(130,0,55,55),6204,8000,"RPM",show_value=False)
         painter.end()
         self.assertFalse(image.isNull())
+
+    def test_custom_pcb_glass_renders_without_timer(self):
+        panel=PCBSettingsDialog()
+        try:
+            panel.use_pcb_theme("blue-neon")
+            panel.resize(960,610)
+            image=QImage(panel.size(),QImage.Format.Format_ARGB32)
+            image.fill(Qt.GlobalColor.transparent)
+            panel.render(image)
+            self.assertGreater(image.pixelColor(25,25).alpha(),0)
+            preview=BarPreview("green-matrix")
+            preview.resize(450,145)
+            proof=QImage(preview.size(),QImage.Format.Format_ARGB32)
+            proof.fill(Qt.GlobalColor.transparent)
+            preview.render(proof)
+            self.assertFalse(proof.isNull())
+        finally:
+            panel.close()
 
     def test_bottom_dock_no_longer_reserves_screen(self):
         with tempfile.TemporaryDirectory() as root,patch.dict(os.environ,HEALTHBAR_DATA_DIR=root):
