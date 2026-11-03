@@ -41,6 +41,10 @@ def populate(root, base, application, version):
         script = ("#!/bin/sh\nexport NOVABAR_PACKAGED=deb\n"
                   "exec /usr/lib/novabar/HealthPerfsBar/HealthPerfsBar \"$@\"\n")
     _write(root / base / "bin/novabar", script, executable=True)
+    if application == "deb":
+        # Small root-owned Python 3 helper; NovaBar itself never runs as root.
+        helper=(ROOT/"scripts/novabar_turbo_helper.py").read_text(encoding="utf-8")
+        _write(root/base/"libexec/novabar-turbo-helper",helper,executable=True)
     _write(root / base / "share/applications" / (APP_ID + ".desktop"),
            f"[Desktop Entry]\nType=Application\nName=NovaBar\n"
            f"GenericName=Hardware health and performance HUD\n"
