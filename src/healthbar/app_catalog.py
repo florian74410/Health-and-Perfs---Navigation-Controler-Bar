@@ -59,6 +59,7 @@ def catalog(roots=None):
 class ApplicationLauncher(QWidget):
     settings_requested=Signal();quit_requested=Signal()
     shortcut_requested=Signal(str,str)  # destination: bottom or sidebar
+    shortcut_renamed=Signal(str,str)
     def __init__(self,theme,favorites=None,entries=None,parent=None):
         super().__init__(parent,Qt.WindowType.Popup|Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);self.setWindowTitle('NEXUS · Applications')
