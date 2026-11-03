@@ -151,7 +151,7 @@ class ShellTests(unittest.TestCase):
             self.assertEqual(self.bar.canvas.vertical, position == "right")
             for i in range(self.bar.button_layout.count()):
                 button = self.bar.button_layout.itemAt(i).widget()
-                self.assertTrue(button.isVisible())
+                self.assertEqual(button.isVisible(),not (position=="top" and button is self.bar.quit_button))
                 self.assertTrue(self.bar.buttons.rect().contains(button.geometry()), (position, button.geometry(), self.bar.buttons.rect()))
             self.assertFalse(self.bar.grab().isNull())
 
@@ -193,7 +193,7 @@ class ShellTests(unittest.TestCase):
                 self.assertEqual(self.bar.geometry().center().x(),bounds.center().x())
         self.assertEqual(self.bar.root.getContentsMargins(),(0,0,0,0))
 
-    def test_slim_default_and_visible_quit_button_fit_small_screens(self):
+    def test_slim_default_and_hidden_top_quit_button_fit_small_screens(self):
         self.assertEqual(Settings().thickness,72)
         for height in (50,72,96,150):
             self.settings.thickness=height
@@ -201,8 +201,9 @@ class ShellTests(unittest.TestCase):
             self.app.processEvents()
             self.assertEqual(self.bar.height(),height)
             self.assertLessEqual(self.bar.maximumHeight(),150)
-            self.assertTrue(self.bar.quit_button.isVisible())
-            self.assertTrue(self.bar.rect().contains(QRect(self.bar.quit_button.mapTo(self.bar,self.bar.quit_button.rect().topLeft()),self.bar.quit_button.size())))
+            self.assertFalse(self.bar.quit_button.isVisible())
+            self.assertTrue(self.bar.expand_button.isVisible())
+            self.assertTrue(self.bar.rect().contains(QRect(self.bar.expand_button.mapTo(self.bar,self.bar.expand_button.rect().topLeft()),self.bar.expand_button.size())))
         with patch.object(self.bar,'quit_app') as stop:
             self.bar.quit_button.clicked.disconnect()
             self.bar.quit_button.clicked.connect(stop)

@@ -8,6 +8,7 @@ from .autostart import set_enabled
 from .plugins import PluginRegistry
 from .module_preferences import load as load_module_prefs, save as save_module_prefs, FIELDS, MODULES
 from .theme_overrides import load as load_theme_overrides, save as save_theme_overrides
+from .settings_visual import PCBSettingsDialog, BarPreview
 
 STYLE = """
 QDialog { background: #061224; color: #dfedff; }
@@ -43,7 +44,7 @@ class CatalogReader(QThread):
 
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(PCBSettingsDialog):
     def __init__(self, settings, screens, first_run=False, parent=None):
         super().__init__(parent)
         self.settings = settings
@@ -51,18 +52,20 @@ class SettingsDialog(QDialog):
         self.pending_theme_colors = load_theme_overrides()
         self.module_controls = {}
         self.setWindowTitle("Installation • Health & Perfs" if first_run else "Préférences • Health & Perfs")
-        from .ui_kit import stylesheet
-        self.setStyleSheet(stylesheet(STYLE))
-        self.setMinimumWidth(630)
-        self.resize(710, 630)
+        self.use_pcb_theme(settings.theme)
+        # Enough room for columns and glass controls, but fit smaller screens.
+        bounds = screens[min(settings.screen, len(screens)-1)].availableGeometry() if screens else None
+        width = min(1180, max(700, (bounds.width()-60) if bounds else 1180))
+        height = min(820, max(570, (bounds.height()-70) if bounds else 820))
+        self.setMinimumSize(min(900,width),min(570,height))
+        self.resize(width,height)
         box = QVBoxLayout(self)
-        box.setContentsMargins(30, 26, 30, 26)
-        box.setSpacing(20)
-        title = QLabel("BIENVENUE À BORD" if first_run else "VOTRE BARRE. VOS RÈGLES.")
+        box.setContentsMargins(36, 35, 36, 30)
+        box.setSpacing(13)
+        title = QLabel("◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES")
         title.setObjectName("title")
         box.addWidget(title)
-        intro = QLabel("Health & Perfs  /  Navigation Controller Bar  /  v"+__version__
-            + "\nInstallation pour votre session utilisateur. Les autres comptes\nconservent leurs propres préférences et extensions.")
+        intro = QLabel("NovaBar / Health & Perfs  —  Linux XFCE  /  Contrôleur des barres, modules et effets PCB")
         intro.setWordWrap(True)
         box.addWidget(intro)
         form = QFormLayout()
@@ -120,6 +123,7 @@ class SettingsDialog(QDialog):
         self.alignment.setCurrentIndex(("left", "center", "right").index(settings.alignment))
         form.addRow("Alignement", self.alignment)
         tabs = QTabWidget()
+        tabs.setObjectName("settingsTabs")
         general = QWidget()
         general_form = QFormLayout(general)
         general_form.addRow("Démarrage", self.autostart)
@@ -306,19 +310,61 @@ class SettingsDialog(QDialog):
         while tabs.count():
             tabs.removeTab(0)
         general_all = QWidget()
+        general_all.setObjectName("generalContent")
         general_all_box = QVBoxLayout(general_all)
-        general_all_box.addWidget(QLabel("GÉNÉRALE  /  COMPORTEMENT"))
+        general_all_box.setContentsMargins(21,16,21,18)
+        general_all_box.setSpacing(13)
+        section_header = QLabel("◈  GÉNÉRAL  /  COMPORTEMENT")
+        section_header.setObjectName("sectionHeader")
+        general_all_box.addWidget(section_header)
+        controls = QWidget()
+        grid = QFormLayout(controls)
+        grid.setVerticalSpacing(13)
+        self.top_hover_ms = QSpinBox()
+        self.top_hover_ms.setRange(500,4000)
+        self.top_hover_ms.setSingleStep(100)
+        self.top_hover_ms.setSuffix(" ms")
+        self.top_hover_ms.setValue(settings.top_hover_ms)
+        grid.addRow("Survol continu avant déploiement", self.top_hover_ms)
+        self.top_trigger_px = QSpinBox()
+        self.top_trigger_px.setRange(5,20)
+        self.top_trigger_px.setSuffix(" px")
+        self.top_trigger_px.setValue(settings.top_trigger_px)
+        grid.addRow("Zone sensible du haut",self.top_trigger_px)
+        self.top_reserved = QCheckBox("Réserver la place du HUD dans XFCE / X11")
+        self.top_reserved.setChecked(settings.top_reserved)
+        grid.addRow("Espace réservé",self.top_reserved)
+        self.bottom_dock_height = QSpinBox()
+        self.bottom_dock_height.setRange(62,130)
+        self.bottom_dock_height.setSuffix(" px")
+        self.bottom_dock_height.setValue(settings.bottom_dock_height)
+        grid.addRow("Hauteur du dock inférieur",self.bottom_dock_height)
+        self.bottom_tabs_max = QSpinBox()
+        self.bottom_tabs_max.setRange(1,3)
+        self.bottom_tabs_max.setValue(settings.bottom_tabs_max)
+        grid.addRow("Onglets visibles (surplus : +N)",self.bottom_tabs_max)
+        self.turbo_auth_enabled = QCheckBox("Exiger le mot de passe administrateur (polkit)")
+        self.turbo_auth_enabled.setChecked(settings.turbo_auth_enabled)
+        grid.addRow("CPU Turbo",self.turbo_auth_enabled)
+        general_all_box.addWidget(controls)
+        self.live_bar_preview=BarPreview(settings.theme)
+        self.theme.currentIndexChanged.connect(lambda:self.live_bar_preview.change_theme(self.theme.currentData()))
+        general_all_box.addWidget(self.live_bar_preview)
         for heading, section in (
             ("Démarrage et actualisation", general),
             ("Position, dimensions et affichage", display),
             ("Édition de l'affichage", edit),
             ("Barres, docks et rétraction", docks),
             ("Habillage du panneau XFCE", xfce_tab)):
-            general_all_box.addWidget(QLabel("◈  " + heading))
+            group_heading = QLabel("◈  " + heading.upper())
+            group_heading.setObjectName("sectionHeader")
+            general_all_box.addWidget(group_heading)
             general_all_box.addWidget(section)
         general_all_box.addStretch()
         general_scroll = QScrollArea()
+        general_scroll.setObjectName("settingsScroll")
         general_scroll.setWidgetResizable(True)
+        general_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         general_scroll.setWidget(general_all)
         # Plugin manager remains the existing secure GitHub ZIP catalogue.
         # Existing ext_layout already owns the window; append a clear source action.
@@ -464,7 +510,7 @@ class SettingsDialog(QDialog):
         tabs.tabBar().hide()
         nav = QListWidget()
         nav.setObjectName("settingsNavigation")
-        nav.setFixedWidth(190)
+        nav.setFixedWidth(230)
         for name in ("GÉNÉRALE", "THÈMES & COULEURS", "EXTENSIONS", "CPU", "MISE À JOUR", "À PROPOS"):
             nav.addItem(name)
         for name in MODULES:
@@ -479,7 +525,9 @@ class SettingsDialog(QDialog):
         note.setWordWrap(True)
         box.addWidget(note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText("Installer et ouvrir" if first_run else "Enregistrer")
+        reset_button=buttons.addButton("↺ Rétablir",QDialogButtonBox.ButtonRole.ResetRole)
+        reset_button.clicked.connect(self.reset_display)
+        buttons.button(QDialogButtonBox.StandardButton.Save).setText("Installer et ouvrir" if first_run else "✓ Appliquer")
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
         buttons.accepted.connect(self.save)
         buttons.rejected.connect(self.reject)
@@ -563,6 +611,12 @@ class SettingsDialog(QDialog):
             self.shell_dir.setText(chosen)
 
     def reset_display(self):
+        self.top_hover_ms.setValue(1000)
+        self.top_trigger_px.setValue(10)
+        self.top_reserved.setChecked(True)
+        self.bottom_dock_height.setValue(84)
+        self.bottom_tabs_max.setValue(3)
+        self.turbo_auth_enabled.setChecked(True)
         self.length_percent.setValue(100)
         self.thickness.setValue(72)
         self.opacity.setValue(88)
@@ -582,6 +636,9 @@ class SettingsDialog(QDialog):
             dock_left_enabled=self.dock_left_enabled.isChecked(),
             dock_right_enabled=self.dock_right_enabled.isChecked(),
             bottom_dock_enabled=self.bottom_dock_enabled.isChecked(),
+            bottom_dock_height=self.bottom_dock_height.value(),bottom_tabs_max=self.bottom_tabs_max.value(),
+            top_hover_ms=self.top_hover_ms.value(), top_trigger_px=self.top_trigger_px.value(),
+            top_reserved=self.top_reserved.isChecked(), turbo_auth_enabled=self.turbo_auth_enabled.isChecked(),
             dock_left_kind=self.dock_left_kind.currentData(),
             dock_right_kind="apps" if self.dock_left_kind.currentData() == "folders" else "folders",
             hidden_modules=[slot for slot, checkbox in self.module_checks.items()

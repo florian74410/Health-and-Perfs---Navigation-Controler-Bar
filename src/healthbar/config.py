@@ -34,6 +34,12 @@ class Settings:
     dock_left_enabled: bool = True
     dock_right_enabled: bool = True
     bottom_dock_enabled: bool = sys.platform.startswith("linux")
+    bottom_dock_height: int = 84
+    bottom_tabs_max: int = 3
+    top_reserved: bool = True
+    top_hover_ms: int = 1000
+    top_trigger_px: int = 10
+    turbo_auth_enabled: bool = True
     dock_left_kind: str = "folders"
     dock_right_kind: str = "apps"
     # None = auto-discover defaults, [] = intentionally empty dock.
@@ -62,11 +68,13 @@ class Settings:
             raise ValueError("Position invalide")
         for name, lo, hi in (("thickness", 50, 150), ("opacity", 0, 100), ("layout_revision", 1, 1),
                              ("hide_seconds", 3, 120), ("screen", 0, 64),
-                             ("length_percent", 25, 100), ("refresh_seconds", 1, 30)):
+                             ("length_percent", 25, 100), ("refresh_seconds", 1, 30),
+                             ("bottom_dock_height", 62, 130), ("bottom_tabs_max", 1, 3),
+                             ("top_hover_ms", 500, 4000), ("top_trigger_px", 5, 20)):
             value = getattr(self, name)
             if type(value) is not int or not lo <= value <= hi:
                 raise ValueError(f"Préférence invalide : {name}")
-        for name in ("autostart", "configured", "auto_hide"):
+        for name in ("autostart", "configured", "auto_hide", "top_reserved", "turbo_auth_enabled"):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"Préférence invalide : {name}")
         if not isinstance(self.shell_dir, str) or len(self.shell_dir) > 1024 or "\x00" in self.shell_dir:

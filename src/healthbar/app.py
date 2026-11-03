@@ -23,6 +23,7 @@ from .help_links import WIKI_URL
 from .system_env import native_env
 from .edge_docks import EdgeDock
 from .app_icon import novabar_icon
+from .x11_workarea import reserve_edge
 
 
 from .ui_kit import QColor
@@ -164,7 +165,8 @@ class Bar(QWidget):
         self.turbo = self.make_button("turbo", "CPU Mode · contrôle matériel selon OS et permissions", self.turbo_menu)
         self.turbo.setText("CPU Mode")
         self.turbo.setIcon(QIcon())
-        self.turbo.setFixedWidth(125)
+        self.turbo.setFixedWidth(155)
+        self.turbo.setObjectName("cpuModeButton")
         self.make_button("terminal", "Console • emplacement réservé", self.console_info)
         self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
@@ -181,6 +183,7 @@ class Bar(QWidget):
         self.button_layout.addWidget(self.expand_button)
         self.quit_button = self.make_button("quit", "Quitter NovaBar (Ctrl+Q)", self.quit_app)
         self.quit_button.setAccessibleName("Quitter NovaBar")
+        self.quit_button.hide()  # Closing is via tray or Ctrl+Q, never an intrusive HUD X.
         from PySide6.QtGui import QShortcut, QKeySequence
         self.quit_shortcut = QShortcut(QKeySequence("Ctrl+Q"),self)
         self.quit_shortcut.activated.connect(self.quit_app)
@@ -196,7 +199,7 @@ class Bar(QWidget):
         self.hide_timer.setSingleShot(True)
         self.hide_timer.timeout.connect(self.retract)
         self.edge_timer = QTimer(self)
-        self.edge_timer.setInterval(120)
+        self.edge_timer.setInterval(50)
         self.edge_timer.timeout.connect(self.check_edge)
         self.edge_timer.start()
         # XFCE can reassign Qt.Tool windows to one desktop during virtual desktop switching.
@@ -553,8 +556,8 @@ class Bar(QWidget):
                     self.last_cpu_error = cpu_state["error"]
                     QMessageBox.warning(self,"CPU Mode indisponible",cpu_state["error"])
                 elif not cpu_state["error"]: self.last_cpu_error = None
-                if self.cpu_controller.mode is not None:
-                    self.turbo.setText("CPU !" if cpu_state["error"] else ("AUTO" if cpu_state["mode"]=="auto" else ("ON" if cpu_state["enabled"] else "OFF")))
+                if cpu_state["enabled"] is not None and not cpu_state["error"]:
+                    self._set_turbo_indicator(cpu_state["enabled"])
                 self.canvas.set_telemetry(readings)
                 for slot, panel in self.module_holos.items():
                     if panel.isVisible():
@@ -584,7 +587,12 @@ class Bar(QWidget):
         self.close()
         QApplication.instance().quit()
 
+    def _reserve_workarea_clear(self):
+        if getattr(self,"full_rect",QRect()).isValid():
+            reserve_edge(self,self.settings.position,0,False)
+
     def closeEvent(self, event):
+        self._reserve_workarea_clear()
         if getattr(self,"bottom_dock",None) is not None:
             self.bottom_dock.close()
         self.tray.hide()
@@ -666,6 +674,7 @@ class Bar(QWidget):
         self.animation.stop()
         self.retracted = False
         self._edge_armed = False
+        self.quit_button.setVisible(self.settings.position != "top")
         self.actions.show()
         self.root.setSpacing(8)
         screens = QApplication.screens()
@@ -719,12 +728,13 @@ class Bar(QWidget):
             button_height = max(28,min(48,thickness-12))
             self.buttons.setFixedHeight(button_height)
             width = self.actions.width()
-            turbo_width = 96 if width >= 350 else 76
+            turbo_width = 148 if width >= 350 else 90
             utility_width = 28
-            count = self.button_layout.count() - 3  # turbo, expand, quit
+            count = self.button_layout.count() - 3  # turbo, expand, hidden quit
             size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
-            self.turbo.setText("CPU Mode")
+            self.turbo.setText("NORMAL MODE")
+            self._set_turbo_indicator(False,force=True)
             for index in range(1, 1+count):
                 self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
             self.expand_button.setFixedSize(utility_width,button_height)
@@ -739,6 +749,7 @@ class Bar(QWidget):
         self.root.invalidate()
         self.root.activate()
         self.setGeometry(self.full_rect)
+        self._reserve_workarea()
         self.update()
         if hasattr(self, "sidebars"):
             self.sync_sidebars()
@@ -748,8 +759,17 @@ class Bar(QWidget):
             self.build_tray_menu()
         self.arm_hide()
 
+    def _reserve_workarea(self):
+        if not getattr(self,"full_rect",QRect()).isValid():
+            return
+        if self.settings.position in ("top","bottom") and self.settings.hud_enabled:
+            reserve_edge(self,self.settings.position,self.geometry().height(),self.settings.top_reserved)
+        else:
+            reserve_edge(self,self.settings.position,0,False)
+
     def showEvent(self, event):
         super().showEvent(event)
+        QTimer.singleShot(0,self._reserve_workarea)
         from .overlay import apply_priority
         self.overlay_status = apply_priority(self, self.settings.always_on_top)
         from .overlay import schedule_all_workspaces
@@ -773,9 +793,9 @@ class Bar(QWidget):
 
     def enterEvent(self, event):
         self.hide_timer.stop()
-        # A collapse click inside the remaining edge must not immediately undo itself.
-        if not self.retracted or self._edge_armed:
-            self.reveal()
+        # Never expand on enter: the 10-pixel continuous hover gate is sole trigger.
+        if not self.retracted:
+            self.arm_hide()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
@@ -825,6 +845,8 @@ class Bar(QWidget):
         self.animation.start()
 
     def _finish_transition(self):
+        # Recompute the X11 workarea after each completed open/collapse animation.
+        self._reserve_workarea()
         if not self.retracted:
             self.root.setSpacing(8)
             self.actions.show()
@@ -847,9 +869,9 @@ class Bar(QWidget):
         bounds = self.full_rect
         pointer = QCursor.pos()
         if self.settings.position == 'top':
-            edge = QRect(bounds.left(), bounds.top(), bounds.width(), 10)
+            edge = QRect(bounds.left(), bounds.top(), bounds.width(), self.settings.top_trigger_px)
         elif self.settings.position == 'bottom':
-            edge = QRect(bounds.left(), bounds.bottom()-9, bounds.width(), 10)
+            edge = QRect(bounds.left(), bounds.bottom()-self.settings.top_trigger_px+1, bounds.width(), self.settings.top_trigger_px)
         else:
             edge = self.geometry()
         if not edge.contains(pointer):
@@ -859,7 +881,7 @@ class Bar(QWidget):
             now = time.monotonic()
             if getattr(self, '_top_edge_entered_at', None) is None:
                 self._top_edge_entered_at = now
-            elif now - self._top_edge_entered_at >= 1.0:
+            elif (now - self._top_edge_entered_at)*1000 >= self.settings.top_hover_ms:
                 self._top_edge_entered_at = None
                 self.reveal()
 
@@ -969,29 +991,59 @@ class Bar(QWidget):
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Exécution impossible", str(error))
 
+    def _set_turbo_indicator(self,enabled,force=False):
+        if not force and getattr(self,"_shown_turbo",None)==enabled:
+            return
+        self._shown_turbo=bool(enabled)
+        accent="#FF5972" if enabled else "#36DFFF"
+        self.turbo.setText("TURBO ON" if enabled else "NORMAL MODE")
+        self.turbo.setStyleSheet(
+            "QPushButton#cpuModeButton {color:"+accent+
+            ";background:rgba(3,23,45,220);font-weight:800;"
+            "border:1px solid "+accent+";border-radius:7px;}"
+            "QPushButton#cpuModeButton:hover {background:rgba(25,64,86,235);}"
+        )
+
     def turbo_menu(self):
-        self.busy = True
+        self.busy=True
         self.hide_timer.stop()
-        menu = QMenu(self)
-        menu.setTitle("CPU Mode")
-        for key, name in self.cpu_controller.MODES.items():
-            action = menu.addAction(name)
-            action.setCheckable(True)
-            action.setChecked(self.cpu_controller.mode == key)
-            action.triggered.connect(lambda checked=False, key=key: self.select_cpu_mode(key))
+        menu=QMenu(self)
+        menu.setTitle("CPU / privilèges administrateur")
+        if not self.settings.turbo_auth_enabled:
+            disabled=menu.addAction("Turbo désactivé dans les Paramètres")
+            disabled.setEnabled(False)
+        else:
+            menu.addAction("◈ NORMAL MODE",lambda:self.select_cpu_mode("off"))
+            menu.addAction("⚡ TURBO ON",lambda:self.select_cpu_mode("on"))
         menu.addSeparator()
-        label = menu.addAction(self.cpu_controller.status)
-        label.setEnabled(False)
+        status=menu.addAction(self.cpu_controller.status)
+        status.setEnabled(False)
         try:
             menu.exec(self.turbo.mapToGlobal(self.turbo.rect().bottomLeft()))
         finally:
-            self.busy = False
+            self.busy=False
             self.arm_hide()
 
-    def select_cpu_mode(self, mode):
-        self.cpu_controller.select(mode)
-        self.last_sensor_request = 0
-        self.turbo.setToolTip("Demande en cours de vérification par le noyau")
+    def select_cpu_mode(self,mode):
+        if mode not in ("on","off"):
+            QMessageBox.warning(self,"CPU Turbo","Choisir NORMAL MODE ou TURBO ON")
+            return
+        if not self.settings.turbo_auth_enabled:
+            QMessageBox.information(self,"CPU Turbo","Autoriser le Turbo dans Paramètres → Général")
+            return
+        from .turbo_polkit import request_turbo
+        self.turbo.setEnabled(False)
+        self.turbo.setToolTip("Authentification administrateur demandée via polkit")
+        def finished(success,message):
+            self.turbo.setEnabled(True)
+            self.cpu_controller.mode=None  # Never poll/write privileged sysfs in background.
+            self.last_sensor_request=0
+            if not success:
+                QMessageBox.warning(self,"Autorisation Turbo",message)
+            else:
+                self._set_turbo_indicator(mode=="on")
+                self.turbo.setToolTip(message)
+        self._turbo_worker=request_turbo(mode=="on",finished)
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)

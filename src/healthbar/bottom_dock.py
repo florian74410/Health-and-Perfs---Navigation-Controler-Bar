@@ -17,9 +17,10 @@ from .cockpit_style import CockpitFrame,app_icon,symbol_icon,cut_path,glow,looku
 from .app_catalog import ApplicationLauncher,catalog
 from .system_status import DesktopStatus
 from .status_notifier import StatusNotifierHost,item_icon
+from .x11_workarea import reserve_edge
 
 
-def bottom_height(settings):return min(104,max(72,round(50*settings.xfce_skin_scale_percent/100)))
+def bottom_height(settings):return min(130,max(62,int(settings.bottom_dock_height)))
 
 
 def applications():return [(a.path,a.name,a.icon) for a in catalog()]
@@ -80,10 +81,18 @@ class BottomDock(QWidget):
         self.menu_button=QToolButton();self.menu_button.setObjectName('nexus');self.menu_button.setIcon(lookup_icon('linuxmint-logo') if not lookup_icon('linuxmint-logo').isNull() else symbol_icon('apps','#3ee5ff'));self.menu_button.setToolTip('NEXUS · Applications et favoris');self.menu_button.setAccessibleName('NEXUS · Applications')
         self.menu_button.clicked.connect(self.open_menu);self.pins.addWidget(self.menu_button);self.row.addWidget(self.launchers)
         self.tasks_area=QScrollArea();self.tasks_area.setWidgetResizable(True);self.tasks_area.setFrameShape(QScrollArea.Shape.NoFrame)
-        self.tasks_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded);self.tasks_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tasks_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff);self.tasks_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.tasks_area.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Ignored);self.tasks_area.setMinimumSize(0,0)
         self.tasks_body=QWidget();self.tasks=QHBoxLayout(self.tasks_body);self.tasks.setContentsMargins(3,0,3,0);self.tasks.setSpacing(8);self.tasks.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         self.tasks_area.setWidget(self.tasks_body);self.row.addWidget(self.tasks_area,1)
+        self._overflow_rows=[]
+        self.overflow=QToolButton()
+        self.overflow.setAccessibleName("Fenêtres supplémentaires")
+        self.overflow.setToolTip("Afficher les autres fenêtres")
+        self.overflow.setText("+0")
+        self.overflow.clicked.connect(self.open_task_overflow)
+        self.overflow.hide()
+        self.row.addWidget(self.overflow)
         self.tray_widget=QWidget();self.tray_row=QHBoxLayout(self.tray_widget);self.tray_row.setContentsMargins(0,0,0,0);self.tray_row.setSpacing(3);self.row.addWidget(self.tray_widget)
         self.indicators={}
         for kind,tip,handler in [('network','Réseau',self.network_menu),('volume','Volume',self.volume_menu),('bluetooth','Bluetooth',lambda:self.run_first([['blueman-manager']])),
@@ -128,6 +137,7 @@ class BottomDock(QWidget):
         if not screens:return
         bounds=screens[min(settings.screen,len(screens)-1)].geometry();height=bottom_height(settings)
         self.full_rect=QRect(bounds.left(),bounds.bottom()-height+1,bounds.width(),height);self.setFixedHeight(height);self.setGeometry(self.full_rect)
+        self._reserve_workarea()
         key=tuple(pinned_apps(settings))
         if key!=self._pin_key:
             self._pin_key=key
@@ -142,6 +152,7 @@ class BottomDock(QWidget):
         for button in self.launchers.findChildren(QToolButton):button.setFixedSize(height-36,height-40);button.setIconSize(QSize(min(42,height-48),min(42,height-48)))
         for button in self.indicators.values():button.setFixedSize(34,height-40);button.setIconSize(QSize(27,27))
         self.preferences.setFixedSize(30,height-40);self.preferences.setIconSize(QSize(23,23));self.clock.setFixedSize(76,height-40)
+        self.overflow.setFixedSize(54,max(24,height-40))
         self.hide_timer.setInterval(settings.xfce_skin_delay_seconds*1000)
         if not self.collapsed:self.show()
         self.body.update()
@@ -165,20 +176,25 @@ class BottomDock(QWidget):
     def refresh(self):
         self.clock.setText(QDateTime.currentDateTime().toString('HH:mm'));self.clock.setToolTip(QDateTime.currentDateTime().toString('dddd dd MMMM yyyy')+'\nCliquer : système et session')
         rows,active=self.backend.snapshot();self._active=active
-        key=tuple((r['id'],r['name'],r['icon']) for r in rows)+(active,self.settings.theme,self.tasks_area.viewport().width())
+        limit=max(1,min(3,int(self.settings.bottom_tabs_max)))
+        shown=rows[:limit]
+        self._overflow_rows=rows[limit:]
+        self.overflow.setText("+"+str(len(self._overflow_rows)))
+        self.overflow.setVisible(bool(self._overflow_rows))
+        key=tuple((r['id'],r['name'],r['icon']) for r in rows)+(active,self.settings.theme,self.tasks_area.viewport().width(),limit)
         if key!=self._task_key:
             self._task_key=key
             while self.tasks.count():
                 item=self.tasks.takeAt(0)
                 if item.widget():item.widget().hide();item.widget().deleteLater()
             live_ids={r['id'] for r in rows};self._icon_cache={k:v for k,v in self._icon_cache.items() if k in live_ids}
-            for row in rows:
+            for row in shown:
                 if row['id'] not in self._icon_cache:
                     icon=QIcon.fromTheme(row['icon'])
                     if icon.isNull():icon=self.backend.window_icon(row['id'])
                     self._icon_cache[row['id']]=icon if not icon.isNull() else app_icon(row['icon'])
                 button=TaskButton(row,self._icon_cache[row['id']],self.settings.theme);button.setFixedHeight(self.full_rect.height()-42);button.setProperty('active',row['id']==active)
-                button.setFixedWidth(min(480,max(128,(self.tasks_area.viewport().width()-14)//max(1,len(rows))-8)))
+                button.setFixedWidth(min(250,max(128,(self.tasks_area.viewport().width()-14)//max(1,len(shown))-8)))
                 button.clicked.connect(lambda checked=False,x=row['id']:self.backend.action(x,minimize=x==self._active))
                 button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);button.customContextMenuRequested.connect(lambda pos,b=button,r=row:self.task_menu(b,r));self.tasks.addWidget(button)
             self.tasks.addStretch()
@@ -187,6 +203,20 @@ class BottomDock(QWidget):
         if self.isVisible() or self.collapsed:
             screens=QApplication.screens()
             if screens:self.native.hide(screens[min(self.settings.screen,len(screens)-1)].geometry())
+
+    def open_task_overflow(self):
+        if not self._overflow_rows:
+            return
+        menu=self.themed_menu()
+        for row in self._overflow_rows:
+            action=menu.addAction(row["name"])
+            action.triggered.connect(lambda checked=False,x=row["id"]:
+                                     self.backend.action(x,minimize=x==self._active))
+        menu.exec(self.overflow.mapToGlobal(self.overflow.rect().topLeft()))
+
+    def _reserve_workarea(self):
+        if self.full_rect.isValid():
+            reserve_edge(self,"bottom",self.full_rect.height(),True)
 
     def apply_status(self,state):
         self.desktop_state=state;network=state.get('network');primary=PALETTES.get(self.settings.theme,PALETTES['blue-neon'])[0]
@@ -278,8 +308,13 @@ class BottomDock(QWidget):
         if command:
             try:subprocess.Popen(command,env=native_env(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
             except OSError:pass
-    def showEvent(self,event):super().showEvent(event);apply_priority(self,True);schedule_all_workspaces(self)
+    def showEvent(self,event):
+        super().showEvent(event)
+        apply_priority(self,True)
+        schedule_all_workspaces(self)
+        QTimer.singleShot(0,self._reserve_workarea)
     def closeEvent(self,event):
+        reserve_edge(self,"bottom",0,False)
         if not self._closing:
             self._closing=True
             if self.launcher:self.launcher.close()
