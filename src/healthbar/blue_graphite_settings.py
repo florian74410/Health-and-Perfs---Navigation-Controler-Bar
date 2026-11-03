@@ -141,3 +141,68 @@ def control_stylesheet():
     QToolTip {background:#0B1D2F;color:#F2FBFF;border:1px solid #2DCEFF;}
     """
     return css
+
+class BlueGraphiteNotice:
+    """Factory for native transparent non-modal Turbo notifications.
+
+    The widget is deliberately created lazily to avoid Qt app creation at import.
+    """
+    @staticmethod
+    def create(title,message,parent=None,success=True):
+        from PySide6.QtCore import QTimer
+        from PySide6.QtGui import QPainter
+        from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
+        class Notice(QDialog):
+            def __init__(self):
+                super().__init__(parent)
+                self.setWindowFlags(Qt.WindowType.Tool |
+                                    Qt.WindowType.FramelessWindowHint |
+                                    Qt.WindowType.WindowStaysOnTopHint)
+                self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground,True)
+                self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+                self.setFixedSize(440,148)
+                self._phase=0.0
+                self._timer=QTimer(self)
+                self._timer.setInterval(85)
+                self._timer.timeout.connect(self.advance)
+                layout=QVBoxLayout(self)
+                layout.setContentsMargins(29,25,29,22)
+                top=QHBoxLayout()
+                label=QLabel(("◈ " if success else "⚠ ")+str(title))
+                label.setStyleSheet("color:#43DEFF;font-size:15px;"
+                                    "font-weight:900;background:transparent;")
+                top.addWidget(label,1)
+                close=QPushButton("✕")
+                close.setFixedSize(29,27)
+                close.setStyleSheet("QPushButton {background:#10273B;"
+                                    "color:#F0FBFF;border:1px solid #27BFFF;}"
+                                    "QPushButton:hover {background:#185681;}")
+                close.clicked.connect(self.close)
+                top.addWidget(close)
+                layout.addLayout(top)
+                text=QLabel(str(message))
+                text.setWordWrap(True)
+                text.setStyleSheet("color:#E1F4FF;font-size:12px;"
+                                   "background:transparent;")
+                layout.addWidget(text,1)
+                QTimer.singleShot(6000,self.close)
+            def advance(self):
+                if self.isVisible():
+                    self._phase=(self._phase+.008)%1
+                    self.update()
+                else:
+                    self._timer.stop()
+            def showEvent(self,event):
+                super().showEvent(event)
+                self._timer.start()
+            def hideEvent(self,event):
+                self._timer.stop()
+                super().hideEvent(event)
+            def paintEvent(self,event):
+                p=QPainter(self)
+                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+                p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+                paint_settings(p,QRectF(self.rect()).adjusted(4,4,-4,-4),self._phase)
+                p.end()
+        return Notice()
