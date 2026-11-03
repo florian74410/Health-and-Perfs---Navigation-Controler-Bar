@@ -94,16 +94,30 @@ class NeonButton(QPushButton):
         p.setBrush(background)
         p.setPen(QPen(edge, 1.6))
         panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
-        p.drawRoundedRect(panel, 9, 9)
+        # Consistent clipped hexagonal footprint with ARGB corners.
+        cut=min(8.0,panel.height()*.27,panel.width()*.25)
+        shape=QPainterPath()
+        shape.moveTo(panel.left()+cut,panel.top())
+        for cx,cy in ((panel.right()-cut,panel.top()),
+                      (panel.right(),panel.top()+cut),
+                      (panel.right(),panel.bottom()-cut),
+                      (panel.right()-cut,panel.bottom()),
+                      (panel.left()+cut,panel.bottom()),
+                      (panel.left(),panel.bottom()-cut),
+                      (panel.left(),panel.top()+cut)):
+            shape.lineTo(cx,cy)
+        shape.closeSubpath()
+        p.fillPath(shape,background)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(edge,1.6))
+        p.drawPath(shape)
         from PySide6.QtGui import QLinearGradient
         glass=QLinearGradient(0,2,0,22)
         glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
         glass.setColorAt(1,QColor(0,0,0,0))
-        shine=QPainterPath();shine.addRoundedRect(panel,9,9)
-        p.fillPath(shine,glass)
-        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.fillPath(shape,glass)
         light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
-        p.setPen(QPen(light,.65));p.drawRoundedRect(panel.adjusted(1,1,-1,-1),8,8)
+        p.setPen(QPen(light,.65));p.drawPath(shape)
         icon = self.icon()
         if not icon.isNull():
             size = min(32, max(18, min(self.width(), self.height()) - 14))
