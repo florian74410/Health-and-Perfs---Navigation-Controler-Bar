@@ -358,8 +358,9 @@ class SensorHoloPanel(CpuHoloPanel):
         self.findChild(QLabel, "holoTitle").setText("◈ " + slot.upper() + " HOLO")
         self.cpu_name.setText("Capteurs locaux · " + slot.upper())
         self.topology.hide()
-        self.resize(550 if redblack_active() else (460 if slot in ("ram","fans") else 380),
-                    450 if redblack_active() else (300 if slot in ("ram","fans") else 280))
+        # Preserve baseline compact dimensions so plugin Holos don't cover docks.
+        self.resize(460 if slot in ("ram","fans") else 380,
+                    300 if slot in ("ram","fans") else 280)
         if slot == 'network':
             from .network_chart import NetworkChart
             self.chart = NetworkChart(self)

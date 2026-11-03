@@ -14,6 +14,8 @@ class TransparentHoloTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_panels_are_compact_with_uniform_glass_and_transparent_exterior(self):
+        from healthbar.ui_kit import set_theme
+        set_theme("blue-neon")  # contract of legacy Blue Neon Holo glass
         for panel in [CpuHoloPanel()] + [SensorHoloPanel(s) for s in SensorHoloPanel.FIELDS]:
             with self.subTest(panel=panel.windowTitle()):
                 self.assertLessEqual(panel.width(), 460)
