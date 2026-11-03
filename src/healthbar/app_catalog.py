@@ -177,7 +177,7 @@ class ApplicationLauncher(QWidget):
                 if path in self.favorites:
                     self.favorites.remove(path)
                     self.favorites.add(target)
-                    self.shortcut_requested.emit("sidebar",target)
+                self.shortcut_renamed.emit(path,target)
                 self.filter()
         elif result==favorite:
             self.favorites.add(path)
