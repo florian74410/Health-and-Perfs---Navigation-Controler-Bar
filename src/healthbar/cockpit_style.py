@@ -2,10 +2,20 @@
 from pathlib import Path
 import math
 from PySide6.QtCore import Qt,QRectF,QPointF,QSize
-from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QLinearGradient,QPolygonF,QIcon,QPixmap
+from PySide6.QtGui import QPainter,QPainterPath,QPen,QLinearGradient,QPolygonF,QIcon,QPixmap
+from .ui_kit import QColor
 from PySide6.QtWidgets import QFrame
 from PySide6.QtSvg import QSvgRenderer
 from .xfce_panel_skin import PALETTES
+from .theme_packs import asset_path
+from .blackred_visuals import is_blackred, paint_cockpit
+from functools import lru_cache
+
+
+@lru_cache(maxsize=12)
+def _frame_overlay_svg(filename):
+    return QSvgRenderer(filename)
+
 
 
 def cut_path(rect,cut=12):
@@ -28,6 +38,11 @@ class CockpitFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
+        if is_blackred(self.theme):
+            p=QPainter(self)
+            paint_cockpit(p,self)
+            p.end()
+            return
         p=QPainter(self)
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
         p.fillRect(self.rect(),Qt.GlobalColor.transparent)
@@ -52,6 +67,11 @@ class CockpitFrame(QFrame):
         p.save();p.setOpacity(max(.1,min(1,self.glass_opacity/100)))
         p.fillPath(cavity,glass);p.restore();p.setPen(QPen(QColor('#43829a'),.7));p.drawPath(cavity)
         p.setClipPath(outer)
+        texture = asset_path(self.theme, "frame")
+        if texture is not None and texture.suffix.lower()==".svg":
+            renderer = _frame_overlay_svg(str(texture))
+            if renderer.isValid():
+                p.save();p.setOpacity(.20);renderer.render(p,QRectF(0,0,w,h));p.restore()
         # Separate metal housings for launchers and native indicators.
         for rect in self.regions() if callable(getattr(self,'regions',None)) else []:
             if rect.width()<30:continue

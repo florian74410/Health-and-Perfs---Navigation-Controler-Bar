@@ -4,11 +4,14 @@ from pathlib import Path
 import struct
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPainterPath, QPen, QPolygonF, QPixmap
+from PySide6.QtGui import QIcon, QImage, QPainter, QPainterPath, QPen, QPolygonF, QPixmap
+from .ui_kit import QColor
+from .theme_packs import get_pack
 
 COLORS = {
     "blue-neon": "#23e6e8", "cyber-futuriste": "#23e6e8",
     "green-matrix": "#5df68c", "red-blood": "#ff4c76",
+    "blackred-neon": "#FF233E",
 }
 
 
@@ -19,7 +22,8 @@ def painted_icon(size=64, theme="blue-neon"):
     p = QPainter(image)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     p.scale(size / 128, size / 128)
-    accent = QColor(COLORS.get(theme, COLORS["blue-neon"]))
+    pack = get_pack(theme)
+    accent = QColor(pack["palette"]["primary"] if pack else COLORS.get(theme, COLORS["blue-neon"]))
     p.setPen(QPen(QColor("#175067"), 3))
     p.setBrush(QColor("#041324"))
     p.drawRoundedRect(QRectF(7, 7, 114, 114), 24, 24)

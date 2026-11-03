@@ -6,13 +6,14 @@ import subprocess
 import sys
 from pathlib import Path
 from PySide6.QtCore import Qt,QTimer,QRect,QRectF,QSize,QDateTime,QPoint,Signal
-from PySide6.QtGui import QCursor,QIcon,QPainter,QColor,QLinearGradient,QPen
+from PySide6.QtGui import QCursor,QIcon,QPainter,QLinearGradient,QPen
 from PySide6.QtWidgets import (QWidget,QHBoxLayout,QToolButton,QPushButton,QLabel,QMenu,QScrollArea,
                                QApplication,QLayout,QSizePolicy,QSlider,QWidgetAction)
 from .edge_docks import launcher_metadata,launch_item
 from .desktop_backend import DesktopBackend,NativePanelGuard,x11_ready
 from .overlay import apply_priority,schedule_all_workspaces
 from .xfce_panel_skin import PALETTES
+from .ui_kit import QColor
 from .system_env import native_env
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon,cut_path,glow,lookup_icon
 from .app_catalog import ApplicationLauncher,catalog

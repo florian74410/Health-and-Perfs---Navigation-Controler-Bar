@@ -18,4 +18,4 @@ cyber-nexus-installer = "healthbar.installer:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-healthbar = ["assets/*.png", "assets/icons/*", "assets/plugins/*.zip"]
+healthbar = ["assets/*.png", "assets/icons/*", "assets/plugins/*.zip", "assets/skins/*/*.json", "assets/skins/*/*.svg", "assets/skins/*/*.png", "assets/skins/*/*.webp"]

@@ -1,0 +1,20 @@
+{
+  "id": "blackred-neon",
+  "name": "BlackRed / Cyber Neon",
+  "version": "0.8.1-BR.1",
+  "palette": {
+    "primary": "#FF233E",
+    "secondary": "#A20C24",
+    "background": "#08090D",
+    "surface": "#16080E",
+    "text": "#FFF3F4",
+    "muted": "#BDA5AB"
+  },
+  "assets": {
+    "pcb": "pcb-red.svg",
+    "frame": "frame-red.svg",
+    "notification": "notification-red.svg",
+    "button": "button-red.svg",
+    "wallpaper": "wallpaper-red.svg"
+  }
+}

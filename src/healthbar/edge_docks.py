@@ -14,7 +14,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QRect, Qt, QTimer, QUrl, QPoint, QPointF, QRectF, Signal, QFileInfo, QSize
 from PySide6.QtGui import (QCursor, QDesktopServices, QIcon, QPainter, QPen,
-                            QColor, QPolygonF, QPainterPath, QLinearGradient)
+                            QPolygonF, QPainterPath, QLinearGradient)
+from .ui_kit import QColor
 from PySide6.QtWidgets import (
     QApplication, QAbstractItemView, QFileIconProvider, QFrame,
     QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QPushButton,

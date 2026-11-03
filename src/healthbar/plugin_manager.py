@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QColor
+from .ui_kit import QColor, stylesheet
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QTabWidget,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QLabel, QLineEdit,
@@ -73,7 +73,7 @@ class DownloadThread(QThread):
 class SourceEditDialog(QDialog):
     def __init__(self, source=None, parent=None):
         super().__init__(parent)
-        self.setStyleSheet(STYLE)
+        self.setStyleSheet(stylesheet(STYLE))
         self.setWindowTitle("NovaBar • Source GitHub")
         self.resize(490, 265)
         root = QVBoxLayout(self)
@@ -131,7 +131,7 @@ class PluginsDialog(QDialog):
         self.setWindowTitle("NovaBar   •   PLUGIN CONTROL CENTER")
         self.resize(745, 485)
         self.setMinimumSize(590, 355)
-        self.setStyleSheet(STYLE)
+        self.setStyleSheet(stylesheet(STYLE))
         root = QVBoxLayout(self)
         root.setContentsMargins(13, 12, 13, 10)
         root.setSpacing(6)

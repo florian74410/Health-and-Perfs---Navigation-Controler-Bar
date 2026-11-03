@@ -27,7 +27,7 @@ from .app_icon import novabar_icon
 from .x11_workarea import reserve_edge
 
 
-from .ui_kit import QColor
+from .ui_kit import QColor, stylesheet
 
 def button_icon(kind):
     pix = QPixmap(40, 40)
@@ -90,51 +90,48 @@ class NeonButton(QPushButton):
         self.setStyleSheet("background:transparent;border:0;")
 
     def paintEvent(self, event):
+        from .blackred_visuals import is_blackred, paint_button
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        background = QColor("#061020")
-        background.setAlpha(round(255 * self.panel_opacity / 100))
-        edge = QColor("#33dfff" if self.underMouse() else "#068cff")
-        p.setBrush(background)
-        p.setPen(QPen(edge, 1.6))
-        panel = QRectF(self.rect()).adjusted(1.2, 1.2, -1.2, -1.2)
-        # Consistent clipped hexagonal footprint with ARGB corners.
-        cut=min(8.0,panel.height()*.27,panel.width()*.25)
-        shape=QPainterPath()
-        shape.moveTo(panel.left()+cut,panel.top())
-        for cx,cy in ((panel.right()-cut,panel.top()),
-                      (panel.right(),panel.top()+cut),
-                      (panel.right(),panel.bottom()-cut),
-                      (panel.right()-cut,panel.bottom()),
-                      (panel.left()+cut,panel.bottom()),
-                      (panel.left(),panel.bottom()-cut),
-                      (panel.left(),panel.top()+cut)):
-            shape.lineTo(cx,cy)
-        shape.closeSubpath()
-        p.fillPath(shape,background)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.setPen(QPen(edge,1.6))
-        p.drawPath(shape)
-        from PySide6.QtGui import QLinearGradient
-        glass=QLinearGradient(0,2,0,22)
-        glass.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
-        glass.setColorAt(1,QColor(0,0,0,0))
-        p.fillPath(shape,glass)
-        light=QColor("#d9ffff");light.setAlpha(205 if self.underMouse() else 100)
-        p.setPen(QPen(light,.65));p.drawPath(shape)
-        icon = self.icon()
+        if is_blackred():
+            paint_button(p,self)
+        else:
+            background=QColor("#061020")
+            background.setAlpha(round(255*self.panel_opacity/100))
+            edge=QColor("#33dfff" if self.underMouse() else "#068cff")
+            panel=QRectF(self.rect()).adjusted(1.2,1.2,-1.2,-1.2)
+            cut=min(8.0,panel.height()*.27,panel.width()*.25)
+            shape=QPainterPath()
+            shape.moveTo(panel.left()+cut,panel.top())
+            for cx,cy in ((panel.right()-cut,panel.top()),
+                          (panel.right(),panel.top()+cut),
+                          (panel.right(),panel.bottom()-cut),
+                          (panel.right()-cut,panel.bottom()),
+                          (panel.left()+cut,panel.bottom()),
+                          (panel.left(),panel.bottom()-cut),
+                          (panel.left(),panel.top()+cut)):
+                shape.lineTo(cx,cy)
+            shape.closeSubpath()
+            p.fillPath(shape,background)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(edge,1.6));p.drawPath(shape)
+            from PySide6.QtGui import QLinearGradient
+            shine=QLinearGradient(0,2,0,22)
+            shine.setColorAt(0,QColor(150,235,255,round(48*self.panel_opacity/100)))
+            shine.setColorAt(1,QColor(0,0,0,0))
+            p.fillPath(shape,shine)
+        icon=self.icon()
         if not icon.isNull():
-            size = min(32, max(18, min(self.width(), self.height()) - 14))
-            x = 8 if self.text() else (self.width() - size)//2
-            icon.paint(p, QRect(x, (self.height()-size)//2, size, size))
+            size=min(32,max(18,min(self.width(),self.height())-14))
+            x=8 if self.text() else (self.width()-size)//2
+            icon.paint(p,QRect(x,(self.height()-size)//2,size,size))
         if self.text():
-            p.setPen(QColor("#e7f3ff"))
+            p.setPen(QColor("#FFF1F3" if is_blackred() else "#e7f3ff"))
             p.setFont(self.font())
-            left = 43 if not icon.isNull() else 4
-            p.drawText(QRect(left, 0, max(0, self.width()-left-2), self.height()),
-                       Qt.AlignmentFlag.AlignVCenter, self.text())
+            left=43 if not icon.isNull() else 4
+            p.drawText(QRect(left,0,max(0,self.width()-left-2),self.height()),
+                       Qt.AlignmentFlag.AlignVCenter,self.text())
         p.end()
-
 
 class Bar(QWidget):
     def __init__(self, settings):
@@ -154,7 +151,7 @@ class Bar(QWidget):
         self.setWindowTitle("NovaBar • Hardware Health Controller")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setStyleSheet(STYLE + """
+        self.setStyleSheet(stylesheet(STYLE + """
             QPushButton#nav { border: 1px solid #008fff; border-radius: 9px;
                 background: rgba(2,15,34,170); padding: 3px; }
             QPushButton#nav:hover { border: 2px solid #48eaff; background: #0b345a; }
@@ -162,7 +159,7 @@ class Bar(QWidget):
             QMenu::item { padding: 12px 22px; }
             QMenu::item:selected { background: #114fe3; border-radius: 5px; }
             QMenu::item:disabled { color: #6986a3; }
-        """)
+        """))
         self.root = QHBoxLayout(self)
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(8)
@@ -564,8 +561,8 @@ class Bar(QWidget):
             action.setChecked(getattr(self.settings, setting))
             action.triggered.connect(lambda checked=False, k=key: self.tray_toggle(k))
         themes = menu.addMenu("🎨 Thème couleur")
-        for key, title in (("blue-neon", "Blue Neon"), ("green-matrix", "Green Matrix"),
-                           ("red-blood", "Red Blood")):
+        from .ui_kit import THEMES
+        for key, title in THEMES.items():
             act = themes.addAction(title)
             act.setCheckable(True)
             act.setChecked(self.settings.theme == key or
@@ -754,6 +751,9 @@ class Bar(QWidget):
     def apply_settings(self):
         from .ui_kit import set_theme
         set_theme(self.settings.theme)
+        if hasattr(self,"holo"):
+            for panel in [self.holo,*getattr(self,"module_holos",{}).values()]:
+                panel.apply_visual_theme()
         from .ui_kit import stylesheet
         self.setStyleSheet(stylesheet(STYLE))
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, self.settings.always_on_top)
@@ -1000,7 +1000,7 @@ class Bar(QWidget):
             from .ui_kit import stylesheet
             for panel in [self.holo, *self.module_holos.values()]:
                 panel.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint,self.settings.always_on_top)
-                panel.setStyleSheet(stylesheet(panel.base_style))
+                panel.apply_visual_theme()
                 panel.update()
             self.hotkeys.configure(self.settings.shortcuts)
             self.tray.setIcon(novabar_icon(self.settings.theme))

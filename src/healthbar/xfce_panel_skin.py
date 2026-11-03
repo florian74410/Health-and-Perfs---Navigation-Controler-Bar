@@ -25,6 +25,7 @@ PALETTES = {
     "cyber-futuriste": ("#18dfff", "#1765bc", "24, 220, 245"),
     "green-matrix": ("#43fa9a", "#137d59", "67, 250, 154"),
     "red-blood": ("#ff607d", "#96254e", "255, 96, 125"),
+    "blackred-neon": ("#FF233E", "#A20C24", "255, 35, 62"),
 }
 BOTTOM_POSITIONS = {4, 8, 10, 12}
 
@@ -89,7 +90,15 @@ def _set_panel_setting(panel_id, name, value):
 
 
 def render_css(theme="blue-neon", delay_seconds=10):
+    from .theme_packs import get_pack
+    pack = get_pack(theme)
     primary, secondary, rgb = PALETTES.get(theme, PALETTES["blue-neon"])
+    if pack:
+        primary=pack["palette"]["primary"]
+        secondary=pack["palette"]["secondary"]
+        shade=primary.lstrip("#")
+        rgb=", ".join(str(int(shade[i:i+2],16)) for i in (0,2,4))
+    background = "8, 9, 13" if pack else "4, 13, 27"
     ms = max(1000, min(120000, int(delay_seconds)*1000))
     # GTK panel classes are scoped; desktop icon themes / native plugins stay intact.
     return f"""{START}
@@ -103,7 +112,7 @@ def render_css(theme="blue-neon", delay_seconds=10):
   -XfcePanelWindow-autohide-size: 1;
 }}
 .xfce4-panel.background {{
-  background-color: rgba(4, 13, 27, 0.91);
+  background-color: rgba({background}, 0.91);
   background-image: linear-gradient(to bottom,
     rgba({rgb}, 0.28), rgba(4, 19, 33, .99) 13%,
     rgba(3, 13, 27, .97) 38%, rgba(1, 6, 18, .98) 80%,
