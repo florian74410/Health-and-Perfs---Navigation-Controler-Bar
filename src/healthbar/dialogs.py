@@ -343,6 +343,19 @@ class SettingsDialog(PCBSettingsDialog):
         self.bottom_tabs_max.setRange(1,3)
         self.bottom_tabs_max.setValue(settings.bottom_tabs_max)
         grid.addRow("Onglets visibles (surplus : +N)",self.bottom_tabs_max)
+        self.bottom_nav_opacity=QSlider(Qt.Orientation.Horizontal)
+        self.bottom_nav_opacity.setRange(10,100)
+        self.bottom_nav_opacity.setValue(settings.bottom_nav_opacity)
+        opacity_status=QLabel(str(settings.bottom_nav_opacity)+" %")
+        self.bottom_nav_opacity.valueChanged.connect(
+            lambda value:opacity_status.setText(str(value)+" %"))
+        opacity_row=QHBoxLayout()
+        opacity_row.addWidget(self.bottom_nav_opacity)
+        opacity_row.addWidget(opacity_status)
+        grid.addRow("Transparence de navigation basse",opacity_row)
+        no_reserve=QLabel("Le dock inférieur se superpose maintenant aux fenêtres sans réserver de hauteur.")
+        no_reserve.setWordWrap(True)
+        grid.addRow("",no_reserve)
         self.turbo_auth_enabled = QCheckBox("Exiger le mot de passe administrateur (polkit)")
         self.turbo_auth_enabled.setChecked(settings.turbo_auth_enabled)
         grid.addRow("CPU Turbo",self.turbo_auth_enabled)
@@ -616,6 +629,7 @@ class SettingsDialog(PCBSettingsDialog):
         self.top_reserved.setChecked(True)
         self.bottom_dock_height.setValue(84)
         self.bottom_tabs_max.setValue(3)
+        self.bottom_nav_opacity.setValue(55)
         self.turbo_auth_enabled.setChecked(True)
         self.length_percent.setValue(100)
         self.thickness.setValue(72)
@@ -637,6 +651,7 @@ class SettingsDialog(PCBSettingsDialog):
             dock_right_enabled=self.dock_right_enabled.isChecked(),
             bottom_dock_enabled=self.bottom_dock_enabled.isChecked(),
             bottom_dock_height=self.bottom_dock_height.value(),bottom_tabs_max=self.bottom_tabs_max.value(),
+            bottom_nav_opacity=self.bottom_nav_opacity.value(),
             top_hover_ms=self.top_hover_ms.value(), top_trigger_px=self.top_trigger_px.value(),
             top_reserved=self.top_reserved.isChecked(), turbo_auth_enabled=self.turbo_auth_enabled.isChecked(),
             dock_left_kind=self.dock_left_kind.currentData(),

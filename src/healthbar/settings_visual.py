@@ -1,6 +1,6 @@
 """Painted lightweight Cyber-Neon settings shell; no texture assets, web API or timer."""
 from PySide6.QtCore import Qt, QRectF, QPointF
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QLinearGradient
 from PySide6.QtWidgets import QDialog, QWidget
 from .xfce_panel_skin import PALETTES
 from .theme_overrides import load as load_theme_overrides
@@ -98,29 +98,66 @@ class PCBSettingsDialog(QDialog):
         primary,secondary,background=_palette(self._pcb_theme)
         glass=QColor(background);glass.setAlpha(236)
         painter.fillPath(path,glass)
+        # Glass reflection on the beveled header, inspired by NOVA Notification.
+        shine=QLinearGradient(rect.left(),rect.top(),rect.right(),rect.top()+rect.height()*.4)
+        shine.setColorAt(0,QColor(210,242,255,46))
+        shine.setColorAt(.38,QColor(210,242,255,4))
+        shine.setColorAt(.7,QColor(210,242,255,28))
+        shine.setColorAt(1,QColor(210,242,255,0))
+        painter.fillRect(QRectF(rect.left()+13,rect.top()+5,rect.width()-26,rect.height()*.12),shine)
         painter.setClipPath(path)
-        # Trace pattern is deliberately static. It never consumes a frame timer.
-        painter.setPen(QPen(QColor(primary),1.15))
+        # Original, asymmetric PCB: irregular routes from all four corners,
+        # short branches, vias and polished light wells. No tiling or looped
+        # identical rows. Fully static => zero idle animation CPU.
         w=rect.width();h=rect.height()
-        for i in range(13):
-            x=rect.left()+25+i*max(44,w/13)
-            y=rect.top()+30+(i%4)*27
-            trace=QPainterPath(QPointF(x,rect.top()+2))
-            trace.lineTo(x,y)
-            trace.lineTo(x+16,y+16)
-            trace.lineTo(min(rect.right()-15,x+min(170,w*.16)),y+16)
-            painter.drawPath(trace)
-            painter.setBrush(QColor(primary))
-            painter.drawEllipse(QPointF(min(rect.right()-15,x+min(170,w*.16)),y+16),2.3,2.3)
+        routes=(
+            ((0,.12),(.09,.12),(.15,.19),(.29,.19)),
+            ((0,.20),(.055,.20),(.13,.28),(.31,.28)),
+            ((0,.32),(.038,.32),(.09,.38),(.19,.38)),
+            ((0,.83),(.075,.83),(.13,.76),(.25,.76)),
+            ((0,.92),(.13,.92),(.22,.84),(.34,.84)),
+            ((.11,0),(.11,.07),(.18,.13),(.33,.13)),
+            ((.24,0),(.24,.04),(.29,.08),(.36,.08)),
+            ((.62,0),(.62,.045),(.67,.09),(.76,.09)),
+            ((.81,0),(.81,.065),(.88,.13),(.99,.13)),
+            ((1,.10),(.94,.10),(.89,.16),(.78,.16)),
+            ((1,.23),(.96,.23),(.88,.30),(.75,.30)),
+            ((1,.79),(.93,.79),(.88,.73),(.75,.73)),
+            ((1,.88),(.96,.88),(.88,.95),(.79,.95)),
+            ((.61,1),(.61,.96),(.70,.89),(.80,.89)),
+            ((.38,1),(.38,.95),(.32,.89),(.25,.89)),
+            ((.17,1),(.17,.96),(.23,.90),(.29,.90)),
+        )
+        for idx,route in enumerate(routes):
+            trace=QPainterPath()
+            for step,(rx,ry) in enumerate(route):
+                px=rect.left()+rx*w
+                py=rect.top()+ry*h
+                if step==0:trace.moveTo(px,py)
+                else:trace.lineTo(px,py)
+            color=QColor(primary if idx%3 else secondary)
+            color.setAlpha(92 if idx%4 else 165)
+            painter.setPen(QPen(color,1.1 if idx%5 else 1.9))
             painter.setBrush(Qt.BrushStyle.NoBrush)
-        for i in range(7):
-            x=rect.left()+30+i*max(70,w/7)
-            y=rect.bottom()-25-(i%3)*22
-            trace=QPainterPath(QPointF(x,rect.bottom()))
-            trace.lineTo(x,y+10)
-            trace.lineTo(x+11,y)
-            trace.lineTo(min(rect.right()-20,x+95),y)
             painter.drawPath(trace)
+            point=trace.currentPosition()
+            painter.setPen(QPen(color,1))
+            painter.setBrush(QColor(2,25,43,220))
+            painter.drawEllipse(point,2.7 if idx%3 else 4.0,2.7 if idx%3 else 4.0)
+            if idx%4==1:
+                sub=route[-2]
+                mx=rect.left()+sub[0]*w
+                my=rect.top()+sub[1]*h
+                branch=QPainterPath(QPointF(mx,my))
+                branch.lineTo(mx+(-12 if idx%2 else 12),my+15)
+                painter.drawPath(branch)
+        # Three small angular light wells, not a tiled glow pattern.
+        painter.setPen(Qt.PenStyle.NoPen)
+        for x,y,rx in ((.18,.04,19),(.52,.985,27),(.93,.04,14)):
+            center=QPointF(rect.left()+x*w,rect.top()+y*h)
+            light=QColor(primary);light.setAlpha(170)
+            painter.setBrush(light)
+            painter.drawRoundedRect(QRectF(center.x()-rx,center.y()-1,2*rx,2),1,1)
         painter.setClipping(False)
         for width,opacity in ((9,22),(4,64),(1.4,230)):
             color=QColor(primary);color.setAlpha(opacity)

@@ -36,6 +36,7 @@ class Settings:
     bottom_dock_enabled: bool = sys.platform.startswith("linux")
     bottom_dock_height: int = 84
     bottom_tabs_max: int = 3
+    bottom_nav_opacity: int = 55
     top_reserved: bool = True
     top_hover_ms: int = 1000
     top_trigger_px: int = 10
@@ -70,6 +71,7 @@ class Settings:
                              ("hide_seconds", 3, 120), ("screen", 0, 64),
                              ("length_percent", 25, 100), ("refresh_seconds", 1, 30),
                              ("bottom_dock_height", 62, 130), ("bottom_tabs_max", 1, 3),
+                             ("bottom_nav_opacity", 10, 100),
                              ("top_hover_ms", 500, 4000), ("top_trigger_px", 5, 20)):
             value = getattr(self, name)
             if type(value) is not int or not lo <= value <= hi:

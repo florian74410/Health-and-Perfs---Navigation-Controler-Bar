@@ -21,7 +21,7 @@ def glow(p,path,color,width=1.2):
 
 class CockpitFrame(QFrame):
     def __init__(self,theme='blue-neon',parent=None):
-        super().__init__(parent);self.theme=theme;self.phase=0
+        super().__init__(parent);self.theme=theme;self.phase=0;self.glass_opacity=55
         self.setObjectName('cockpit');self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground,False)
 
     def paintEvent(self,event):
@@ -30,12 +30,17 @@ class CockpitFrame(QFrame):
         outer=cut_path(QRectF(2,2,w-4,h-4),19)
         metal=QLinearGradient(0,0,0,h)
         for pos,col in ((0,'#34566b'),(.12,'#07121c'),(.24,'#183f56'),(.43,'#020912'),(.75,'#071c2c'),(.87,'#294c60'),(1,'#030a12')):metal.setColorAt(pos,QColor(col))
-        p.fillPath(outer,metal);p.setBrush(Qt.BrushStyle.NoBrush);glow(p,outer,secondary,1.5)
+        p.save()
+        p.setOpacity(max(.12,min(1,self.glass_opacity/100)))
+        p.fillPath(outer,metal)
+        p.restore()
+        p.setBrush(Qt.BrushStyle.NoBrush);glow(p,outer,secondary,1.5)
         inner=cut_path(QRectF(9,9,w-18,h-18),14);glow(p,inner,primary,1.7)
         cavity=cut_path(QRectF(16,16,w-32,h-32),11)
         glass=QLinearGradient(0,16,0,h-16)
         for pos,col in ((0,'#0d2939'),(.18,'#071a29'),(.5,'#03101e'),(1,'#071625')):glass.setColorAt(pos,QColor(col))
-        p.fillPath(cavity,glass);p.setPen(QPen(QColor('#43829a'),.7));p.drawPath(cavity)
+        p.save();p.setOpacity(max(.1,min(1,self.glass_opacity/100)))
+        p.fillPath(cavity,glass);p.restore();p.setPen(QPen(QColor('#43829a'),.7));p.drawPath(cavity)
         p.setClipPath(outer)
         # Separate metal housings for launchers and native indicators.
         for rect in self.regions() if callable(getattr(self,'regions',None)) else []:

@@ -151,6 +151,18 @@ def meter(p, x, y, w, ratio):
         line(p, [(x+9+i*12, y+3), (x+4+i*12, y+12)], "#b1ffff", 1)
 
 
+def progressive_gauge_color(fraction):
+    """Continuous colour progression, sampled per illuminated segment."""
+    value=min(1,max(0,float(fraction)))
+    stops=((0,(36,190,255)),(.34,(45,224,158)),(.67,(255,170,69)),(1,(255,73,100)))
+    for i in range(len(stops)-1):
+        left,start=stops[i];right,end=stops[i+1]
+        if value<=right:
+            weight=(value-left)/(right-left)
+            return QColor(*(round(a+(b-a)*weight) for a,b in zip(start,end)))
+    return QColor(255,73,100)
+
+
 def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.setPen(QPen(QColor("#1142b0"), 2))
@@ -165,8 +177,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
         fraction = j / 38
         lo, hi = ((2/3.5, 3/3.5) if warm is True else
                   (.60, .85) if warm == "gpu" else (1, 1))
-        color = QColor("#00d7ff" if fraction <= lo else
-                       "#ffca62" if fraction <= hi else "#ff4c56")
+        color = progressive_gauge_color(fraction)
         if j < 18 or warm:
             p.setPen(QPen(color, 4))
         else:
@@ -181,7 +192,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     text(p, cx-21, cy+31, unit, 15, "#a6c8ff")
 
 
-def tachometer(p, bounds, value, maximum, unit):
+def tachometer(p, bounds, value, maximum, unit, show_value=True):
     """Segment-only circular dial with the reading and unit centered inside the arc."""
     p.save()
     radius = max(5, min(bounds.width(), bounds.height()) / 2 - 3)
@@ -193,13 +204,16 @@ def tachometer(p, bounds, value, maximum, unit):
     p.drawEllipse(center, radius + 1, radius + 1)
     for i in range(29):
         angle = math.radians(140 + i * 260 / 28)
-        color = "#ff6476" if i > 24 else "#ffc15e" if i > 19 else CYAN
+        color = progressive_gauge_color(i/28)
         if fraction is None or i / 28 > fraction:
             color = "#17456d"
         p.setPen(QPen(QColor(color), max(1.5, min(2.6, radius * .095))))
         p.drawLine(center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 4),
                    center + QPointF(math.cos(angle), math.sin(angle)) * radius)
     # No needle: the illuminated segments alone indicate the measured value.
+    if not show_value:
+        p.restore()
+        return
     number = (f"{value:.1f}" if unit == "GHz" else f"{value:.0f}") if valid else "—"
     size = max(8, min(14, round(radius * .58)))
     font = QFont("DejaVu Sans")
@@ -218,37 +232,32 @@ def tachometer(p, bounds, value, maximum, unit):
     p.restore()
 
 
-def battery_meter(p, bounds, percent, kind):
-    """Segmented battery-shaped utilization bar for RAM and SSD (no circular dial)."""
+def battery_meter(p,bounds,percent,kind):
+    """Twelve tiny PCB LED cells in lieu of an old battery-shaped gauge."""
     p.save()
-    x, y, w, h = bounds.x(), bounds.y(), bounds.width(), bounds.height()
-    body = QRectF(x+1, y+1, max(6, w-8), max(8, h-2))
-    frame = QPainterPath()
-    frame.addRoundedRect(body, 3, 3)
-    p.fillPath(frame, QColor("#071727"))
-    p.setPen(QPen(QColor("#528dab"), 1))
-    p.drawPath(frame)
+    x,y,w,h=bounds.x(),bounds.y(),bounds.width(),bounds.height()
+    p.setPen(QPen(QColor("#1e678d"),1))
+    p.setBrush(QColor("#061e32"))
+    p.drawRoundedRect(QRectF(x,y,w,h),4,4)
+    valid=isinstance(percent,(int,float)) and math.isfinite(percent)
+    fraction=min(1,max(0,percent/100)) if valid else 0
+    count=12
+    margin=4
+    size=max(.5,(w-2*margin-(count-1))/count)
+    tones=("#25c7ff","#38e2b2","#4dee7b","#78e46e",
+           "#a4db63","#b5d95b","#dbd353","#ffb650",
+           "#ff9c48","#ff8249","#ff6463","#ff436c")
     p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor("#6394a8"))
-    p.drawRoundedRect(QRectF(x+w-7, y+h*.32, 5, h*.36), 1, 1)
-    valid = isinstance(percent, (float, int)) and math.isfinite(percent)
-    fraction = max(0, min(1, percent / 100)) if valid else 0
-    cells = 7
-    gap = 2.0
-    available = max(7.0, body.width()-6)
-    cell_width = max(1, (available-gap*(cells-1))/cells)
-    for i in range(cells):
-        filled = valid and (i+1)/cells <= fraction + .001
-        active = "#00dfac" if kind == "ram" else "#3ebcff"
-        if fraction >= .90:
-            active = "#ff6579"
-        elif fraction >= .75:
-            active = "#ffbc62"
-        p.setBrush(QColor(active if filled else "#16384b"))
-        p.drawRoundedRect(QRectF(body.left()+3+i*(cell_width+gap), body.top()+3,
-                                 cell_width, max(2, body.height()-6)), 1, 1)
+    for i in range(count):
+        filled=valid and (i+.5)/count<=fraction
+        p.setBrush(QColor(tones[i] if filled else "#10374a"))
+        left=x+margin+i*(size+1)
+        p.drawRoundedRect(QRectF(left,y+3,size,max(4,h-6)),1,1)
+    p.setPen(QPen(QColor("#20c7ee"),.8))
+    p.drawLine(QPointF(x+4,y+h-1),QPointF(x+min(w-3,w*.34),y+h-1))
+    p.drawEllipse(QPointF(x+3,y+h/2),1,1)
+    p.drawEllipse(QPointF(x+w-3,y+h/2),1,1)
     p.restore()
-
 
 class HudCanvas(QWidget):
     layout_changed = Signal(list)
@@ -628,7 +637,7 @@ class HudCanvas(QWidget):
                         maximum = max(3000, dial_value or 0)
                         unit = "RPM"
                     tachometer(p, QRectF(x+8, y+(height-dial_size)/2, dial_size, dial_size),
-                               dial_value, maximum, unit)
+                               dial_value, maximum, unit, show_value=(kind != "fans"))
                     left = x+12+dial_size
                 elif kind in ("ram", "storage") and width >= 115:
                     battery_width = min(68, max(43, width*.33))
