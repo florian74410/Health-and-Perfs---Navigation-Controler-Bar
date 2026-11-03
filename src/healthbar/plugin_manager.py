@@ -76,7 +76,7 @@ class SourceEditDialog(QDialog):
         super().__init__(parent)
         self.setStyleSheet(
             (control_stylesheet() + "QDialog {background:#080609;border:2px solid #FF2945;}")
-            if redblack_active() else STYLE)
+            if redblack_active() else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if __import__("healthbar.blue_night_shell",fromlist=["active"]).active() else STYLE)
         self.setWindowTitle("NovaBar • Source GitHub")
         self.resize(490, 265)
         root = QVBoxLayout(self)
@@ -136,7 +136,7 @@ class PluginsDialog(QDialog):
         self.setMinimumSize(590, 355)
         self.setStyleSheet(
             (control_stylesheet() + "QDialog {background:#080609;border:2px solid #FF2945;}")
-            if redblack_active() else STYLE)
+            if redblack_active() else __import__("healthbar.blue_night_shell",fromlist=["control_stylesheet"]).control_stylesheet() if __import__("healthbar.blue_night_shell",fromlist=["active"]).active() else STYLE)
         root = QVBoxLayout(self)
         root.setContentsMargins(13, 12, 13, 10)
         root.setSpacing(6)
