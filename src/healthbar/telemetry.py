@@ -32,6 +32,24 @@ def cpu_temperature():
         pass
     return None
 
+def motherboard_temperature():
+    """Read motherboard/system temperature only, never label CPU temp as PC."""
+    if psutil is None or not hasattr(psutil,"sensors_temperatures"):
+        return None
+    try:
+        for chip,entries in psutil.sensors_temperatures().items():
+            if not any(word in chip.lower() for word in ("acpitz","nct","it87","asus","gigabyte")):
+                continue
+            for sensor in entries:
+                label=(sensor.label or "").lower()
+                if any(word in label for word in ("system","motherboard","board","systin","temp1")):
+                    value=_number(sensor.current)
+                    if value is not None and -20 <= value <= 130:
+                        return value
+    except (OSError,RuntimeError,ValueError):
+        pass
+    return None
+
 def list_fans():
     if psutil is None or not hasattr(psutil, "sensors_fans"):
         return []
@@ -100,7 +118,7 @@ class Telemetry:
             "ram_percent", "ram_used_gb", "ram_available_gb", "ram_total_gb",
             "disk_percent", "disk_used_gb", "disk_free_gb", "disk_total_gb",
             "disk_read_mbs", "disk_write_mbs", "disk_health_percent",
-            "net_down_mbs", "net_up_mbs","cpu_turbo_enabled","ram_modules","ram_module_count")
+            "net_down_mbs", "net_up_mbs","cpu_turbo_enabled","ram_modules","ram_module_count","pc_temperature_c")
         data = dict.fromkeys(keys)
         data["net_interfaces"] = []
         data["fans"] = []
@@ -120,6 +138,7 @@ class Telemetry:
         except (OSError,ValueError):
             data["cpu_turbo_enabled"] = None
         data.update(self.ping.sample(now))
+        data["pc_temperature_c"] = self._cached_probe("boardtemp",motherboard_temperature,now)
         try:
             data["cpu_percent"] = _number(psutil.cpu_percent(interval=None))
             data["cpu_model"] = self.cpu_model
