@@ -83,7 +83,7 @@ def normalized_drop(paths, kind):
         p = Path(path).expanduser()
         if kind == "folders" and p.is_dir():
             value = str(p.resolve())
-        elif kind == "apps" and (
+        elif kind == "apps" and (p.is_dir() or
                 p.is_file() and p.suffix.lower() in ((".lnk", ".url") if sys.platform == "win32" else (".desktop",))
                 or sys.platform == "darwin" and p.is_dir() and p.suffix.lower() == ".app"):
             value = str(p.resolve())
@@ -145,6 +145,8 @@ def launch_item(value: str, kind: str) -> bool:
             return True
         except OSError:
             return False
+    if target.is_dir():
+        return QDesktopServices.openUrl(QUrl.fromLocalFile(str(target)))
     if not target.is_file() or target.suffix.lower() != ".desktop" or launcher_metadata(target) is None:
         return False
     if sys.platform.startswith("linux"):
@@ -511,6 +513,7 @@ class EdgeDock(QWidget):
         open_action=menu.addAction("Ouvrir") if selected else None
         rename_action=menu.addAction("✎ Renommer le raccourci…") if selected else None
         pin_action=menu.addAction("◈ Ajouter à la barre de navigation") if selected else None
+        fav_action=menu.addAction("★ Ajouter aux favoris (Applications)") if selected else None
         add=menu.addAction("Ajouter un raccourci…")
         remove=menu.addAction("Retirer ce raccourci") if selected else None
         action=menu.exec(self.items.mapToGlobal(pos))
@@ -521,6 +524,9 @@ class EdgeDock(QWidget):
                 return
             if action==pin_action:
                 self.shortcut_requested.emit("bottom",path)
+                return
+            if action==fav_action:
+                self.shortcut_requested.emit("sidebar",path)
                 return
             if action==rename_action:
                 alias,ok=QInputDialog.getText(self,"Renommer le raccourci",
