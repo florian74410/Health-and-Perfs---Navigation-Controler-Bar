@@ -25,7 +25,7 @@ def display_url(raw):
     return urlunsplit((parts.scheme,host,parts.path,"",""))
 
 class WebInspector(QWidget):
-    request_captured=Signal(str,str)
+    request_captured=Signal(str,str,str)
     def __init__(self,parent=None):
         super().__init__(parent)
         self.setWindowTitle("NEXUS / WEB INSPECTOR")
