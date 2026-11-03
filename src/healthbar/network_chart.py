@@ -2,8 +2,7 @@
 from collections import deque
 import math
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QPainter, QPainterPath, QPen, QFont
-from .ui_kit import QColor
+from PySide6.QtGui import QPainter, QPainterPath, QColor, QPen, QFont
 from PySide6.QtWidgets import QWidget
 
 UP = '#39ef7d'

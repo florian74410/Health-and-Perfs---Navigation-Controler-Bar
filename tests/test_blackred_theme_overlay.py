@@ -67,7 +67,7 @@ class BlackRedPackTests(unittest.TestCase):
 
 
 class TransparentWindowTests(unittest.TestCase):
-    @unittest.skipUnless(os.getenv("QT_QPA_PLATFORM") == "offscreen", "Offscreen Qt QA only")
+    @unittest.skipUnless(os.getenv("NOVABAR_QT_PIXEL_QA") == "1", "Explicit opt-in for Qt pixel QA; offscreen Qt can crash rendering QWidget into QImage")
     def test_settings_corners_are_actually_transparent(self):
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QImage, QPainter
