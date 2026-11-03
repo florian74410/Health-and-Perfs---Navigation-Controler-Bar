@@ -86,7 +86,11 @@ class CockpitFrame(QFrame):
             for y in (h*.34,h*.67):
                 p.setPen(QPen(QColor('#8da6b3'),.6));p.setBrush(QColor('#081420'));p.drawEllipse(QPointF(x,y),2,2)
                 p.setPen(QPen(QColor('#3a5a6a'),.7));p.drawLine(QPointF(x-1,y+1),QPointF(x+1,y-1))
-        p.setClipping(False);p.end()
+        p.setClipping(False)
+        if self.theme == 'blue-neon':
+            from .blue_graphite_fx import paint_edge_fx
+            paint_edge_fx(p, QRectF(self.rect()), self.phase, .72)
+        p.end()
 
 
 _SVGS={
