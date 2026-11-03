@@ -392,7 +392,7 @@ class HudCanvas(QWidget):
         p.resetTransform()
         if not retracted:
             from .ui_kit import active_theme
-            if active_theme() == 'blue-neon':
+            if active_theme() in ("blue-neon","blue-night-083"):
                 from .blue_graphite_fx import paint_edge_fx
                 phase = (time.monotonic() * .095) % 1.0
                 for index, kind in enumerate(self.active_slots):
