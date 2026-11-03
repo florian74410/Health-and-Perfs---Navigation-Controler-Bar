@@ -556,8 +556,8 @@ class Bar(QWidget):
                     self.last_cpu_error = cpu_state["error"]
                     QMessageBox.warning(self,"CPU Mode indisponible",cpu_state["error"])
                 elif not cpu_state["error"]: self.last_cpu_error = None
-                if self.cpu_controller.mode is not None:
-                    self.turbo.setText("CPU !" if cpu_state["error"] else ("AUTO" if cpu_state["mode"]=="auto" else ("ON" if cpu_state["enabled"] else "OFF")))
+                if cpu_state["enabled"] is not None and not cpu_state["error"]:
+                    self._set_turbo_indicator(cpu_state["enabled"])
                 self.canvas.set_telemetry(readings)
                 for slot, panel in self.module_holos.items():
                     if panel.isVisible():
@@ -734,6 +734,7 @@ class Bar(QWidget):
             size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("NORMAL MODE")
+            self._set_turbo_indicator(False,force=True)
             for index in range(1, 1+count):
                 self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
             self.expand_button.setFixedSize(utility_width,button_height)
@@ -988,29 +989,59 @@ class Bar(QWidget):
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Exécution impossible", str(error))
 
+    def _set_turbo_indicator(self,enabled,force=False):
+        if not force and getattr(self,"_shown_turbo",None)==enabled:
+            return
+        self._shown_turbo=bool(enabled)
+        accent="#FF5972" if enabled else "#36DFFF"
+        self.turbo.setText("TURBO ON" if enabled else "NORMAL MODE")
+        self.turbo.setStyleSheet(
+            "QPushButton#cpuModeButton {color:"+accent+
+            ";background:rgba(3,23,45,220);font-weight:800;"
+            "border:1px solid "+accent+";border-radius:7px;}"
+            "QPushButton#cpuModeButton:hover {background:rgba(25,64,86,235);}"
+        )
+
     def turbo_menu(self):
-        self.busy = True
+        self.busy=True
         self.hide_timer.stop()
-        menu = QMenu(self)
-        menu.setTitle("CPU Mode")
-        for key, name in self.cpu_controller.MODES.items():
-            action = menu.addAction(name)
-            action.setCheckable(True)
-            action.setChecked(self.cpu_controller.mode == key)
-            action.triggered.connect(lambda checked=False, key=key: self.select_cpu_mode(key))
+        menu=QMenu(self)
+        menu.setTitle("CPU / privilèges administrateur")
+        if not self.settings.turbo_auth_enabled:
+            disabled=menu.addAction("Turbo désactivé dans les Paramètres")
+            disabled.setEnabled(False)
+        else:
+            menu.addAction("◈ NORMAL MODE",lambda:self.select_cpu_mode("off"))
+            menu.addAction("⚡ TURBO ON",lambda:self.select_cpu_mode("on"))
         menu.addSeparator()
-        label = menu.addAction(self.cpu_controller.status)
-        label.setEnabled(False)
+        status=menu.addAction(self.cpu_controller.status)
+        status.setEnabled(False)
         try:
             menu.exec(self.turbo.mapToGlobal(self.turbo.rect().bottomLeft()))
         finally:
-            self.busy = False
+            self.busy=False
             self.arm_hide()
 
-    def select_cpu_mode(self, mode):
-        self.cpu_controller.select(mode)
-        self.last_sensor_request = 0
-        self.turbo.setToolTip("Demande en cours de vérification par le noyau")
+    def select_cpu_mode(self,mode):
+        if mode not in ("on","off"):
+            QMessageBox.warning(self,"CPU Turbo","Choisir NORMAL MODE ou TURBO ON")
+            return
+        if not self.settings.turbo_auth_enabled:
+            QMessageBox.information(self,"CPU Turbo","Autoriser le Turbo dans Paramètres → Général")
+            return
+        from .turbo_polkit import request_turbo
+        self.turbo.setEnabled(False)
+        self.turbo.setToolTip("Authentification administrateur demandée via polkit")
+        def finished(success,message):
+            self.turbo.setEnabled(True)
+            self.cpu_controller.mode=None  # Never poll/write privileged sysfs in background.
+            self.last_sensor_request=0
+            if not success:
+                QMessageBox.warning(self,"Autorisation Turbo",message)
+            else:
+                self._set_turbo_indicator(mode=="on")
+                self.turbo.setToolTip(message)
+        self._turbo_worker=request_turbo(mode=="on",finished)
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
