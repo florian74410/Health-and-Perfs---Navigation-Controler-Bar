@@ -181,7 +181,7 @@ def gauge(p, cx, cy, radius, value, unit, warm=False, max_value=3.5):
     text(p, cx-21, cy+31, unit, 15, "#a6c8ff")
 
 
-def tachometer(p, bounds, value, maximum, unit):
+def tachometer(p, bounds, value, maximum, unit, show_value=True):
     """Segment-only circular dial with the reading and unit centered inside the arc."""
     p.save()
     radius = max(5, min(bounds.width(), bounds.height()) / 2 - 3)
@@ -193,13 +193,16 @@ def tachometer(p, bounds, value, maximum, unit):
     p.drawEllipse(center, radius + 1, radius + 1)
     for i in range(29):
         angle = math.radians(140 + i * 260 / 28)
-        color = "#ff6476" if i > 24 else "#ffc15e" if i > 19 else CYAN
+        color = ("#29c5ff" if i/28 < .24 else "#34e2aa" if i/28 < .50 else "#ffa846" if i/28 < .76 else "#ff5969")
         if fraction is None or i / 28 > fraction:
             color = "#17456d"
         p.setPen(QPen(QColor(color), max(1.5, min(2.6, radius * .095))))
         p.drawLine(center + QPointF(math.cos(angle), math.sin(angle)) * (radius - 4),
                    center + QPointF(math.cos(angle), math.sin(angle)) * radius)
     # No needle: the illuminated segments alone indicate the measured value.
+    if not show_value:
+        p.restore()
+        return
     number = (f"{value:.1f}" if unit == "GHz" else f"{value:.0f}") if valid else "—"
     size = max(8, min(14, round(radius * .58)))
     font = QFont("DejaVu Sans")
@@ -628,7 +631,7 @@ class HudCanvas(QWidget):
                         maximum = max(3000, dial_value or 0)
                         unit = "RPM"
                     tachometer(p, QRectF(x+8, y+(height-dial_size)/2, dial_size, dial_size),
-                               dial_value, maximum, unit)
+                               dial_value, maximum, unit, show_value=(kind != "fans"))
                     left = x+12+dial_size
                 elif kind in ("ram", "storage") and width >= 115:
                     battery_width = min(68, max(43, width*.33))
