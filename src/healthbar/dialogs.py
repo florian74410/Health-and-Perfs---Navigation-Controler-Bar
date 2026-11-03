@@ -62,7 +62,9 @@ class SettingsDialog(PCBSettingsDialog):
         box = QVBoxLayout(self)
         box.setContentsMargins(36, 35, 36, 30)
         box.setSpacing(13)
-        title = QLabel(("◈ NOVA / REDBLACK 0.8.2.2 — CONTROL CENTER"
+        title = QLabel(("◈ NOVA / BLUE NEON DARK NIGHT 0.8.3"
+                        if settings.theme=="blue-night-083" else
+                        "◈ NOVA / REDBLACK 0.8.2.2 — CONTROL CENTER"
                         if settings.theme=="redblack-0822" else
                         "◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES"))
         title.setObjectName("title")
@@ -555,7 +557,7 @@ class SettingsDialog(PCBSettingsDialog):
         tabs.tabBar().hide()
         nav = QListWidget()
         nav.setObjectName("settingsNavigation")
-        nav.setFixedWidth(258 if settings.theme=="redblack-0822" else 230)
+        nav.setFixedWidth(258 if settings.theme in ("redblack-0822","blue-night-083") else 230)
         entries=(("⌂  GÉNÉRAL","◈  APPARENCE","▣  PLUGINS","◉  CPU","⟲  MISE À JOUR","ⓘ  À PROPOS")
                  if settings.theme=="redblack-0822" else
                  ("GÉNÉRALE","THÈMES & COULEURS","EXTENSIONS","CPU","MISE À JOUR","À PROPOS"))
