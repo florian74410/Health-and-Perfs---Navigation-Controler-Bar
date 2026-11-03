@@ -283,6 +283,8 @@ class Bar(QWidget):
                 dock.moved_to_other_side.connect(self.move_dock)
                 dock.entries_changed.connect(self.save_dock_entries)
                 dock.settings_requested.connect(self.preferences)
+                dock.shortcut_requested.connect(self.add_dock_shortcut)
+                dock.alias_changed.connect(self.save_dock_alias)
                 self.sidebars[side] = dock
             else:
                 existing.settings = self.settings
@@ -315,6 +317,47 @@ class Bar(QWidget):
             if dock.kind == kind:
                 dock.set_items(dock.default_items())
 
+    def save_dock_alias(self,path,name):
+        if not isinstance(path,str) or not isinstance(name,str):
+            return
+        self.settings.dock_aliases[path]=name
+        self.settings.save()
+        for dock in self.sidebars.values():
+            dock.set_items(dock.default_items())
+
+    def add_dock_shortcut(self,destination,path):
+        """Persist one explicit user-selected shortcut; never install anything."""
+        from .edge_docks import normalized_drop
+        from .bottom_dock import pinned_apps
+        if destination not in ("bottom","sidebar","unpin") or not isinstance(path,str):
+            return
+        if destination=="unpin":
+            paths=(self.settings.bottom_pinned_apps if self.settings.bottom_pinned_apps is not None
+                   else pinned_apps(self.settings))
+            self.settings.bottom_pinned_apps=[p for p in paths if p!=path]
+        else:
+            target=Path(path).expanduser()
+            if target.is_dir():
+                clean=normalized_drop([str(target)],"folders")
+            else:
+                clean=normalized_drop([str(target)],"apps")
+            if not clean:
+                QMessageBox.warning(self,"NovaBar / Raccourcis","Le raccourci sélectionné est inaccessible.")
+                return
+            value=clean[0]
+            if destination=="bottom":
+                paths=(list(self.settings.bottom_pinned_apps) if self.settings.bottom_pinned_apps is not None
+                       else pinned_apps(self.settings))
+                self.settings.bottom_pinned_apps=list(dict.fromkeys([*paths,value]))[:10]
+            else:
+                # The right-hand applications bar is the Favorites destination.
+                paths=list(self.settings.dock_app_paths or [])
+                self.settings.dock_app_paths=list(dict.fromkeys([*paths,value]))[:128]
+        self.settings.save()
+        if self.bottom_dock is not None:
+            self.bottom_dock.apply_settings(self.settings)
+        self.sync_sidebars()
+
     def sync_xfce_skin(self):
         """Manage the native Xfce panel without taking ownership of its icons."""
         from .xfce_panel_skin import apply_skin, remove_skin, backup_path
@@ -329,6 +372,7 @@ class Bar(QWidget):
                 self.bottom_dock=BottomDock(self.settings)
                 self.bottom_dock.settings_requested.connect(self.preferences)
                 self.bottom_dock.quit_requested.connect(self.quit_app)
+                self.bottom_dock.shortcut_requested.connect(self.add_dock_shortcut)
             else:self.bottom_dock.apply_settings(self.settings)
             self.xfce_skin_status="Barre inférieure NovaBar active · original XFCE masqué pendant la session"
             return
