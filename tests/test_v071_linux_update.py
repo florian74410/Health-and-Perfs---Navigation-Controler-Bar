@@ -1,4 +1,4 @@
-"""NovaBar 0.7.6: Linux GVFS and verified APT update regressions."""
+"""NovaBar 0.7.1: Linux GVFS and verified APT update regressions."""
 import json
 import os
 import runpy
@@ -38,7 +38,7 @@ class NativeUpdateTests(unittest.TestCase):
         stale={"tag_name":"v0.7.5","prerelease":False,"draft":False,
                "assets":RELEASE["assets"]}
         with patch("healthbar.updates.read_url",
-                   return_value=json.dumps([stale]).encode()), \\
+                   return_value=json.dumps([stale]).encode()), \
              patch("healthbar.updates.__version__","0.7.1"):
             self.assertIsNone(check_native_release())
 
