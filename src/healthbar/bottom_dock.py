@@ -360,7 +360,7 @@ class BottomDock(QWidget):
         menu=self.themed_menu();menu.addAction('Activer',lambda:self.backend.action(row['id']));menu.addAction('Fermer',lambda:self.backend.action(row['id'],close=True));menu.exec(button.mapToGlobal(button.rect().topLeft()))
     def open_menu(self):
         if self.launcher:self.launcher.close();self.launcher.deleteLater()
-        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.shortcut_requested.connect(self.shortcut_requested.emit);self.launcher.show_above(self.menu_button)
+        self.launcher=ApplicationLauncher(self.settings.theme,favorite_apps(self.settings),parent=self);self.launcher.settings_requested.connect(self.settings_requested.emit);self.launcher.quit_requested.connect(self.quit_requested.emit);self.launcher.shortcut_requested.connect(self.shortcut_requested.emit);self.launcher.shortcut_renamed.connect(self.shortcut_renamed.emit);self.launcher.show_above(self.menu_button)
     def network_menu(self):
         menu=self.themed_menu();state=self.desktop_state.get('network');menu.addAction(state['name'] if state else 'État réseau indisponible').setEnabled(False)
         if state:menu.addAction('Interface : '+state.get('device','—')).setEnabled(False)
