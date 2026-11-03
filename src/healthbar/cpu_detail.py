@@ -103,9 +103,31 @@ class PackagePower:
         self.root = Path(root)
         self.previous = None
 
+    def _hwmon_package_watts(self):
+        """Read only CPU-specific power sensors: Linux hwmon values are µW."""
+        try:
+            for folder in Path("/sys/class/hwmon").glob("hwmon*"):
+                chip=(folder/"name").read_text().strip().lower()
+                if chip not in ("zenpower","k10temp","amd_energy","coretemp"):
+                    continue
+                for sensor in folder.glob("power*_average"):
+                    label_path=sensor.with_name(sensor.stem+"_label")
+                    label=label_path.read_text().lower() if label_path.exists() else ""
+                    if label and not any(word in label for word in ("package","socket","cpu","ppt")):
+                        continue
+                    watts=float(sensor.read_text().strip())/1e6
+                    if 0<=watts<=1000:
+                        return round(watts,1)
+        except (OSError,ValueError):
+            return None
+        return None
+
     def sample(self):
         if not sys.platform.startswith("linux"):
             return None
+        hwmon=self._hwmon_package_watts()
+        if hwmon is not None:
+            return hwmon
         try:
             value = int((self.root/"energy_uj").read_text())
             maximum = int((self.root/"max_energy_range_uj").read_text())
