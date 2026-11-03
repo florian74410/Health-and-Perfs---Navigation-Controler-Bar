@@ -64,6 +64,11 @@ def stylesheet(text):
     def retint(match):
         prefix=text[max(0,match.start()-40):match.start()]
         if re.search(r"(?<![-\w])color\s*:\s*$",prefix):
+            # Preserve off-white informational text; only strong cyan/blue
+            # headings inherit the skin accent colour.
+            hue,sat,val,_=QtColor(match[0]).getHsvF()
+            if get_pack(_active) and .46<=hue<=.72 and sat>=.42 and val>=.55:
+                return QColor(match[0]).name()
             return match[0]
         return QColor(match[0]).name()
     from .theme_packs import recolor_qss

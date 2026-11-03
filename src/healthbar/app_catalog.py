@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,
 from .cockpit_style import CockpitFrame,app_icon,symbol_icon
 from .edge_docks import launch_item
 from .xfce_panel_skin import PALETTES
+from .ui_kit import stylesheet
 
 CATEGORIES=[('all','Toutes les apps','apps',set()),('favorites','Favoris','apps',set()),
  ('internet','Internet','browser',{'Network','WebBrowser','Email','InstantMessaging'}),
@@ -91,12 +92,12 @@ class ApplicationLauncher(QWidget):
         prefs=QPushButton('Paramètres');prefs.setIcon(symbol_icon('settings'));prefs.clicked.connect(lambda:(self.close(),self.settings_requested.emit()));footer.addWidget(prefs)
         logout=QPushButton('Quitter NovaBar');logout.setIcon(symbol_icon('logout'));logout.clicked.connect(lambda:(self.close(),self.quit_requested.emit()));footer.addWidget(logout);box.addLayout(footer)
         primary,secondary,_=PALETTES.get(theme,PALETTES['blue-neon'])
-        self.setStyleSheet(f'''QWidget {{font-family:Sans;color:#e1edf6;font-size:12px;}} QLabel#launcherTitle {{color:{primary};font-weight:bold;letter-spacing:2px;}}
+        self.setStyleSheet(stylesheet(f'''QWidget {{font-family:Sans;color:#e1edf6;font-size:12px;}} QLabel#launcherTitle {{color:{primary};font-weight:bold;letter-spacing:2px;}}
             QLineEdit {{background:#081b2c;border:1px solid {secondary};border-radius:4px;padding:10px;}}
             QListWidget {{background:transparent;border:0;outline:0;}} QListWidget::item {{padding:5px;border:1px solid transparent;}}
             QListWidget::item:selected,QListWidget::item:hover {{background:#153c53;border:1px solid {primary};border-radius:5px;}}
             QPushButton {{background:#102d40;border:1px solid {secondary};border-radius:4px;padding:7px;}} QPushButton:hover {{border-color:{primary};}}
-            QScrollBar:vertical {{background:#071724;width:7px;}} QScrollBar::handle:vertical {{background:{secondary};min-height:25px;}} QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {{height:0;}}''')
+            QScrollBar:vertical {{background:#071724;width:7px;}} QScrollBar::handle:vertical {{background:{secondary};min-height:25px;}} QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {{height:0;}}'''))
         self.search.textChanged.connect(self.filter);self.categories.currentItemChanged.connect(self.select_category)
         self._queued_path=None
         self._click_timer=QTimer(self)
@@ -154,10 +155,10 @@ class ApplicationLauncher(QWidget):
             return
         menu=QMenu(self)
         primary,secondary,_=PALETTES.get(self.frame.theme,PALETTES["blue-neon"])
-        menu.setStyleSheet(
+        menu.setStyleSheet(stylesheet(
             "QMenu {background:#06172A;color:#E9F6FF;border:1px solid "+primary+
             ";padding:6px;} QMenu::item {padding:8px 16px;}"
-            "QMenu::item:selected {background:#144761;}")
+            "QMenu::item:selected {background:#144761;}"))
         start=menu.addAction("▶ Ouvrir l'application")
         rename=menu.addAction("✎ Renommer le raccourci…")
         favorite=menu.addAction("★ Ajouter aux favoris (barre latérale)")

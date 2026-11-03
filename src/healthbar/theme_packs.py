@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from functools import lru_cache
 
 ID = re.compile(r"^[a-z][a-z0-9_-]{2,47}$")
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -66,6 +67,7 @@ def _read(folder: Path) -> dict | None:
         return None
 
 
+@lru_cache(maxsize=32)
 def get_pack(theme: str) -> dict | None:
     if not isinstance(theme, str) or not ID.fullmatch(theme):
         return None
@@ -96,6 +98,7 @@ def known_theme(theme: str) -> bool:
     return theme in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood") or get_pack(theme) is not None
 
 
+@lru_cache(maxsize=64)
 def asset_path(theme: str, role: str) -> Path | None:
     pack = get_pack(theme)
     if not pack or role not in ASSET_KEYS:
