@@ -674,7 +674,7 @@ class Bar(QWidget):
         self.animation.stop()
         self.retracted = False
         self._edge_armed = False
-        self.quit_button.hide()
+        self.quit_button.setVisible(self.settings.position != "top")
         self.actions.show()
         self.root.setSpacing(8)
         screens = QApplication.screens()
