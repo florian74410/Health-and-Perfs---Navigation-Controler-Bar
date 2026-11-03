@@ -4,6 +4,7 @@ on:
     branches:
       - 0.8.2.2REDBLACK
       - work/novabar-redblack-r1-asset-refactor
+      - work/novabar-redblack-r2-graphite-layout
     paths:
       - 'src/**'
       - 'docs/REDBLACK_R1.md'
