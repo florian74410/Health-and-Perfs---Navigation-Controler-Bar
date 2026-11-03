@@ -826,7 +826,7 @@ class Bar(QWidget):
             turbo_width = 148 if width >= 350 else 90
             utility_width = 28
             count = self.button_layout.count() - 3  # turbo, expand, optional quit
-            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
+            size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//max(1,count)))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("NORMAL MODE")
             self._set_turbo_indicator(False,force=True)

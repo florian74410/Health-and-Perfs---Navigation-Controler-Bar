@@ -94,7 +94,7 @@ class TaskButton(QToolButton):
             active=bool(self.property('active'))
             redblack_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
                              "task",self.flash_phase,active or self.underMouse())
-            size=min(38,self.height()-14)
+            size=max(12,min(32,self.height()-10))
             self.icon.paint(p,QRect(10,(self.height()-size)//2,size,size))
             p.setPen(QColor("#FFF0F2" if active else "#D7BAC0"))
             font=p.font();font.setPixelSize(12);font.setBold(active);p.setFont(font)
@@ -129,14 +129,14 @@ class BottomDock(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground);self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         root=QHBoxLayout(self);root.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint);root.setContentsMargins(0,0,0,0)
         self.body=CockpitFrame(settings.theme);root.addWidget(self.body)
-        self.row=QHBoxLayout(self.body);self.row.setContentsMargins(23,20,23,20);self.row.setSpacing(8)
+        self.row=QHBoxLayout(self.body);self.row.setContentsMargins(18,9,18,9);self.row.setSpacing(7)
         self.launchers=QWidget();self.pins=QHBoxLayout(self.launchers);self.pins.setContentsMargins(0,0,0,0);self.pins.setSpacing(4)
         self.menu_button=ElectronToolButton();self.menu_button.setObjectName('nexus');self.menu_button.setIcon(lookup_icon('linuxmint-logo') if not lookup_icon('linuxmint-logo').isNull() else symbol_icon('apps','#3ee5ff'));self.menu_button.setToolTip('NEXUS · Applications et favoris');self.menu_button.setAccessibleName('NEXUS · Applications')
         self.menu_button.clicked.connect(self.open_menu);self.pins.addWidget(self.menu_button);self.row.addWidget(self.launchers)
         self.tasks_area=QScrollArea();self.tasks_area.setWidgetResizable(True);self.tasks_area.setFrameShape(QScrollArea.Shape.NoFrame)
         self.tasks_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff);self.tasks_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.tasks_area.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Ignored);self.tasks_area.setMinimumSize(0,0)
-        self.tasks_body=QWidget();self.tasks=QHBoxLayout(self.tasks_body);self.tasks.setContentsMargins(3,0,3,0);self.tasks.setSpacing(8);self.tasks.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        self.tasks_body=QWidget();self.tasks=QHBoxLayout(self.tasks_body);self.tasks.setContentsMargins(3,0,3,0);self.tasks.setSpacing(6);self.tasks.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         self.tasks_area.setWidget(self.tasks_body);self.row.addWidget(self.tasks_area,1)
         self._overflow_rows=[]
         self.overflow=QToolButton()
@@ -215,6 +215,9 @@ class BottomDock(QWidget):
         screens=QApplication.screens()
         if not screens:return
         bounds=screens[min(settings.screen,len(screens)-1)].geometry();height=bottom_height(settings)
+        # Preserve controls and icon hitboxes at every 62–130px dock height.
+        side_margin=max(5,min(14,(height-35)//2))
+        self.row.setContentsMargins(17,side_margin,17,side_margin)
         self.full_rect=QRect(bounds.left(),bounds.bottom()-height+1,bounds.width(),height);self.setFixedHeight(height);self.setGeometry(self.full_rect)
         self._reserve_workarea()
         self.body.glass_opacity=settings.bottom_nav_opacity
@@ -239,9 +242,17 @@ class BottomDock(QWidget):
                     lambda pos,b=button,p=path:self.pin_context_menu(b,p))
                 self.pins.addWidget(button)
         self._task_key=None
-        for button in self.launchers.findChildren(QToolButton):button.setFixedSize(height-36,height-40);button.setIconSize(QSize(min(42,height-48),min(42,height-48)))
-        for button in self.indicators.values():button.setFixedSize(34,height-40);button.setIconSize(QSize(27,27))
-        self.preferences.setFixedSize(30,height-40);self.preferences.setIconSize(QSize(23,23));self.clock.setFixedSize(76,height-40)
+        hit=max(25,min(44,height-2*side_margin-6))
+        glyph=max(14,min(28,hit-8))
+        for button in self.launchers.findChildren(QToolButton):
+            button.setFixedSize(hit,hit)
+            button.setIconSize(QSize(glyph,glyph))
+        for button in self.indicators.values():
+            button.setFixedSize(max(25,min(34,hit)),hit)
+            button.setIconSize(QSize(glyph,glyph))
+        self.preferences.setFixedSize(max(25,min(34,hit)),hit)
+        self.preferences.setIconSize(QSize(glyph,glyph))
+        self.clock.setFixedSize(76,hit)
         self.overflow.setFixedSize(54,max(24,height-40))
         self.hide_timer.setInterval(settings.xfce_skin_delay_seconds*1000)
         if not self.collapsed:self.show()
@@ -283,7 +294,9 @@ class BottomDock(QWidget):
                     icon=QIcon.fromTheme(row['icon'])
                     if icon.isNull():icon=self.backend.window_icon(row['id'])
                     self._icon_cache[row['id']]=icon if not icon.isNull() else app_icon(row['icon'])
-                button=TaskButton(row,self._icon_cache[row['id']],self.settings.theme);button.setFixedHeight(self.full_rect.height()-42);button.setProperty('active',row['id']==active)
+                button=TaskButton(row,self._icon_cache[row['id']],self.settings.theme)
+                button.setFixedHeight(max(25,min(46,self.full_rect.height()-26)))
+                button.setProperty('active',row['id']==active)
                 button.setFixedWidth(min(250,max(128,(self.tasks_area.viewport().width()-14)//max(1,len(shown))-8)))
                 button.clicked.connect(lambda checked=False,x=row['id']:self.backend.action(x,minimize=x==self._active))
                 button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu);button.customContextMenuRequested.connect(lambda pos,b=button,r=row:self.task_menu(b,r));self.tasks.addWidget(button)

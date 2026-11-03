@@ -210,28 +210,32 @@ def paint_hud(p,hud):
         if rect.width()<23 or rect.height()<16:continue
         selected=(hud._hover_slot==kind)
         title,value,detail,ratio=meta[kind]
+        title=hud.labels.get(kind,title)  # Registry is authoritative.
         paint_surface(p,rect,"hud",htime+i*.17,selected)
         p.save()
-        inner=rect.adjusted(10,6,-10,-6)
+        inner=rect.adjusted(9,5,-9,-5)
         p.setClipRect(inner)
-        short=inner.height()<60
-        if retracted or inner.height()<31:
-            _fitted(p,inner,str(title)+"  "+str(value),11,WHITE,True)
+        icon_bounds=hud.module_icon_rect(kind)
+        available=max(1,inner.width()-max(28,icon_bounds.width()+15))
+        # Geometry contract shared with module_rect(), module_at() and
+        # the top-right Holo icon. Tiny cards get one compact readout.
+        compact=retracted or inner.height()<78 or inner.width()<118
+        if compact:
+            _fitted(p,QRectF(inner.left()+2,inner.top()+1,available,
+                             max(1,inner.height()-2)),
+                    str(title)+"  "+str(value),11,WHITE,True)
             p.restore()
             continue
-        # Metallic header + optical tick marks, not the original neon panel.
-        # Leave the real Holo trigger icon (top-right) completely unobstructed.
-        icon_bounds=hud.module_icon_rect(kind)
-        available=max(18,inner.width()-max(36,icon_bounds.width()+16))
-        _fitted(p,QRectF(inner.x()+2,inner.y()+3,available,20),
+        _fitted(p,QRectF(inner.x()+2,inner.y()+3,available,19),
                 title,11,CRIMSON,True)
         top=inner.y()+25
-        if hud.vertical and inner.width()<115:
+        if hud.vertical and inner.width()<145:
             _fitted(p,QRectF(inner.x(),top,inner.width(),26),value,15,WHITE,True)
         else:
-            _fitted(p,QRectF(inner.x()+2,top,inner.width()-4,25 if short else 33),
-                    value,16 if short else 23,WHITE,True)
-        if not short:
+            _fitted(p,QRectF(inner.x()+2,top,inner.width()-4,
+                            25 if inner.height()<105 else 33),
+                    value,18 if inner.height()<105 else 23,WHITE,True)
+        if inner.height()>=114:
             _fitted(p,QRectF(inner.x()+2,min(inner.bottom()-26,top+36),inner.width()-4,18),
                     detail,10,MUTED)
         if ratio is not None:
@@ -242,7 +246,7 @@ def paint_hud(p,hud):
             p.setBrush(QColor(CRIMSON))
             p.drawRoundedRect(QRectF(gx,by,gw*ratio,3),1,1)
         # Decorative stripes are intentionally NOT presented as fabricated data.
-        if inner.width()>155 and inner.height()>80:
+        if inner.width()>155 and inner.height()>114:
             for ix in range(3):
                 x=inner.right()-35+ix*7
                 p.fillRect(QRectF(x,inner.y()+5,4,2),_color(HOT,180+20*ix))
