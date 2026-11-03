@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import subprocess
+import shutil
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,7 +34,7 @@ def button_icon(kind):
     pix.fill(Qt.GlobalColor.transparent)
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setPen(QPen(QColor("#24dbff"), 2))
+    p.setPen(QPen(QColor("#F25067"), 2))
     if kind == "terminal":
         p.drawLine(10, 11, 18, 19)
         p.drawLine(18, 19, 10, 27)
@@ -167,12 +168,9 @@ class Bar(QWidget):
         self.turbo.setIcon(QIcon())
         self.turbo.setFixedWidth(155)
         self.turbo.setObjectName("cpuModeButton")
-        self.make_button("terminal", "Console • emplacement réservé", self.console_info)
-        self.make_button("folder", "Ouvrir le dossier de configuration", self.open_folder)
+        self.make_button("terminal", "Ouvrir un terminal système", self.open_terminal)
         self.make_button("grid", "Extensions • ajouter et mettre à jour", self.plugins)
         self.make_button("settings", "Préférences / installation", self.preferences)
-        self.wiki_button = self.make_button("wiki", "Ouvrir le Wiki NovaBar", self.open_wiki)
-        self.wiki_button.setAccessibleName("Ouvrir le Wiki NovaBar")
         self.action_layout.addWidget(self.buttons)
         self.expand_button = NeonButton()
         self.expand_button.setObjectName("nav")
@@ -774,15 +772,15 @@ class Bar(QWidget):
             width = self.actions.width()
             turbo_width = 148 if width >= 350 else 90
             utility_width = 28
-            count = self.button_layout.count() - 3  # turbo, expand, hidden quit
+            count = self.button_layout.count() - 3  # turbo, expand, optional quit
             size = max(20,min(55,(width-10-30-turbo_width-2*utility_width)//count))
             self.turbo.setFixedSize(turbo_width,button_height)
             self.turbo.setText("NORMAL MODE")
             self._set_turbo_indicator(False,force=True)
             for index in range(1, 1+count):
-                self.button_layout.itemAt(index).widget().setFixedSize(size,button_height)
-            self.expand_button.setFixedSize(utility_width,button_height)
-            self.quit_button.setFixedSize(utility_width,button_height)
+                self.button_layout.itemAt(index).widget().setFixedSize(min(size,button_height),min(size,button_height))
+            self.expand_button.setFixedSize(utility_width,utility_width)
+            self.quit_button.setFixedSize(utility_width,utility_width)
             y = g.top() if self.settings.position == "top" else g.bottom()-thickness+1
             length = max(290, round(g.width()*self.settings.length_percent/100))
             shift = {"left": 0, "center": (g.width()-length)//2,
@@ -981,28 +979,23 @@ class Bar(QWidget):
         data_dir().mkdir(parents=True, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_dir())))
 
-    def console_info(self):
-        folder = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
-            Path.home() / "Scripts" / "HardwareHealth")
-        folder.mkdir(parents=True, exist_ok=True)
-        allowed = {".py", ".sh", ".command"} if os.name != "nt" else {
-            ".py", ".bat", ".cmd", ".ps1"}
-        files = [p for p in sorted(folder.iterdir()) if p.is_file() and p.suffix.lower() in allowed]
-        menu = QMenu(self)
-        if not files:
-            menu.addAction("Aucun script • sélectionnez un dossier dans Générale").setEnabled(False)
-        for script in files[:40]:
-            menu.addAction(script.name, lambda checked=False, p=script: self.run_script(p))
-        menu.addSeparator()
-        menu.addAction("Ouvrir le dossier", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))))
-        self.busy = True
-        self.hide_timer.stop()
+    def open_terminal(self):
+        """Open the user's terminal emulator, never a themed stub."""
+        commands=(
+            ["exo-open","--launch","TerminalEmulator"],
+            ["xfce4-terminal"], ["x-terminal-emulator"], ["konsole"],
+            ["gnome-terminal"], ["xterm"])
+        cmd=next((c for c in commands if shutil.which(c[0])),None)
+        if cmd is None:
+            QMessageBox.warning(self,"NovaBar / Terminal",
+                                "Aucun émulateur de terminal disponible sur le système.")
+            return
         try:
-            menu.exec(self.sender().mapToGlobal(self.sender().rect().bottomLeft())
-                      if isinstance(self.sender(), QWidget) else QCursor.pos())
-        finally:
-            self.busy = False
-            self.arm_hide()
+            subprocess.Popen(cmd,env=native_env(),stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        except OSError as exc:
+            QMessageBox.warning(self,"NovaBar / Terminal",str(exc))
 
     def run_script(self, path):
         root = Path(self.settings.shell_dir).expanduser() if self.settings.shell_dir else (
