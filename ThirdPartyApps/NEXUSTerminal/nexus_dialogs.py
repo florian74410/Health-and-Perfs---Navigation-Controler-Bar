@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 CONFIG_DIR=Path.home()/".config"/"nexus-terminal"
-PROFILES=CONFIG_DIR/"connections.json"\nAPI_PROFILES=CONFIG_DIR/"api_profiles.json"
+PROFILES=CONFIG_DIR/"connections.json"
+API_PROFILES=CONFIG_DIR/"api_profiles.json"
 HOST_RE=re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,252}$")
 USER_RE=re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.-]{0,63}$")
 ID_RE=re.compile(r"^[a-zA-Z0-9_. -]{1,64}$")
