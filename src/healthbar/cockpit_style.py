@@ -29,6 +29,17 @@ class CockpitFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
+        if self.theme=="blue-night-083":
+            from .blue_night_shell import paint_surface as night_surface
+            p=QPainter(self)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            p.fillRect(self.rect(),Qt.GlobalColor.transparent)
+            p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            night_surface(p,QRectF(self.rect()).adjusted(2,2,-2,-2),
+                          "dock",self.phase,self.underMouse(),
+                          max(.52,min(.95,self.glass_opacity/100)))
+            p.end()
+            return
         if redblack_active(self.theme):
             p=QPainter(self)
             p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
