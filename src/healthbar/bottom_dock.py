@@ -118,9 +118,11 @@ class TaskButton(QToolButton):
 
 def _dock_control_metrics(height):
     """UI contract: margins and real Qt hitboxes for every supported height."""
-    margin=max(5,min(14,(height-35)//2))
-    hit=max(25,min(44,height-2*margin-6))
-    glyph=max(14,min(28,hit-8))
+    # Linux Mint launcher must retain an icon >=32px at the minimum
+    # supported dock height of 62px. Do not trade plugin hitboxes for padding.
+    margin=max(5,min(10,(height-48)//2))
+    hit=max(36,min(44,height-2*margin-6))
+    glyph=max(32,min(36,hit-6))
     return margin,hit,glyph
 
 
