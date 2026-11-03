@@ -16,5 +16,8 @@ if sys.platform.startswith("linux") and getattr(sys, "frozen", False):
         original = os.environ.get("GIO_MODULE_DIR")
         if original is not None:
             os.environ["NOVABAR_ORIG_GIO_MODULE_DIR"] = original
+        extra = os.environ.get("GIO_EXTRA_MODULES")
+        if extra is not None:
+            os.environ["NOVABAR_ORIG_GIO_EXTRA_MODULES"] = extra
         os.environ["GIO_MODULE_DIR"] = str(isolated)
         os.environ.pop("GIO_EXTRA_MODULES", None)
