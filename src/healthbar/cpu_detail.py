@@ -110,8 +110,9 @@ class PackagePower:
                 chip=(folder/"name").read_text().strip().lower()
                 if chip not in ("zenpower","k10temp","amd_energy","coretemp"):
                     continue
-                for sensor in folder.glob("power*_average"):
-                    label_path=sensor.with_name(sensor.stem+"_label")
+                sensors=list(folder.glob("power*_average")) or list(folder.glob("power*_input"))
+                for sensor in sensors:
+                    label_path=sensor.with_name(sensor.name.split("_",1)[0]+"_label")
                     label=label_path.read_text().lower() if label_path.exists() else ""
                     if label and not any(word in label for word in ("package","socket","cpu","ppt")):
                         continue
