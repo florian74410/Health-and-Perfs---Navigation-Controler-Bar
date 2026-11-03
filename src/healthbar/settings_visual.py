@@ -65,7 +65,7 @@ def settings_stylesheet(theme):
     QScrollBar::handle:horizontal {background:#14648C;border-radius:4px;}
     QDialogButtonBox {background:transparent;}
     """ % (primary,primary,secondary,secondary,primary,secondary,secondary,
-            secondary,secondary,primary,secondary,primary,primary,primary,primary)
+            secondary,secondary,primary,secondary,primary,primary)
 
 
 class PCBSettingsDialog(QDialog):
