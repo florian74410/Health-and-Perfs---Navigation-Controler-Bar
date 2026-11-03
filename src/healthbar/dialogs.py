@@ -65,8 +65,7 @@ class SettingsDialog(PCBSettingsDialog):
         title = QLabel("◈ NOVA NEXUS HD • v"+__version__+"   /   PARAMÈTRES")
         title.setObjectName("title")
         box.addWidget(title)
-        intro = QLabel("Health & Perfs  /  Navigation Controller Bar  /  v"+__version__
-            + "\nInstallation pour votre session utilisateur. Les autres comptes\nconservent leurs propres préférences et extensions.")
+        intro = QLabel("NovaBar / Health & Perfs  —  Linux XFCE  /  Contrôleur des barres, modules et effets PCB")
         intro.setWordWrap(True)
         box.addWidget(intro)
         form = QFormLayout()
