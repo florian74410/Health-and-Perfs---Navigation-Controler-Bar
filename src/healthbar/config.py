@@ -56,7 +56,7 @@ class Settings:
     alignment: str = "center"
     refresh_seconds: int = 2
     shell_dir: str = ""
-    theme: str = "cyber-futuriste"
+    theme: str = "redblack-0822"
     slot_order: list = None
     hidden_modules: list = field(default_factory=lambda: ["power"])
     xfce_skin_enabled: bool = False
@@ -117,7 +117,7 @@ class Settings:
                     not isinstance(v,str) or not 1<=len(v)<=80 or
                     any(ord(c)<32 for c in v) for k,v in self.dock_aliases.items())):
             raise ValueError("Alias des raccourcis invalides")
-        if self.theme not in ("cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
+        if self.theme not in ("redblack-0822", "cyber-futuriste", "blue-neon", "green-matrix", "red-blood"):
             raise ValueError("Thème non reconnu")
         expected = ["cpu", "gpu", "ram", "storage", "fans", "network"]
         available = expected + ["power"]
@@ -150,6 +150,9 @@ class Settings:
     def load(cls):
         try:
             raw = json.loads((data_dir() / "settings.json").read_text(encoding="utf-8"))
+            if raw.get("theme") in ("blackred-studio","blackred-neon"):
+                # Keep every existing favorite, dock and hardware preference.
+                raw["theme"]="redblack-0822"
             if "layout_revision" not in raw and raw.get("thickness", 200) == 200:
                 raw["thickness"] = 72
             if type(raw.get("thickness")) is int:

@@ -354,6 +354,19 @@ class HudCanvas(QWidget):
         self.update()
 
     def paintEvent(self, event):
+        from .redblack_shell import active as redblack_active, paint_hud as paint_redblack_hud
+        if redblack_active():
+            p=QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            p.setClipRect(self.rect().adjusted(1,1,-1,-1))
+            paint_redblack_hud(p,self)
+            if not getattr(self.window(),"retracted",False):
+                for kind in self.active_slots:
+                    r=self.module_icon_rect(kind)
+                    if r.width()>0 and r.height()>0:
+                        icon(p,kind,r.x(),r.y(),r.width())
+            p.end()
+            return
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.setClipRect(self.rect().adjusted(1,1,-1,-1))

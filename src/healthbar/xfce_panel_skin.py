@@ -25,6 +25,7 @@ PALETTES = {
     "cyber-futuriste": ("#18dfff", "#1765bc", "24, 220, 245"),
     "green-matrix": ("#43fa9a", "#137d59", "67, 250, 154"),
     "red-blood": ("#ff607d", "#96254e", "255, 96, 125"),
+    "redblack-0822": ("#FF2647", "#80122A", "255, 38, 71"),
 }
 BOTTOM_POSITIONS = {4, 8, 10, 12}
 
