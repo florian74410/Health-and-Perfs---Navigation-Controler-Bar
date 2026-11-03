@@ -521,6 +521,21 @@ class Bar(QWidget):
         self.apply_settings()
         self.setVisible(self.settings.hud_enabled)
         self.build_tray_menu()
+        if updates.get("theme")=="redblack-0822":
+            self.show_redblack_toast("STYLE ACTIVÉ","NOVA REDBLACK 0.8.2.2 • Nouveau design prêt")
+
+    def show_redblack_toast(self,title,message):
+        """Small red NOVA notice, without touching host system notifications."""
+        from .redblack_shell import active as redblack_active, NovaRedToast
+        if not redblack_active():return
+        old=getattr(self,"_redblack_toast",None)
+        if old is not None:old.close()
+        self._redblack_toast=NovaRedToast(title,message,self)
+        screen=self.screen() or QApplication.primaryScreen()
+        if screen:
+            available=screen.availableGeometry()
+            self._redblack_toast.move(available.right()-450,available.bottom()-155)
+        self._redblack_toast.show()
 
     def tray_toggle(self, panel):
         field = {"hud": "hud_enabled", "left": "dock_left_enabled",

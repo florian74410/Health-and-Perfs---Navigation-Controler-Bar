@@ -20,8 +20,11 @@ recolorisation. **Le nom de la branche ne signifie pas que 0.8.2 existait déjà
   d'origine reliés aux mêmes fonctions.
 - **Icône NOVA** : variante rouge, palette XFCE native facultative et
   restauration sans supprimer le panneau existant.
-- **Notification** : composant `NovaRedToast` disponible pour les messages
-  NovaBar (ce n'est pas un remplacement des notifications système).
+- **Notification** : composant natif `NovaRedToast` utilisé pour confirmer
+  l'activation via menu tray (ce n'est pas un remplacement des notifications système).
+- **Fond d'écran** : image originale rouge/noire incluse, option facultative
+  « Appliquer le fond REDBLACK » et « Restaurer le fond précédent » dans
+  Paramètres → Thèmes & Couleurs, avec sauvegarde XFCE de chaque espace.
 
 Tous les panneaux restent des widgets Qt/PySide6 natifs : aucune image
 statique n'est utilisée pour simuler un bouton et aucun moteur de trading

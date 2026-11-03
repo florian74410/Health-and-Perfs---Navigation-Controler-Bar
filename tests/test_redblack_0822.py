@@ -53,6 +53,14 @@ class RedBlackTests(unittest.TestCase):
             self.assertEqual(img.pixelColor(359,239).alpha(),0,kind)
             self.assertGreater(img.pixelColor(180,140).alpha(),220,kind)
 
+    def test_wallpaper_assets_and_backup_are_separate_from_panel(self):
+        from healthbar.redblack_shell import ASSET_ROOT
+        from healthbar.redblack_wallpaper import PROPERTY, BACKUP
+        self.assertTrue((ASSET_ROOT/"wallpaper-redblack.svg").is_file())
+        self.assertTrue(PROPERTY.fullmatch("/backdrop/screen0/monitorHDMI-1/workspace0/last-image"))
+        self.assertIsNone(PROPERTY.fullmatch("/panels/panel-1/position"))
+        self.assertEqual(BACKUP,"redblack-wallpaper-backup.json")
+
     def test_holo_style_has_readability_and_group_visuals(self):
         from healthbar.redblack_shell import holo_stylesheet
         qss=holo_stylesheet()

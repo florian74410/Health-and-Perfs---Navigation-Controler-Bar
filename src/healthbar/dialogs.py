@@ -443,6 +443,34 @@ class SettingsDialog(PCBSettingsDialog):
         colors_box.addWidget(QLabel("THÈMES & COULEURS / PRÉVISUALISATION"))
         colors_box.addWidget(QLabel("Sélectionnez la palette dans Générale. Aperçu de son rendu et de ses accents."))
         colors_box.addWidget(QLabel("NOVA REDBLACK 0.8.2.2 : cadres, HUD, Holo et panneaux reconstruits."))
+        wallpaper_row=QHBoxLayout()
+        apply_wallpaper_button=QPushButton("◈  Appliquer le fond REDBLACK")
+        restore_wallpaper_button=QPushButton("↶  Restaurer le fond précédent")
+        def set_wallpaper():
+            try:
+                from .redblack_wallpaper import apply_wallpaper
+                output=apply_wallpaper()
+                QMessageBox.information(self,"REDBLACK • Fond d'écran",
+                    "Fond REDBLACK appliqué sur XFCE. Sauvegarde du fond précédent conservée.\n"+output)
+            except (OSError,ValueError) as error:
+                QMessageBox.warning(self,"REDBLACK • Fond d'écran",str(error))
+        def undo_wallpaper():
+            try:
+                from .redblack_wallpaper import restore_wallpaper
+                total=restore_wallpaper()
+                QMessageBox.information(self,"REDBLACK • Fond d'écran",
+                    f"Fond d'écran XFCE restauré pour {total} espace(s) de travail.")
+            except (OSError,ValueError) as error:
+                QMessageBox.warning(self,"REDBLACK • Restauration",str(error))
+        apply_wallpaper_button.clicked.connect(set_wallpaper)
+        restore_wallpaper_button.clicked.connect(undo_wallpaper)
+        apply_wallpaper_button.setEnabled(settings.theme=="redblack-0822")
+        self.theme.currentIndexChanged.connect(
+            lambda:apply_wallpaper_button.setEnabled(self.theme.currentData()=="redblack-0822"))
+        wallpaper_row.addWidget(apply_wallpaper_button)
+        wallpaper_row.addWidget(restore_wallpaper_button)
+        colors_box.addLayout(wallpaper_row)
+        colors_box.addWidget(QLabel("Fond XFCE facultatif : sauvegarde puis restauration explicite, aucune suppression de panneau."))
         from .cockpit_style import PALETTES
         self.palette_preview = QLabel()
         self.palette_preview.setMinimumHeight(68)
