@@ -112,17 +112,21 @@ def paint_surface(p,rect,kind="holo",phase=0.0,selected=False):
     inset=rect.adjusted(5,5,-5,-5)
     cavity=_path(inset,max(3,cut-4))
     p.fillPath(cavity,QColor(5,4,7,249 if kind=="holo" else 239))
+    # The R1 pack changes actual chrome geometry, texture and bevels, not just
+    # colors. The existing mathematically drawn shell remains a safe fallback.
+    from .redblack_r1_assets import paint_asset_layer
+    artwork = paint_asset_layer(p,kind,rect,phase,selected)
     header_h=min(60,height*.22 if not compact else 18)
     stripe=QLinearGradient(0,rect.top(),0,rect.top()+header_h)
     stripe.setColorAt(0,_color("#871025",140))
     stripe.setColorAt(.42,_color("#260913",140))
     stripe.setColorAt(1,_color("#090609",0))
     p.fillRect(QRectF(rect.left()+6,rect.top()+4,wide-12,header_h),stripe)
-    if kind in ("settings","dock","holo","notification","catalog"):
+    if kind in ("settings","dock","holo","notification","catalog") and not artwork:
         _layer(p,"pcb",rect,.16 if kind=="settings" else .085)
-    if kind in ("hud","task","button"):
+    if kind in ("hud","task","button") and not artwork:
         _layer(p,"metal",rect,.12)
-    elif kind=="settings":
+    elif kind=="settings" and not artwork:
         _layer(p,"mesh",rect,.075)
     # Chamfered PCB routes and real electronic vias live in perimeter rails.
     x,y,r,b=rect.left(),rect.top(),rect.right(),rect.bottom()
