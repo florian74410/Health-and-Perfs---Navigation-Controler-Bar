@@ -37,6 +37,7 @@ class Settings:
     bottom_dock_height: int = 84
     bottom_tabs_max: int = 3
     bottom_nav_opacity: int = 55
+    bottom_pinned_apps: list | None = None
     top_reserved: bool = True
     top_hover_ms: int = 1000
     top_trigger_px: int = 10
