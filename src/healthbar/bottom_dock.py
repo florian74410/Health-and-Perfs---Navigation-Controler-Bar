@@ -138,6 +138,7 @@ class BottomDock(QWidget):
         bounds=screens[min(settings.screen,len(screens)-1)].geometry();height=bottom_height(settings)
         self.full_rect=QRect(bounds.left(),bounds.bottom()-height+1,bounds.width(),height);self.setFixedHeight(height);self.setGeometry(self.full_rect)
         self._reserve_workarea()
+        self.body.glass_opacity=settings.bottom_nav_opacity
         key=tuple(pinned_apps(settings))
         if key!=self._pin_key:
             self._pin_key=key
@@ -216,7 +217,7 @@ class BottomDock(QWidget):
 
     def _reserve_workarea(self):
         if self.full_rect.isValid():
-            reserve_edge(self,"bottom",self.full_rect.height(),True)
+            reserve_edge(self,"bottom",0,False)
 
     def apply_status(self,state):
         self.desktop_state=state;network=state.get('network');primary=PALETTES.get(self.settings.theme,PALETTES['blue-neon'])[0]
