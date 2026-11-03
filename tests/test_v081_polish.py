@@ -114,7 +114,7 @@ class V081Tests(unittest.TestCase):
             self.assertEqual(loaded.dock_aliases["/home/demo/Documents"],"Mes fichiers")
             self.assertEqual(loaded.bottom_pinned_apps,["/home/demo/Documents"])
             with self.assertRaises(ValueError):
-                Settings(dock_aliases={"abc":"invalid\\nvalue"}).validate()
+                Settings(dock_aliases={"abc":"invalid"+chr(10)+"value"}).validate()
 
     def test_real_launcher_has_shortcut_signal_and_click_delay(self):
         app=Application("/tmp/test.desktop","Demo","utilities-terminal","system")
