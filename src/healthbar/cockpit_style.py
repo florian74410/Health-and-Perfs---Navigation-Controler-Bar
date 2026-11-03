@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFrame
 from PySide6.QtSvg import QSvgRenderer
 from .xfce_panel_skin import PALETTES
 from .theme_packs import asset_path
+from .blackred_visuals import is_blackred, paint_cockpit
 from functools import lru_cache
 
 
@@ -37,6 +38,11 @@ class CockpitFrame(QFrame):
         self.setAutoFillBackground(False)
 
     def paintEvent(self,event):
+        if is_blackred(self.theme):
+            p=QPainter(self)
+            paint_cockpit(p,self)
+            p.end()
+            return
         p=QPainter(self)
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
         p.fillRect(self.rect(),Qt.GlobalColor.transparent)

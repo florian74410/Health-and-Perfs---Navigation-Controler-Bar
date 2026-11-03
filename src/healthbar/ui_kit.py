@@ -11,6 +11,9 @@ THEMES.update(list_packs())  # External packs appear in Settings without changin
 _active = "blue-neon"
 _custom = {}
 
+def active_theme():
+    return _active
+
 def set_theme(theme):
     global _active, _custom
     _active = theme if theme in ("cyber-futuriste", *THEMES) or get_pack(theme) else "blue-neon"
